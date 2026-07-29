@@ -81,6 +81,148 @@ const { title, description } = Astro.props;
           history.replaceState(null, "", id);
         });
       });
+
+      const voiceDemo = document.querySelector<HTMLElement>("[data-agent-voice]");
+      if (voiceDemo) {
+        const toggleButton = voiceDemo.querySelector<HTMLButtonElement>("[data-voice-toggle]");
+        const stopButton = voiceDemo.querySelector<HTMLButtonElement>("[data-voice-stop]");
+        const label = voiceDemo.querySelector<HTMLElement>("[data-voice-label]");
+        const icon = toggleButton?.querySelector<HTMLElement>(".voice-button-icon");
+        const status = voiceDemo.querySelector<HTMLElement>("[data-voice-status]");
+        const messages = Array.from(voiceDemo.querySelectorAll<HTMLElement>("[data-voice-message]"));
+
+        const setStatus = (text: string) => {
+          if (status) status.textContent = text;
+        };
+        const clearActiveMessage = () => {
+          messages.forEach((message) => message.classList.remove("is-speaking"));
+        };
+
+        if (
+          !toggleButton ||
+          !stopButton ||
+          !label ||
+          !icon ||
+          !("speechSynthesis" in window) ||
+          !("SpeechSynthesisUtterance" in window)
+        ) {
+          if (toggleButton) toggleButton.disabled = true;
+          if (stopButton) stopButton.disabled = true;
+          setStatus("Синтез речи не поддерживается этим браузером");
+        } else {
+          const synth = window.speechSynthesis;
+          let isPlaying = false;
+          let isPaused = false;
+          let generation = 0;
+
+          const updateControls = (mode: "idle" | "playing" | "paused") => {
+            if (mode === "idle") {
+              label.textContent = "Слушать";
+              icon.textContent = "▶";
+              toggleButton.setAttribute("aria-pressed", "false");
+              stopButton.disabled = true;
+            }
+            if (mode === "playing") {
+              label.textContent = "Пауза";
+              icon.textContent = "Ⅱ";
+              toggleButton.setAttribute("aria-pressed", "true");
+              stopButton.disabled = false;
+            }
+            if (mode === "paused") {
+              label.textContent = "Продолжить";
+              icon.textContent = "▶";
+              toggleButton.setAttribute("aria-pressed", "false");
+              stopButton.disabled = false;
+            }
+          };
+
+          const finish = (message = "Готово к воспроизведению") => {
+            isPlaying = false;
+            isPaused = false;
+            clearActiveMessage();
+            updateControls("idle");
+            setStatus(message);
+          };
+
+          const startPlayback = () => {
+            generation += 1;
+            const currentGeneration = generation;
+            synth.cancel();
+            clearActiveMessage();
+
+            const russianVoice = synth
+              .getVoices()
+              .find((voice) => voice.lang.toLowerCase().startsWith("ru"));
+
+            isPlaying = true;
+            isPaused = false;
+            updateControls("playing");
+            setStatus("Начинаю консультацию…");
+
+            messages.forEach((message, index) => {
+              const role = message.dataset.voiceRole ?? "";
+              const text = message.querySelector<HTMLElement>(".agent-message-text")?.textContent?.trim() ?? "";
+              const utterance = new SpeechSynthesisUtterance(`${role}. ${text}`);
+              utterance.lang = "ru-RU";
+              utterance.rate = role === "Вы" ? 1 : .94;
+              utterance.pitch = role === "Вы" ? .94 : 1.04;
+              if (russianVoice) utterance.voice = russianVoice;
+
+              utterance.onstart = () => {
+                if (generation !== currentGeneration) return;
+                clearActiveMessage();
+                message.classList.add("is-speaking");
+                setStatus(`Реплика ${index + 1} из ${messages.length} · ${role}`);
+              };
+              utterance.onend = () => {
+                if (generation !== currentGeneration) return;
+                if (index === messages.length - 1) finish("Консультация завершена");
+              };
+              utterance.onerror = (event) => {
+                if (
+                  generation !== currentGeneration ||
+                  event.error === "canceled" ||
+                  event.error === "interrupted"
+                ) {
+                  return;
+                }
+                finish("Не удалось воспроизвести голос. Текстовая версия доступна слева.");
+              };
+
+              synth.speak(utterance);
+            });
+          };
+
+          toggleButton.addEventListener("click", () => {
+            if (!isPlaying) {
+              startPlayback();
+              return;
+            }
+            if (isPaused) {
+              synth.resume();
+              isPaused = false;
+              updateControls("playing");
+              setStatus("Воспроизведение продолжено");
+            } else {
+              synth.pause();
+              isPaused = true;
+              updateControls("paused");
+              setStatus("Пауза");
+            }
+          });
+
+          stopButton.addEventListener("click", () => {
+            generation += 1;
+            synth.cancel();
+            finish("Воспроизведение остановлено");
+          });
+
+          window.addEventListener("pagehide", () => {
+            generation += 1;
+            synth.cancel();
+          });
+        }
+      }
     </script>
   </body>
 </html>
