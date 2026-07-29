@@ -1,0 +1,80 @@
+name: Deploy to Yandex Cloud
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: lazysoft-production
+  cancel-in-progress: true
+
+env:
+  YC_FOLDER_ID: b1gd8r24c2unlb3s6bcc
+  YC_DEPLOY_SA_ID: ajecrul2dltagur6s8ei
+  YC_RUNTIME_SA_ID: ajega3bf7kvsvcfld3m2
+  REGISTRY_ID: crp9ahlalqaspg7tfd5v
+  IMAGE_NAME: lazysoft
+  CONTAINER_NAME: lazysoft
+  GATEWAY_URL: https://d5dadtu4m97po75hg1ib.wnq2w1o5.apigw.yandexcloud.net
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Login to Yandex Container Registry
+        uses: yc-actions/yc-cr-login@v3
+        with:
+          yc-sa-id: ${{ env.YC_DEPLOY_SA_ID }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: cr.yandex/${{ env.REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy Serverless Container revision
+        uses: yc-actions/yc-sls-container-deploy@cb679ddf2f4b89ec3ac9431a1e23c84b58fcb1a0
+        with:
+          yc-sa-id: ${{ env.YC_DEPLOY_SA_ID }}
+          folder-id: ${{ env.YC_FOLDER_ID }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          revision-image-url: cr.yandex/${{ env.REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          revision-service-account-id: ${{ env.YC_RUNTIME_SA_ID }}
+          revision-runtime: http
+          revision-cores: "1"
+          revision-memory: 128Mb
+          revision-core-fraction: "100"
+          revision-concurrency: "16"
+          revision-execution-timeout: "30"
+
+      - name: Verify deployment through API Gateway
+        run: |
+          curl \
+            --fail \
+            --show-error \
+            --silent \
+            --retry 12 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            "${GATEWAY_URL}/" |
+            grep --fixed-strings --quiet "<title>lazysoft -"

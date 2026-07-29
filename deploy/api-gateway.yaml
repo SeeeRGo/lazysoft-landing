@@ -1,0 +1,36 @@
+openapi: 3.0.0
+info:
+  title: lazysoft
+  version: 1.0.0
+
+x-yc-apigateway:
+  variables:
+    container_id:
+      default: replace-with-container-id
+      description: Yandex Serverless Container ID
+    service_account_id:
+      default: replace-with-service-account-id
+      description: Service account allowed to invoke the private container
+
+paths:
+  /:
+    x-yc-apigateway-any-method:
+      x-yc-apigateway-integration:
+        type: serverless_containers
+        container_id: ${var.container_id}
+        service_account_id: ${var.service_account_id}
+  /{proxy+}:
+    x-yc-apigateway-any-method:
+      parameters:
+        - name: proxy
+          in: path
+          required: false
+          style: simple
+          explode: false
+          schema:
+            type: string
+            default: "-"
+      x-yc-apigateway-integration:
+        type: serverless_containers
+        container_id: ${var.container_id}
+        service_account_id: ${var.service_account_id}
