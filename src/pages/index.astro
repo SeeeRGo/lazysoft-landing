@@ -1,15 +1,15 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-const title = "lazysoft - серьёзные проекты, весёлые концепты и амбициозные идеи";
+const title = "lazysoft — приложения, которые работают вместо рутины";
 const description =
-  "Портфолио разработчика: серьёзные проекты, готовые к продакшену, весёлые концепты, амбициозные идеи и статьи на Хабре.";
+  "Lazysoft создаёт приложения, которые забирают повторяющиеся задачи, чтобы вы могли быть чуточку ленивее.";
 
 const navLinks = [
-  { href: "#serious", label: "Проекты", footerLabel: "Серьёзные проекты" },
-  { href: "#fun", label: "Концепты", footerLabel: "Весёлые концепты" },
-  { href: "#ambitious", label: "Идеи", footerLabel: "Амбициозные идеи" },
-  { href: "#journey", label: "Путь", footerLabel: "Путь в IT" },
+  { href: "#apps", label: "Приложения", footerLabel: "Приложения" },
+  { href: "#philosophy", label: "Принцип", footerLabel: "Полезная лень" },
+  { href: "#lab", label: "Лаборатория", footerLabel: "Лаборатория" },
+  { href: "#about", label: "О нас", footerLabel: "О Lazysoft" },
   { href: "#words", label: "Статьи", footerLabel: "Статьи" },
 ];
 
@@ -19,7 +19,8 @@ const seriousProjects = [
     stack: "Node.js · SQLite · Docker",
     title: "Script Factory",
     description:
-      "Сервис выполнения сценариев с приоритетной очередью, persistent jobs, JSON-интерпретатором шагов, Swagger и визуальным мониторингом.",
+      "Сервис выполняет цепочки сценариев, управляет очередью и собирает результат каждого шага в одном интерфейсе.",
+    benefit: "Повторяемые сценарии выполняются сами",
     href: "https://github.com/SeeeRGo/script_factory",
   },
   {
@@ -27,7 +28,8 @@ const seriousProjects = [
     stack: "TypeScript · Convex · OpenAI",
     title: "LinkedIn Discourse Intelligence",
     description:
-      "Система мониторинга fashion- и retail-дискурса: поиск авторов через Apify, AI-скоринг публикаций и комментариев, интерфейс в Convex и Telegram-дайджест.",
+      "Система находит отраслевых авторов, оценивает публикации и комментарии и собирает главное в интерфейсе и Telegram-дайджесте.",
+    benefit: "Сигнал отделяется от информационного шума",
     href: "https://github.com/SeeeRGo/linkedin_intelligence",
   },
   {
@@ -35,7 +37,8 @@ const seriousProjects = [
     stack: "React · TypeScript · Chrome",
     title: "Swagger Converter Extension",
     description:
-      "Браузерное расширение: принимает Swagger/OpenAPI-спецификацию и формирует DOCX с описанием эндпоинтов, запросов и ответов.",
+      "Расширение принимает Swagger/OpenAPI-спецификацию и формирует DOCX с описанием эндпоинтов, запросов и ответов.",
+    benefit: "Спецификация превращается в документ",
     href: "https://github.com/SeeeRGo/swagger-converter-extension",
   },
   {
@@ -43,7 +46,8 @@ const seriousProjects = [
     stack: "Manifest V3 · OAuth 2.0",
     title: "Calendar Conference Integrator",
     description:
-      "Расширение для Google Calendar, которое добавляет ссылки Яндекс Телемоста, Jitsi, Zoom или Teams при создании события.",
+      "Расширение добавляет в событие Google Calendar ссылку Яндекс Телемоста, Jitsi, Zoom или Teams.",
+    benefit: "Встреча создаётся без похода по сервисам",
     href: "https://github.com/SeeeRGo/v0-calendar-conference-variety",
   },
 ];
@@ -121,6 +125,27 @@ const ambitiousIdeas = [
     status: "прототип",
     tagClass: "tag-someday",
     href: "https://github.com/SeeeRGo/chainlink-hackathon-project",
+  },
+];
+
+const lazyPrinciples = [
+  {
+    no: "01",
+    title: "Замечаем повторение",
+    description:
+      "Если действие приходится делать снова и снова, это уже кандидат на приложение, а не часть вашей судьбы.",
+  },
+  {
+    no: "02",
+    title: "Отдаём рутину софту",
+    description:
+      "Поиск, перенос данных, подготовку черновика и технические шаги выполняет система. Человеку остаётся решение.",
+  },
+  {
+    no: "03",
+    title: "Оставляем контроль",
+    description:
+      "Полезная лень не равна слепой автоматизации: результат можно проверить, поправить и остановить.",
   },
 ];
 
@@ -229,27 +254,27 @@ const articles = [
     <section class="hero">
       <div class="hero-inner">
         <p class="eyebrow reveal">
-          <span class="dot"></span> Разработчик - Коллекционер идей - Профессионально отдыхаю
+          <span class="dot"></span> Полезная лень · меньше рутины · больше своего времени
         </p>
         <h1 class="hero-title">
-          <span class="reveal" style="--d:.05s">Слишком много</span>
-          <span class="reveal" style="--d:.12s">идей.</span>
-          <span class="reveal" style="--d:.19s">Слишком мало</span>
-          <span class="reveal hero-emphasis" style="--d:.26s">гамаков.</span>
+          <span class="reveal" style="--d:.05s">Приложения</span>
+          <span class="reveal" style="--d:.12s">работают.</span>
+          <span class="reveal" style="--d:.19s">Вы — чуточку</span>
+          <span class="reveal hero-emphasis" style="--d:.26s">ленивее.</span>
         </h1>
         <p class="hero-sub reveal" style="--d:.36s">
-          Я разработчик с блокнотом, полным пет-проектов, и сердцем, полным
-          хороших намерений. Некоторые даже вышли в свет. Остальные загорают.
+          Lazysoft забирает повторяющиеся шаги, поиск и перекладывание данных,
+          чтобы вам оставались решения, идеи и время на что-то поважнее.
         </p>
         <div class="hero-actions reveal" style="--d:.46s">
-          <a class="btn btn-primary" href="#serious">Серьёзные проекты -></a>
-          <a class="btn btn-ghost" href="#fun">Весёлые концепты</a>
+          <a class="btn btn-primary" href="#apps">Посмотреть приложения →</a>
+          <a class="btn btn-ghost" href="#philosophy">Наш принцип</a>
         </div>
 
         <div class="ticker reveal" style="--d:.6s" aria-hidden="true">
           <div class="ticker-track">
             {
-              ["Серьёзные проекты", "Весёлые концепты", "Амбициозные идеи", "медленные релизы", "Серьёзные проекты", "Весёлые концепты", "Амбициозные идеи", "медленные релизы"].map(
+              ["меньше ручных шагов", "больше времени", "контроль остаётся у вас", "сделано с заботой", "меньше ручных шагов", "больше времени", "контроль остаётся у вас", "сделано с заботой"].map(
                 (item) => <span>{item}</span>,
               )
             }
@@ -261,11 +286,11 @@ const articles = [
         <div class="art-ring"></div>
         <img
           src="/lazysoft-logo.webp"
-          alt="Мультяшная черепаха в очках сидит на пляже и печатает на ноутбуке рядом с коктейлем и пляжным зонтом"
+          alt="Черепаха Lazysoft отдыхает на пляже, пока приложения работают"
         />
-        <span class="float-chip chip-1">деплой в понедельник</span>
-        <span class="float-chip chip-2">v0.0.1 - навсегда</span>
-        <span class="float-chip chip-3">// потом</span>
+        <span class="float-chip chip-1">делает само</span>
+        <span class="float-chip chip-2">контроль у вас</span>
+        <span class="float-chip chip-3">можно выдохнуть</span>
       </figure>
 
       <div class="waves" aria-hidden="true">
@@ -282,14 +307,14 @@ const articles = [
       <div class="strip-track">
         {
           [
-            "Готово к продакшену",
-            "Маленькие эксперименты",
-            "Отложено осознанно",
-            "Ещё думаю",
-            "Готово к продакшену",
-            "Маленькие эксперименты",
-            "Отложено осознанно",
-            "Ещё думаю",
+            "Рутину — приложению",
+            "Время — человеку",
+            "Меньше переключений",
+            "Больше спокойствия",
+            "Рутину — приложению",
+            "Время — человеку",
+            "Меньше переключений",
+            "Больше спокойствия",
           ].map((item) => (
             <>
               <span>{item}</span>
@@ -300,15 +325,41 @@ const articles = [
       </div>
     </div>
 
-    <section class="section shipped" id="serious">
+    <section class="section philosophy" id="philosophy">
+      <div class="philosophy-shell reveal-up">
+        <div class="philosophy-copy">
+          <p class="kicker">Что значит Lazysoft</p>
+          <h2>Лень — хороший повод<br />спроектировать систему.</h2>
+          <p>
+            Мы не автоматизируем человека. Мы убираем из его дня механические действия,
+            на которые жалко внимания.
+          </p>
+          <strong>Софт берёт повторение. Вы оставляете себе выбор.</strong>
+        </div>
+
+        <div class="principle-grid">
+          {
+            lazyPrinciples.map((principle) => (
+              <article>
+                <span>{principle.no}</span>
+                <h3>{principle.title}</h3>
+                <p>{principle.description}</p>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="section shipped" id="apps">
       <div class="section-head">
-        <p class="kicker reveal-up">GitHub · open source</p>
-        <h2 class="reveal-up">Реальные проекты</h2>
+        <p class="kicker reveal-up">Уже забирают рутину</p>
+        <h2 class="reveal-up">Приложения Lazysoft</h2>
         <p class="lede reveal-up">
-          Выборка из публичных репозиториев
+          Реальные публичные репозитории
           {" "}
           <a href="https://github.com/SeeeRGo/" target="_blank" rel="noreferrer">@SeeeRGo</a>.
-          Описания основаны на коде и README — без вымышленных пользователей, звёзд и результатов.
+          Каждое приложение начинается с вопроса: какой повторяющийся шаг можно больше не делать руками?
         </p>
       </div>
 
@@ -328,6 +379,7 @@ const articles = [
                 <span class="project-stack">{project.stack}</span>
               </div>
               <div class="project-copy">
+                <span class="project-benefit">{project.benefit}</span>
                 <h3>{project.title}</h3>
                 <p>{project.description}</p>
               </div>
@@ -338,13 +390,13 @@ const articles = [
       </div>
     </section>
 
-    <section class="section ideas" id="fun">
+    <section class="section ideas" id="lab">
       <div class="section-head">
-        <p class="kicker reveal-up">Маленькие эксперименты</p>
-        <h2 class="reveal-up">Весёлые концепты</h2>
+        <p class="kicker reveal-up">Лаборатория полезной лени</p>
+        <h2 class="reveal-up">Что ещё можно<br />перестать делать вручную</h2>
         <p class="lede reveal-up">
-          Реальные демо, прототипы и пет-проекты из GitHub. Степень готовности указана
-          прямо на карточке — от рабочего демо до архивного эксперимента.
+          Здесь проверяем идеи: от голосового взаимодействия и генерации видео
+          до финансовых расчётов. Статус каждого прототипа указан честно.
         </p>
       </div>
 
@@ -375,13 +427,13 @@ const articles = [
       </div>
     </section>
 
-    <section class="section ambitious" id="ambitious">
+    <section class="section ambitious" id="next">
       <div class="section-head">
-        <p class="kicker reveal-up">Начато и отложено</p>
-        <h2 class="reveal-up">Амбициозные идеи</h2>
+        <p class="kicker reveal-up">Следующие кандидаты</p>
+        <h2 class="reveal-up">Большая рутина,<br />большие системы</h2>
         <p class="lede reveal-up">
-          Более крупные WIP- и хакатонные репозитории. Это не обещания будущих продуктов:
-          карточки показывают реализованную основу и текущий статус проекта.
+          Проекты, где автоматизация требует не одной кнопки, а целого процесса.
+          Это WIP- и хакатонные репозитории с реализованной основой и открытым статусом.
         </p>
       </div>
 
@@ -424,13 +476,13 @@ const articles = [
       </div>
     </section>
 
-    <section class="section journey" id="journey">
+    <section class="section journey" id="about">
       <div class="section-head">
-        <p class="kicker reveal-up">Опыт + тексты</p>
-        <h2 class="reveal-up">Мой путь в IT</h2>
+        <p class="kicker reveal-up">Инженерия за спокойствием</p>
+        <h2 class="reveal-up">Кто делает Lazysoft</h2>
         <p class="lede reveal-up">
-          Senior frontend / full-stack developer с 8+ годами опыта в продуктовых и бизнес-системах:
-          финтех, образование, внутренние инструменты, ecommerce, ERP, web3 и редкие браузерные расширения.
+          За простым действием в интерфейсе — 8+ лет опыта в продуктовых и бизнес-системах:
+          финтехе, образовании, внутренних инструментах, ecommerce, ERP и web3.
         </p>
       </div>
 
@@ -456,8 +508,8 @@ const articles = [
 
         <div class="writing-panel reveal-up" style="--i:1">
           <div class="writing-head">
-            <p class="kicker">Статьи на Хабре</p>
-            <h3>Публичный блокнот разработчика</h3>
+            <p class="kicker">Как мы думаем вслух</p>
+            <h3>Инженерный блокнот Lazysoft</h3>
             <p>
               Шесть статей на Хабре с 2022 года и 58K+ прочтений: Shape Up, процессы разработки,
               техническая документация, удержание сотрудников, браузерные расширения и вайбкодинг.
@@ -482,11 +534,11 @@ const articles = [
 
     <section class="section words" id="words">
       <div class="section-head">
-        <p class="kicker reveal-up">Опубликовано на Хабре</p>
-        <h2 class="reveal-up">Тексты, которые всё-таки вышли</h2>
+        <p class="kicker reveal-up">Заметки о полезной лени</p>
+        <h2 class="reveal-up">Как делать меньше лишнего</h2>
         <p class="lede reveal-up">
-          Заметки о процессах, продуктовом мышлении, документации, удержании сотрудников,
-          браузерных расширениях и том, как разработка с AI-ассистентами меняет привычки разработчика.
+          О процессах без ритуалов, документации без ручного копирования,
+          продуктах без лишних шагов и разработке с AI-ассистентами.
         </p>
       </div>
 
@@ -508,15 +560,15 @@ const articles = [
 
     <section class="section contact" id="contact">
       <div class="contact-card reveal-up">
-        <h2>Давайте соберём что-нибудь из этого.<br />Когда-нибудь.</h2>
+        <h2>Что вы делаете руками<br />слишком часто?</h2>
         <p>
-          Есть идея, достойная попасть в пачку, проект для совместной работы или просто желание
-          поспорить о том, считается ли отдых работой? Мой почтовый ящик медленный, но тёплый.
+          Расскажите о повторяющемся процессе. Посмотрим, может ли приложение
+          забрать технические шаги и вернуть вам немного времени.
         </p>
         <div class="contact-links">
-          <a class="btn btn-primary" href="mailto:hello@lazysoft.dev">hello@lazysoft.dev</a>
-          <a class="btn btn-ghost" href="#">GitHub</a>
-          <a class="btn btn-ghost" href="#">RSS</a>
+          <a class="btn btn-primary" href="mailto:hello@lazysoft.dev">Обсудить задачу</a>
+          <a class="btn btn-ghost" href="https://github.com/SeeeRGo/" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+          <a class="btn btn-ghost" href="https://habr.com/ru/users/SeeeRgo/articles/" target="_blank" rel="noopener noreferrer">Хабр ↗</a>
         </div>
       </div>
     </section>
@@ -526,7 +578,7 @@ const articles = [
     <div class="footer-inner">
       <div class="footer-brand">
         <img src="/lazysoft-logo.webp" alt="Логотип lazysoft с черепахой" />
-        <p>lazy<em>soft</em><br /><small>Медленное ПО, сделанное с заботой (и перекусами).</small></p>
+        <p>lazy<em>soft</em><br /><small>Наши приложения работают, чтобы вы могли быть чуточку ленивее.</small></p>
       </div>
       <nav class="footer-nav" aria-label="Подвал">
         {navLinks.map((link) => <a href={link.href}>{link.footerLabel}</a>)}
@@ -534,7 +586,7 @@ const articles = [
       </nav>
     </div>
     <p class="footer-fine">
-      © <span id="year"></span> lazysoft - Сделано между снами. Ни одна идея не пострадала, только была отложена.
+      © <span id="year"></span> lazysoft · Меньше повторений. Больше времени на своё.
     </p>
   </footer>
 </BaseLayout>
