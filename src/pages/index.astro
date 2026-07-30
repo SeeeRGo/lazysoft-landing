@@ -16,91 +16,112 @@ const navLinks = [
 
 const seriousProjects = [
   {
-    year: "2024",
-    stack: "Go - SQLite",
-    title: "Seabreeze",
+    year: "2026",
+    stack: "Node.js · SQLite · Docker",
+    title: "Script Factory",
     description:
-      "Молниеносно быстрый ридер лент, который уважает ваше внимание. Около 2 тысяч звёзд и всё ещё держится.",
+      "Сервис выполнения сценариев с приоритетной очередью, persistent jobs, JSON-интерпретатором шагов, Swagger и визуальным мониторингом.",
+    href: "https://github.com/SeeeRGo/script_factory",
   },
   {
-    year: "2023",
-    stack: "Rust - WASM",
-    title: "Pebble",
-    description: "Библиотека управления состоянием на 4 КБ. Маленькая, плавная, делает ровно одну вещь хорошо.",
+    year: "2026",
+    stack: "TypeScript · Convex · OpenAI",
+    title: "LinkedIn Discourse Intelligence",
+    description:
+      "Система мониторинга fashion- и retail-дискурса: поиск авторов через Apify, AI-скоринг публикаций и комментариев, интерфейс в Convex и Telegram-дайджест.",
+    href: "https://github.com/SeeeRGo/linkedin_intelligence",
   },
   {
-    year: "2022",
-    stack: "Python - CLI",
-    title: "Coastline",
+    year: "2025",
+    stack: "React · TypeScript · Chrome",
+    title: "Swagger Converter Extension",
     description:
-      "CLI, который превращает хаотичные папки в аккуратные архивы. Негромко используется несколькими тысячами разработчиков.",
+      "Браузерное расширение: принимает Swagger/OpenAPI-спецификацию и формирует DOCX с описанием эндпоинтов, запросов и ответов.",
+    href: "https://github.com/SeeeRGo/swagger-converter-extension",
+  },
+  {
+    year: "2026",
+    stack: "Manifest V3 · OAuth 2.0",
+    title: "Calendar Conference Integrator",
+    description:
+      "Расширение для Google Calendar, которое добавляет ссылки Яндекс Телемоста, Jitsi, Zoom или Teams при создании события.",
+    href: "https://github.com/SeeeRGo/v0-calendar-conference-variety",
   },
 ];
 
 const funConcepts = [
   {
     tag: "прототип",
-    title: "Lowtide",
+    title: "Photo Liftoff",
     description:
-      "Минималистичный таймер фокуса в форме приливной таблицы. С открытым исходным кодом, неожиданно успокаивает.",
-    meta: "TypeScript - Canvas",
-    status: "играбельно",
+      "Превращает фотографию в задачу генерации короткого видео: drag-and-drop, подсказки для промпта, mock-режим и подключаемый Replicate-совместимый провайдер.",
+    meta: "JavaScript · AI video",
+    status: "mock + provider",
     tagClass: "tag-soon",
+    href: "https://github.com/SeeeRGo/AI-video",
   },
   {
-    tag: "игрушка",
-    title: "Shellfish",
-    description: "Терминал, который мягко предлагает сделать перерыв, с ASCII-ракушками и звуками океана.",
-    meta: "CLI - audio",
-    status: "наполовину",
+    tag: "демо",
+    title: "Voice Agent Demo",
+    description:
+      "Браузерный голосовой агент: микрофон и WebRTC, потоковый ответ OpenAI Realtime API, live-транскрипт и лента событий для отладки.",
+    meta: "WebRTC · Realtime API",
+    status: "рабочее демо",
     tagClass: "tag-maybe",
+    href: "https://github.com/SeeeRGo/demo-voice-agent",
   },
   {
-    tag: "набросок",
-    title: "SlowQL",
+    tag: "приложение",
+    title: "Business Forecast",
     description:
-      "Язык запросов, который намеренно расслабленно относится к дедлайнам. Возвращает результаты «когда-нибудь, по вайбу».",
-    meta: "заметки про парсер",
-    status: "скорее шутка",
+      "Интерфейс финансового прогноза с таблицами доходов, расходов и начальных балансов, вычислениями, авторизацией и автосохранением.",
+    meta: "Next.js · Effector · MUI",
+    status: "есть live demo",
     tagClass: "tag-someday",
+    href: "https://github.com/SeeeRGo/business-forecast",
   },
   {
-    tag: "утилита",
-    title: "Sandbar",
-    description: "Генератор статических сайтов, который собирает проект, пока вы спите, и извиняется, если опоздал.",
-    meta: "Node - static",
-    status: "почти настоящее",
+    tag: "эксперимент",
+    title: "Instant Karaoke",
+    description:
+      "Пайплайн создаёт караоке-видео из аудио: отделяет вокал, распознаёт слова с таймкодами, анимирует текст и сохраняет результат.",
+    meta: "Python · Whisper · Manim",
+    status: "архив эксперимента",
     tagClass: "tag-soon",
+    href: "https://github.com/SeeeRGo/instant-karaoke",
   },
 ];
 
 const ambitiousIdeas = [
   {
-    tag: "пауза",
-    title: "Tidepool",
+    tag: "WIP",
+    title: "GitHub for DOCX",
     description:
-      "Небольшой менеджер закладок на своём хостинге, который пересказывает ссылки, пока вы спите. RSS, но читает сам.",
-    meta: "краулер - саммари",
-    status: "ждёт фокуса",
+      "Платформа для совместной работы с DOCX по модели Git: версии, ветки, pull request, diff и комментарии. README честно фиксирует проект как work in progress.",
+    meta: "Next.js · Prisma · tRPC",
+    status: "в разработке",
     tagClass: "tag-someday",
+    href: "https://github.com/SeeeRGo/github-for-docx",
   },
   {
-    tag: "исследование",
-    title: "Hammock CI",
+    tag: "MVP",
+    title: "Blockchain Diploma Verification",
     description:
-      "CI-пайплайн, который деплоит только когда понимает, что вы хорошо отдохнули. DevOps с учётом выгорания.",
-    meta: "DevOps - отдых",
-    status: "слишком широко",
+      "Система выдачи и выборочной проверки цифровых дипломов с Convex-бэкендом, деревьями Меркла и закреплением доказательств в Ethereum L2.",
+    meta: "Next.js · Convex · Solidity",
+    status: "MVP",
     tagClass: "tag-maybe",
+    href: "https://github.com/SeeeRGo/mvp-blockchain",
   },
   {
-    tag: "отложено",
-    title: "Driftwood",
+    tag: "хакатон",
+    title: "Partial Vote Delegation",
     description:
-      "Приложение заметок на Markdown, где старые записи буквально выбрасывает на пляжный интерфейс, чтобы вы их заново открывали.",
-    meta: "Markdown - поиск",
-    status: "когда-нибудь",
+      "Прототип постоянного голосования: смарт-контракт хранит голоса, а граф делегирования позволяет распределять голос между несколькими представителями.",
+    meta: "TypeScript · Solidity",
+    status: "прототип",
     tagClass: "tag-someday",
+    href: "https://github.com/SeeeRGo/chainlink-hackathon-project",
   },
 ];
 
@@ -321,25 +342,36 @@ const articles = [
 
     <section class="section shipped" id="serious">
       <div class="section-head">
-        <p class="kicker reveal-up">Боевое качество</p>
-        <h2 class="reveal-up">Серьёзные проекты</h2>
+        <p class="kicker reveal-up">GitHub · open source</p>
+        <h2 class="reveal-up">Реальные проекты</h2>
         <p class="lede reveal-up">
-          Большие, законченные или близкие к продакшену проекты. Это то, что пережило
-          стадию идеи, дошло до пользователей и не развалилось от первого порыва ветра.
+          Выборка из публичных репозиториев
+          {" "}
+          <a href="https://github.com/SeeeRGo/" target="_blank" rel="noreferrer">@SeeeRGo</a>.
+          Описания основаны на коде и README — без вымышленных пользователей, звёзд и результатов.
         </p>
       </div>
 
       <div class="project-list">
         {
           seriousProjects.map((project, index) => (
-            <a class="project reveal-up" href="#" style={`--i:${index}`}>
+            <a
+              class="project reveal-up"
+              href={project.href}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`${project.title} на GitHub`}
+              style={`--i:${index}`}
+            >
               <div class="project-meta">
                 <span class="project-year">{project.year}</span>
                 <span class="project-stack">{project.stack}</span>
               </div>
-              <h3>{project.title}</h3>
-              <p>{project.description}</p>
-              <span class="project-go">Открыть -></span>
+              <div class="project-copy">
+                <h3>{project.title}</h3>
+                <p>{project.description}</p>
+              </div>
+              <span class="project-go">GitHub ↗</span>
             </a>
           ))
         }
@@ -351,15 +383,22 @@ const articles = [
         <p class="kicker reveal-up">Маленькие эксперименты</p>
         <h2 class="reveal-up">Весёлые концепты</h2>
         <p class="lede reveal-up">
-          Небольшие эксперименты, прототипы и пет-проекты. Не готовы к продакшену, зато помогают
-          проверять механики, настроение и сомнительные названия.
+          Реальные демо, прототипы и пет-проекты из GitHub. Степень готовности указана
+          прямо на карточке — от рабочего демо до архивного эксперимента.
         </p>
       </div>
 
       <div class="idea-grid">
         {
           funConcepts.map((concept, index) => (
-            <article class="idea-card reveal-up" style={`--i:${index}`}>
+            <a
+              class="idea-card reveal-up"
+              href={concept.href}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`${concept.title} на GitHub`}
+              style={`--i:${index}`}
+            >
               <header>
                 <span class="idea-no">{String(index + 1).padStart(2, "0")}</span>
                 <span class={`tag ${concept.tagClass}`}>{concept.tag}</span>
@@ -370,7 +409,7 @@ const articles = [
                 <span>{concept.meta}</span>
                 <span>{concept.status}</span>
               </footer>
-            </article>
+            </a>
           ))
         }
       </div>
@@ -381,15 +420,22 @@ const articles = [
         <p class="kicker reveal-up">Начато и отложено</p>
         <h2 class="reveal-up">Амбициозные идеи</h2>
         <p class="lede reveal-up">
-          Проекты, которые начинались с подозрительно уверенным оптимизмом, а потом были
-          поставлены на паузу. Скоуп большой, заметки настоящие, гамак пока побеждает.
+          Более крупные WIP- и хакатонные репозитории. Это не обещания будущих продуктов:
+          карточки показывают реализованную основу и текущий статус проекта.
         </p>
       </div>
 
       <div class="idea-grid">
         {
           ambitiousIdeas.map((idea, index) => (
-            <article class="idea-card reveal-up" style={`--i:${index}`}>
+            <a
+              class="idea-card reveal-up"
+              href={idea.href}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`${idea.title} на GitHub`}
+              style={`--i:${index}`}
+            >
               <header>
                 <span class="idea-no">{String(index + 1).padStart(2, "0")}</span>
                 <span class={`tag ${idea.tagClass}`}>{idea.tag}</span>
@@ -400,14 +446,20 @@ const articles = [
                 <span>{idea.meta}</span>
                 <span>{idea.status}</span>
               </footer>
-            </article>
+            </a>
           ))
         }
 
-        <a class="idea-card idea-add reveal-up" href="#contact" style={`--i:${ambitiousIdeas.length}`}>
-          <span class="plus">+</span>
-          <h3>Есть проект для этой пачки?</h3>
-          <p>Всегда найдётся место ещё одному серьёзному плану, который станет очень аккуратным TODO.</p>
+        <a
+          class="idea-card idea-add reveal-up"
+          href="https://github.com/SeeeRGo?tab=repositories"
+          target="_blank"
+          rel="noreferrer"
+          style={`--i:${ambitiousIdeas.length}`}
+        >
+          <span class="plus">↗</span>
+          <h3>Все репозитории</h3>
+          <p>Открыть полный список публичных проектов в профиле SeeeRGo на GitHub.</p>
         </a>
       </div>
     </section>
