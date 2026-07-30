@@ -155,12 +155,6 @@ a { color: inherit; text-decoration: none; }
 .btn-ghost { background: transparent; box-shadow: 3px 3px 0 var(--teal); }
 .btn-ghost:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--teal); background: rgba(42,167,155,.12); }
 
-/* ticker */
-.ticker { margin-top: 2.5rem; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
-.ticker-track { display: flex; gap: 2.2rem; width: max-content; animation: marquee 22s linear infinite; }
-.ticker-track span { font-family: var(--font-mono); font-size: .82rem; color: var(--ink-soft); white-space: nowrap; }
-@keyframes marquee { to { transform: translateX(-50%); } }
-
 /* hero art */
 .hero-art {
   position: relative;
@@ -209,6 +203,7 @@ a { color: inherit; text-decoration: none; }
   font-size: 1.25rem; letter-spacing: .02em; white-space: nowrap; text-transform: uppercase;
 }
 .strip-track .star { color: var(--gold); font-style: normal; }
+@keyframes marquee { to { transform: translateX(-50%); } }
 
 /* ============================================================
    SECTIONS
