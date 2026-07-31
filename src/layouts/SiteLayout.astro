@@ -1,0 +1,28 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  canonicalPath?: string;
+  image?: string;
+  pageType?: "website" | "article";
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
+  noindex?: boolean;
+  mainClass?: string;
+}
+
+const props = Astro.props;
+---
+
+<BaseLayout {...props}>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="sun" aria-hidden="true"><span class="sun-core"></span></div>
+  <SiteHeader />
+  <main class:list={["site-main", props.mainClass]}>
+    <slot />
+  </main>
+  <SiteFooter />
+</BaseLayout>

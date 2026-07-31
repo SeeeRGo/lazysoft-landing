@@ -77,4 +77,4 @@ jobs:
             --retry-delay 5 \
             --retry-all-errors \
             "${GATEWAY_URL}/" |
-            grep --fixed-strings --quiet "<title>lazysoft"
+            grep --fixed-strings --quiet 'property="og:site_name" content="Lazysoft"'

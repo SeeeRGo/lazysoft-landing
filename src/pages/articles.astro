@@ -1,0 +1,46 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import ContactBand from "../components/ContactBand.astro";
+import { articles } from "../data/catalog";
+
+const title = "Статьи Lazysoft о разработке, автоматизации и продуктовых процессах";
+const description =
+  "Практические статьи о Swagger и документации, браузерных расширениях, Shape Up, требованиях и инженерных процессах.";
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/articles/">
+  <section class="page-hero page-hero-catalog">
+    <div>
+      <Breadcrumbs items={[{ label: "Статьи" }]} />
+      <p class="eyebrow"><span class="dot"></span> Инженерный блокнот</p>
+      <h1>Как делать<br /><em>меньше лишнего.</em></h1>
+      <p class="page-hero-lede">
+        Разборы реальных проектов и процессов: от автоматической документации API
+        до Shape Up, требований и работы с новыми инструментами разработки.
+      </p>
+    </div>
+    <aside class="page-hero-note">
+      <span>6 публикаций</span>
+      <strong>Более 58 тысяч прочтений на Хабре с 2022 года.</strong>
+      <a href="https://habr.com/ru/users/SeeeRgo/articles/" target="_blank" rel="noopener noreferrer">Профиль автора ↗</a>
+    </aside>
+  </section>
+
+  <section class="section articles-page-section">
+    <div class="article-list">
+      {articles.map((article, index) => (
+        <article class="article reveal-up" style={`--i:${index}`}>
+          <a href={article.href} target="_blank" rel="noopener noreferrer">
+            <span class="article-date">{article.date}</span>
+            <h2>{article.title}</h2>
+            <p>{article.description}</p>
+            <span class="article-read">Читать на Хабре →</span>
+          </a>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <ContactBand title="Нужно разобрать не статью, а вашу задачу?" />
+</SiteLayout>

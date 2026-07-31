@@ -1,0 +1,19 @@
+---
+import { navLinks } from "../data/catalog";
+
+const pathname = Astro.url.pathname;
+const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
+---
+
+<header class="nav" id="top">
+  <a class="brand" href="/" aria-label="Lazysoft — на главную">
+    <img src="/lazysoft-logo.webp" alt="" width="46" height="46" />
+    <span class="brand-name">lazy<em>soft</em></span>
+  </a>
+  <nav class="nav-links" aria-label="Основная навигация">
+    {navLinks.map((link) => (
+      <a href={link.href} aria-current={isActive(link.href) ? "page" : undefined}>{link.label}</a>
+    ))}
+    <a class="nav-cta" href="/contact/">Обсудить задачу</a>
+  </nav>
+</header>

@@ -4,9 +4,54 @@ import "../styles/global.css";
 interface Props {
   title: string;
   description: string;
+  canonicalPath?: string;
+  image?: string;
+  pageType?: "website" | "article";
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
+const {
+  title,
+  description,
+  canonicalPath = Astro.url.pathname,
+  image = "/lazysoft-logo.webp",
+  pageType = "website",
+  structuredData,
+  noindex = false,
+} = Astro.props;
+
+const siteUrl = "https://lazysoft.ru";
+const canonical = new URL(canonicalPath, siteUrl).toString();
+const socialImage = new URL(image, siteUrl).toString();
+const baseStructuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Lazysoft",
+    alternateName: "lazysoft",
+    url: siteUrl,
+    inLanguage: "ru-RU",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Lazysoft",
+    url: siteUrl,
+    logo: `${siteUrl}/lazysoft-logo.webp`,
+    slogan: "Наши приложения работают, чтобы вы могли быть чуточку ленивее.",
+    sameAs: [
+      "https://github.com/SeeeRGo/",
+      "https://habr.com/ru/users/SeeeRgo/articles/",
+    ],
+  },
+];
+const extraStructuredData = structuredData
+  ? Array.isArray(structuredData)
+    ? structuredData
+    : [structuredData]
+  : [];
+const jsonLd = [...baseStructuredData, ...extraStructuredData];
 ---
 
 <!doctype html>
@@ -16,6 +61,20 @@ const { title, description } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large"} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:type" content={pageType} />
+    <meta property="og:site_name" content="Lazysoft" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:alt" content="Логотип Lazysoft: черепаха отдыхает с ноутбуком" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
     <link rel="icon" type="image/webp" href="/lazysoft-logo.webp" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,6 +82,7 @@ const { title, description } = Astro.props;
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,400..700&family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
   </head>
   <body>
     <slot />

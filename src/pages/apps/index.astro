@@ -1,0 +1,50 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import ContactBand from "../../components/ContactBand.astro";
+import { apps } from "../../data/catalog";
+
+const title = "Приложения Lazysoft — автоматизация процессов и браузерные инструменты";
+const description =
+  "Готовые приложения и открытые проекты Lazysoft: автоматизация сценариев, Swagger в DOCX, интеграции календаря и отраслевой мониторинг.";
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/apps/">
+  <section class="page-hero page-hero-catalog">
+    <div>
+      <Breadcrumbs items={[{ label: "Приложения" }]} />
+      <p class="eyebrow"><span class="dot"></span> Уже работают</p>
+      <h1>Приложения<br /><em>полезной лени.</em></h1>
+      <p class="page-hero-lede">
+        Реальные публичные проекты. Каждый начинался с повторяющегося действия,
+        которое хотелось больше не выполнять руками.
+      </p>
+    </div>
+    <aside class="page-hero-note">
+      <span>Все проекты открыты</span>
+      <strong>На странице каждого приложения — задача, сценарий работы, технологии и ссылка на исходный код.</strong>
+      <a href="https://github.com/SeeeRGo/" target="_blank" rel="noopener noreferrer">Профиль на GitHub ↗</a>
+    </aside>
+  </section>
+
+  <section class="section catalog-section" aria-labelledby="apps-heading">
+    <div class="section-head">
+      <p class="kicker">Каталог</p>
+      <h2 id="apps-heading">Четыре готовых сценария</h2>
+    </div>
+    <div class="app-catalog-grid">
+      {apps.map((app, index) => (
+        <a class="app-catalog-card reveal-up" href={`/apps/${app.slug}/`} style={`--i:${index}`}>
+          <div class="app-catalog-meta"><span>{app.year}</span><span>{app.category}</span></div>
+          <h2>{app.title}</h2>
+          <strong>{app.benefit}</strong>
+          <p>{app.description}</p>
+          <div class="app-stack">{app.stack.map((item) => <span>{item}</span>)}</div>
+          <span class="catalog-link">Как работает →</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <ContactBand title="Нужен похожий инструмент для вашего процесса?" description="Покажите повторяющийся сценарий — разберём, можно ли превратить его в небольшое приложение или расширение." />
+</SiteLayout>

@@ -1,0 +1,19 @@
+---
+import { navLinks } from "../data/catalog";
+---
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a class="footer-brand" href="/">
+      <img src="/lazysoft-logo.webp" alt="Логотип Lazysoft с черепахой" width="56" height="56" />
+      <p>lazy<em>soft</em><br /><small>Наши приложения работают, чтобы вы могли быть чуточку ленивее.</small></p>
+    </a>
+    <nav class="footer-nav" aria-label="Навигация в подвале">
+      {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+      <a href="/contact/">Контакт</a>
+    </nav>
+  </div>
+  <p class="footer-fine">
+    © <span id="year"></span> Lazysoft · Меньше повторений. Больше времени на своё.
+  </p>
+</footer>

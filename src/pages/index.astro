@@ -1,56 +1,10 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { apps, services } from "../data/catalog";
 
-const title = "lazysoft — приложения, которые работают вместо рутины";
+const title = "Разработка веб-приложений и автоматизация бизнеса — Lazysoft";
 const description =
-  "Lazysoft создаёт приложения, которые забирают повторяющиеся задачи, чтобы вы могли быть чуточку ленивее.";
-
-const navLinks = [
-  { href: "#apps", label: "Приложения", footerLabel: "Приложения" },
-  { href: "#philosophy", label: "Принцип", footerLabel: "Полезная лень" },
-  { href: "#lab", label: "Лаборатория", footerLabel: "Лаборатория" },
-  { href: "#about", label: "О нас", footerLabel: "О Lazysoft" },
-  { href: "#words", label: "Статьи", footerLabel: "Статьи" },
-];
-
-const seriousProjects = [
-  {
-    year: "2026",
-    stack: "Node.js · SQLite · Docker",
-    title: "Script Factory",
-    description:
-      "Сервис выполняет цепочки сценариев, управляет очередью и собирает результат каждого шага в одном интерфейсе.",
-    benefit: "Повторяемые сценарии выполняются сами",
-    href: "https://github.com/SeeeRGo/script_factory",
-  },
-  {
-    year: "2026",
-    stack: "TypeScript · Convex · OpenAI",
-    title: "LinkedIn Discourse Intelligence",
-    description:
-      "Система находит отраслевых авторов, оценивает публикации и комментарии и собирает главное в интерфейсе и Telegram-дайджесте.",
-    benefit: "Сигнал отделяется от информационного шума",
-    href: "https://github.com/SeeeRGo/linkedin_intelligence",
-  },
-  {
-    year: "2025",
-    stack: "React · TypeScript · Chrome",
-    title: "Swagger Converter Extension",
-    description:
-      "Расширение принимает Swagger/OpenAPI-спецификацию и формирует DOCX с описанием эндпоинтов, запросов и ответов.",
-    benefit: "Спецификация превращается в документ",
-    href: "https://github.com/SeeeRGo/swagger-converter-extension",
-  },
-  {
-    year: "2026",
-    stack: "Manifest V3 · OAuth 2.0",
-    title: "Calendar Conference Integrator",
-    description:
-      "Расширение добавляет в событие Google Calendar ссылку Яндекс Телемоста, Jitsi, Zoom или Teams.",
-    benefit: "Встреча создаётся без похода по сервисам",
-    href: "https://github.com/SeeeRGo/v0-calendar-conference-variety",
-  },
-];
+  "Разработка веб-приложений, внутренних систем, браузерных расширений и MVP. Lazysoft автоматизирует повторяющиеся бизнес-процессы.";
 
 const funConcepts = [
   {
@@ -62,16 +16,6 @@ const funConcepts = [
     status: "mock + provider",
     tagClass: "tag-soon",
     href: "https://github.com/SeeeRGo/AI-video",
-  },
-  {
-    tag: "демо",
-    title: "Voice Agent Demo",
-    description:
-      "Браузерный голосовой агент: микрофон и WebRTC, потоковый ответ OpenAI Realtime API, live-транскрипт и лента событий для отладки.",
-    meta: "WebRTC · Realtime API",
-    status: "рабочее демо",
-    tagClass: "tag-maybe",
-    href: "https://github.com/SeeeRGo/demo-voice-agent",
   },
   {
     tag: "приложение",
@@ -235,22 +179,7 @@ const articles = [
 ];
 ---
 
-<BaseLayout title={title} description={description}>
-  <div class="grain" aria-hidden="true"></div>
-  <div class="sun" aria-hidden="true"><span class="sun-core"></span></div>
-
-  <header class="nav" id="top">
-    <a class="brand" href="#top">
-      <img src="/lazysoft-logo.webp" alt="Логотип lazysoft: черепаха отдыхает на пляже с ноутбуком" />
-      <span class="brand-name">lazy<em>soft</em></span>
-    </a>
-    <nav class="nav-links" aria-label="Основная навигация">
-      {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
-      <a class="nav-cta" href="#contact">Написать</a>
-    </nav>
-  </header>
-
-  <main>
+<SiteLayout title={title} description={description} canonicalPath="/">
     <section class="hero">
       <div class="hero-inner">
         <p class="eyebrow reveal">
@@ -267,8 +196,8 @@ const articles = [
           чтобы вам оставались решения, идеи и время на что-то поважнее.
         </p>
         <div class="hero-actions reveal" style="--d:.46s">
-          <a class="btn btn-primary" href="#apps">Посмотреть приложения →</a>
-          <a class="btn btn-ghost" href="#philosophy">Наш принцип</a>
+          <a class="btn btn-primary" href="/services/">Заказать разработку →</a>
+          <a class="btn btn-ghost" href="/apps/">Посмотреть приложения</a>
         </div>
       </div>
 
@@ -341,6 +270,28 @@ const articles = [
       </div>
     </section>
 
+    <section class="section home-services" id="services">
+      <div class="section-head">
+        <p class="kicker reveal-up">Заказная разработка</p>
+        <h2 class="reveal-up">Какой процесс<br />можно упростить</h2>
+        <p class="lede reveal-up">
+          От узкого расширения до внутренней системы. Каждая услуга получила отдельную страницу
+          с подходящими сценариями, составом первого релиза и примерами проектов.
+        </p>
+      </div>
+      <div class="home-service-grid">
+        {services.map((service, index) => (
+          <a class="home-service-card reveal-up" href={`/services/${service.slug}/`} style={`--i:${index}`}>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <p>{service.eyebrow}</p>
+            <h3>{service.title}</h3>
+            <strong>Подробнее →</strong>
+          </a>
+        ))}
+      </div>
+      <a class="section-more reveal-up" href="/services/">Все услуги и процесс работы →</a>
+    </section>
+
     <section class="section shipped" id="apps">
       <div class="section-head">
         <p class="kicker reveal-up">Уже забирают рутину</p>
@@ -355,29 +306,28 @@ const articles = [
 
       <div class="project-list">
         {
-          seriousProjects.map((project, index) => (
+          apps.map((project, index) => (
             <a
               class="project reveal-up"
-              href={project.href}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`${project.title} на GitHub`}
+              href={`/apps/${project.slug}/`}
+              aria-label={`Подробнее о приложении ${project.title}`}
               style={`--i:${index}`}
             >
               <div class="project-meta">
                 <span class="project-year">{project.year}</span>
-                <span class="project-stack">{project.stack}</span>
+                <span class="project-stack">{project.stack.join(" · ")}</span>
               </div>
               <div class="project-copy">
                 <span class="project-benefit">{project.benefit}</span>
                 <h3>{project.title}</h3>
                 <p>{project.description}</p>
               </div>
-              <span class="project-go">GitHub ↗</span>
+              <span class="project-go">Подробнее →</span>
             </a>
           ))
         }
       </div>
+      <a class="section-more reveal-up" href="/apps/">Открыть каталог приложений →</a>
     </section>
 
     <section class="section ideas" id="lab">
@@ -385,8 +335,8 @@ const articles = [
         <p class="kicker reveal-up">Лаборатория полезной лени</p>
         <h2 class="reveal-up">Что ещё можно<br />перестать делать вручную</h2>
         <p class="lede reveal-up">
-          Здесь проверяем идеи: от голосового взаимодействия и генерации видео
-          до финансовых расчётов. Статус каждого прототипа указан честно.
+          Здесь проверяем идеи: от генерации видео до финансовых расчётов
+          и обработки аудио. Статус каждого прототипа указан честно.
         </p>
       </div>
 
@@ -556,27 +506,10 @@ const articles = [
           забрать технические шаги и вернуть вам немного времени.
         </p>
         <div class="contact-links">
-          <a class="btn btn-primary" href="mailto:hello@lazysoft.dev">Обсудить задачу</a>
+          <a class="btn btn-primary" href="/contact/">Обсудить задачу</a>
           <a class="btn btn-ghost" href="https://github.com/SeeeRGo/" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
           <a class="btn btn-ghost" href="https://habr.com/ru/users/SeeeRgo/articles/" target="_blank" rel="noopener noreferrer">Хабр ↗</a>
         </div>
       </div>
     </section>
-  </main>
-
-  <footer class="footer">
-    <div class="footer-inner">
-      <div class="footer-brand">
-        <img src="/lazysoft-logo.webp" alt="Логотип lazysoft с черепахой" />
-        <p>lazy<em>soft</em><br /><small>Наши приложения работают, чтобы вы могли быть чуточку ленивее.</small></p>
-      </div>
-      <nav class="footer-nav" aria-label="Подвал">
-        {navLinks.map((link) => <a href={link.href}>{link.footerLabel}</a>)}
-        <a href="#contact">Контакт</a>
-      </nav>
-    </div>
-    <p class="footer-fine">
-      © <span id="year"></span> lazysoft · Меньше повторений. Больше времени на своё.
-    </p>
-  </footer>
-</BaseLayout>
+</SiteLayout>

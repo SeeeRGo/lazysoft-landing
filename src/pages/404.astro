@@ -1,0 +1,21 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+---
+
+<SiteLayout
+  title="Страница не найдена — Lazysoft"
+  description="Такой страницы на сайте Lazysoft нет."
+  canonicalPath="/404/"
+  noindex={true}
+  mainClass="not-found-main"
+>
+  <section class="not-found">
+    <p class="kicker">Ошибка 404</p>
+    <h1>Эта страница уже<br /><em>ничего не делает.</em></h1>
+    <p>Возможно, адрес изменился или ссылка устарела. Вернитесь к приложениям или услугам.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/">На главную →</a>
+      <a class="btn btn-ghost" href="/apps/">Приложения</a>
+    </div>
+  </section>
+</SiteLayout>

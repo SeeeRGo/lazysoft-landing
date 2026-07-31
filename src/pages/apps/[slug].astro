@@ -1,0 +1,113 @@
+---
+import type { GetStaticPaths } from "astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import ContactBand from "../../components/ContactBand.astro";
+import { apps, services, type App } from "../../data/catalog";
+
+export const getStaticPaths = (() =>
+  apps.map((app) => ({ params: { slug: app.slug }, props: { app } }))) satisfies GetStaticPaths;
+
+interface Props { app: App; }
+const { app } = Astro.props;
+const relatedServices = services.filter((service) => app.serviceSlugs.includes(service.slug));
+const canonicalPath = `/apps/${app.slug}/`;
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: app.title,
+    description: app.description,
+    url: `https://lazysoft.ru${canonicalPath}`,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    codeRepository: app.repository,
+    author: { "@type": "Organization", name: "Lazysoft", url: "https://lazysoft.ru" },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Главная", item: "https://lazysoft.ru/" },
+      { "@type": "ListItem", position: 2, name: "Приложения", item: "https://lazysoft.ru/apps/" },
+      { "@type": "ListItem", position: 3, name: app.title, item: `https://lazysoft.ru${canonicalPath}` },
+    ],
+  },
+];
+---
+
+<SiteLayout title={app.seoTitle} description={app.description} canonicalPath={canonicalPath} structuredData={structuredData}>
+  <section class="page-hero app-detail-hero">
+    <div>
+      <Breadcrumbs items={[{ label: "Приложения", href: "/apps/" }, { label: app.title }]} />
+      <p class="eyebrow"><span class="dot"></span> {app.category}</p>
+      <h1>{app.title}</h1>
+      <p class="app-benefit">{app.benefit}</p>
+      <p class="page-hero-lede">{app.description}</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href={app.repository} target="_blank" rel="noopener noreferrer">Исходный код ↗</a>
+        <a class="btn btn-ghost" href="#how-it-works">Как работает</a>
+      </div>
+    </div>
+    <aside class="app-fact-card">
+      <div><span>Год</span><strong>{app.year}</strong></div>
+      <div><span>Статус</span><strong>{app.status}</strong></div>
+      <div><span>Стек</span><strong>{app.stack.join(" · ")}</strong></div>
+    </aside>
+  </section>
+
+  <section class="section problem-solution-section">
+    <article class="problem-card">
+      <span>До приложения</span>
+      <h2>Проблема</h2>
+      <p>{app.problem}</p>
+    </article>
+    <article class="solution-card">
+      <span>С приложением</span>
+      <h2>Решение</h2>
+      <p>{app.solution}</p>
+    </article>
+  </section>
+
+  <section class="section workflow-section" id="how-it-works">
+    <div class="section-head">
+      <p class="kicker">Один законченный сценарий</p>
+      <h2>Как это работает</h2>
+    </div>
+    <ol class="workflow-list">
+      {app.workflow.map((step, index) => (
+        <li class="reveal-up" style={`--i:${index}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{step}</p></li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="section capability-section">
+    <div class="detail-split">
+      <div class="detail-intro"><p class="kicker">Внутри проекта</p><h2>Основные<br />возможности</h2></div>
+      <div class="pill-list">{app.capabilities.map((item) => <span>{item}</span>)}</div>
+    </div>
+  </section>
+
+  {relatedServices.length > 0 && (
+    <section class="section related-section">
+      <div class="section-head"><p class="kicker">Для похожей задачи</p><h2>Связанные услуги</h2></div>
+      <div class="related-grid">
+        {relatedServices.map((service) => (
+          <a class="related-card" href={`/services/${service.slug}/`}>
+            <span>{service.eyebrow}</span>
+            <h3>{service.title}</h3>
+            <p>{service.description}</p>
+            <strong>Подробнее →</strong>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="section faq-section">
+    <div class="section-head"><p class="kicker">О проекте</p><h2>Вопросы и ответы</h2></div>
+    <div class="faq-list">{app.faq.map((item) => <details><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>
+  </section>
+
+  <ContactBand title="Нужно приложение для похожего процесса?" description="Опишите, какие действия приходится повторять. Выберем между веб-приложением, расширением и небольшой интеграцией." />
+</SiteLayout>

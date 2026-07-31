@@ -1,0 +1,97 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import ContactBand from "../components/ContactBand.astro";
+
+const title = "О разработчике Lazysoft — опыт в веб-приложениях и продуктовых системах";
+const description =
+  "Lazysoft создаёт senior frontend-разработчик с 8+ годами опыта в финтехе, образовании, ERP, ecommerce и продуктовых веб-системах.";
+
+const timeline = [
+  {
+    period: "2025–2026",
+    title: "Senior frontend на продуктовых платформах",
+    description:
+      "Интерфейсы сложных пользовательских сценариев на React, Next.js, Nx, React Query, Webpack и GitLab CI.",
+  },
+  {
+    period: "2023–2025",
+    title: "Финтех и бэк-офисные системы",
+    description:
+      "Миграция банковского сервиса, микрофронтенды, подготовка релизов, код-ревью и работа с аналитиками.",
+  },
+  {
+    period: "2018–2022",
+    title: "Образование, ERP, ecommerce и web3",
+    description:
+      "Сложные SPA, общий код для web/mobile, формы, таблицы, карты и рост от frontend-разработчика до лида команды.",
+  },
+];
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "AboutPage",
+  name: "О разработчике Lazysoft",
+  url: "https://lazysoft.ru/about/",
+  mainEntity: {
+    "@type": "Person",
+    jobTitle: "Senior Frontend Developer",
+    worksFor: { "@type": "Organization", name: "Lazysoft", url: "https://lazysoft.ru" },
+    sameAs: ["https://github.com/SeeeRGo/", "https://habr.com/ru/users/SeeeRgo/articles/"],
+  },
+};
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/about/" structuredData={structuredData}>
+  <section class="page-hero about-hero">
+    <div>
+      <Breadcrumbs items={[{ label: "О разработчике" }]} />
+      <p class="eyebrow"><span class="dot"></span> Инженерия за спокойствием</p>
+      <h1>Опыт, который<br /><em>не требует лишнего шума.</em></h1>
+      <p class="page-hero-lede">
+        Lazysoft — это практический взгляд senior frontend-разработчика на приложения:
+        сложность остаётся внутри системы, а пользователь получает понятный сценарий.
+      </p>
+    </div>
+    <aside class="experience-card">
+      <span><strong>8+ лет</strong> коммерческого опыта</span>
+      <span><strong>Senior / Lead</strong> frontend-роли</span>
+      <span><strong>React + TypeScript</strong> основной стек</span>
+      <span><strong>58K+</strong> прочтений на Хабре</span>
+    </aside>
+  </section>
+
+  <section class="section about-principles">
+    <div class="section-head">
+      <p class="kicker">Подход</p>
+      <h2>Полезная лень — это инженерная задача</h2>
+    </div>
+    <div class="about-values">
+      <article><span>01</span><h3>Понять процесс</h3><p>Код начинается после того, как понятны пользователь, повторение и цена ошибки.</p></article>
+      <article><span>02</span><h3>Сделать один сценарий хорошо</h3><p>Первая версия должна завершать реальную задачу, а не только демонстрировать набор экранов.</p></article>
+      <article><span>03</span><h3>Оставить контроль</h3><p>Автоматизация помогает принимать решения, но не прячет важное действие от пользователя.</p></article>
+    </div>
+  </section>
+
+  <section class="section career-section">
+    <div class="section-head"><p class="kicker">Опыт</p><h2>От интерфейсов до продуктовых систем</h2></div>
+    <div class="career-timeline">
+      {timeline.map((item) => (
+        <article><span>{item.period}</span><div><h3>{item.title}</h3><p>{item.description}</p></div></article>
+      ))}
+    </div>
+  </section>
+
+  <section class="section proof-section">
+    <div class="proof-card">
+      <div><p class="kicker">Открытая работа</p><h2>Код и мысли можно проверить</h2></div>
+      <p>Публичные репозитории показывают архитектуру и статус проектов, а статьи — ход рассуждений о разработке, процессах и автоматизации.</p>
+      <div class="proof-links">
+        <a class="btn btn-primary" href="https://github.com/SeeeRGo/" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+        <a class="btn btn-ghost" href="https://habr.com/ru/users/SeeeRgo/articles/" target="_blank" rel="noopener noreferrer">Хабр ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <ContactBand />
+</SiteLayout>

@@ -1,0 +1,22 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Что вы делаете руками слишком часто?",
+  description = "Опишите повторяющийся процесс или идею продукта. Разберём задачу и определим разумный объём первого шага.",
+} = Astro.props;
+---
+
+<section class="section contact page-contact-band">
+  <div class="contact-card reveal-up">
+    <h2>{title}</h2>
+    <p>{description}</p>
+    <div class="contact-links">
+      <a class="btn btn-primary" href="/contact/">Обсудить задачу →</a>
+      <a class="btn btn-ghost" href="https://github.com/SeeeRGo/" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+    </div>
+  </div>
+</section>

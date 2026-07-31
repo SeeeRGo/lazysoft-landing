@@ -1,0 +1,131 @@
+---
+import type { GetStaticPaths } from "astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import ContactBand from "../../components/ContactBand.astro";
+import { apps, services, type Service } from "../../data/catalog";
+
+export const getStaticPaths = (() =>
+  services.map((service) => ({ params: { slug: service.slug }, props: { service } }))) satisfies GetStaticPaths;
+
+interface Props {
+  service: Service;
+}
+
+const { service } = Astro.props;
+const relatedApps = apps.filter((app) => service.relatedApps.includes(app.slug));
+const canonicalPath = `/services/${service.slug}/`;
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: service.title,
+    description: service.description,
+    url: `https://lazysoft.ru${canonicalPath}`,
+    provider: { "@type": "Organization", name: "Lazysoft", url: "https://lazysoft.ru" },
+    areaServed: "RU",
+    availableChannel: { "@type": "ServiceChannel", serviceUrl: "https://lazysoft.ru/contact/" },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Главная", item: "https://lazysoft.ru/" },
+      { "@type": "ListItem", position: 2, name: "Услуги", item: "https://lazysoft.ru/services/" },
+      { "@type": "ListItem", position: 3, name: service.title, item: `https://lazysoft.ru${canonicalPath}` },
+    ],
+  },
+];
+---
+
+<SiteLayout title={service.seoTitle} description={service.description} canonicalPath={canonicalPath} structuredData={structuredData}>
+  <section class="page-hero detail-hero">
+    <div>
+      <Breadcrumbs items={[{ label: "Услуги", href: "/services/" }, { label: service.title }]} />
+      <p class="eyebrow"><span class="dot"></span> {service.eyebrow}</p>
+      <h1>{service.title}</h1>
+      <p class="page-hero-lede">{service.lead}</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="/contact/">Обсудить задачу →</a>
+        <a class="btn btn-ghost" href="#result">Что получится</a>
+      </div>
+    </div>
+    <aside class="outcome-card">
+      <span>Результат</span>
+      <p>{service.outcome}</p>
+    </aside>
+  </section>
+
+  <section class="section detail-section" id="result">
+    <div class="detail-split">
+      <div class="detail-intro">
+        <p class="kicker">Когда это полезно</p>
+        <h2>Сигналы, что пора<br />сделать инструмент</h2>
+      </div>
+      <ul class="check-list">
+        {service.problems.map((problem) => <li>{problem}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section detail-section detail-section-tint">
+    <div class="section-head">
+      <p class="kicker">Состав первого релиза</p>
+      <h2>Что входит в работу</h2>
+      <p class="lede">Точный набор зависит от задачи, но результат всегда привязан к законченному пользовательскому сценарию.</p>
+    </div>
+    <div class="deliverable-grid">
+      {service.deliverables.map((item, index) => (
+        <article class="deliverable-card reveal-up" style={`--i:${index}`}>
+          <span>{String(index + 1).padStart(2, "0")}</span>
+          <h3>{item}</h3>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="section use-case-section">
+    <div class="detail-split">
+      <div class="detail-intro">
+        <p class="kicker">Примеры задач</p>
+        <h2>Подходящие<br />сценарии</h2>
+      </div>
+      <div class="pill-list">
+        {service.useCases.map((item) => <span>{item}</span>)}
+      </div>
+    </div>
+  </section>
+
+  {relatedApps.length > 0 && (
+    <section class="section related-section">
+      <div class="section-head">
+        <p class="kicker">Практика</p>
+        <h2>Похожие задачи в приложениях</h2>
+      </div>
+      <div class="related-grid">
+        {relatedApps.map((app) => (
+          <a class="related-card" href={`/apps/${app.slug}/`}>
+            <span>{app.category}</span>
+            <h3>{app.title}</h3>
+            <p>{app.description}</p>
+            <strong>Открыть проект →</strong>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="section faq-section">
+    <div class="section-head"><p class="kicker">Коротко о главном</p><h2>Вопросы и ответы</h2></div>
+    <div class="faq-list">
+      {service.faq.map((item) => (
+        <details>
+          <summary>{item.question}</summary>
+          <p>{item.answer}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+
+  <ContactBand title={`Обсудить: ${service.shortTitle.toLowerCase()}`} description="Опишите текущий процесс и желаемый результат. В ответ определим, какой первый шаг имеет смысл оценивать." />
+</SiteLayout>

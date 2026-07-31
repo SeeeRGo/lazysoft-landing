@@ -1,0 +1,64 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import ContactBand from "../../components/ContactBand.astro";
+import { services } from "../../data/catalog";
+
+const title = "Услуги разработки веб-приложений и автоматизации — Lazysoft";
+const description =
+  "Разработка веб-приложений, внутренних систем, браузерных расширений и MVP. Автоматизация повторяющихся бизнес-процессов.";
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/services/">
+  <section class="page-hero page-hero-catalog">
+    <div>
+      <Breadcrumbs items={[{ label: "Услуги" }]} />
+      <p class="eyebrow"><span class="dot"></span> Заказная разработка Lazysoft</p>
+      <h1>Разработка, которая<br /><em>убирает рутину.</em></h1>
+      <p class="page-hero-lede">
+        Проектируем и создаём веб-приложения для конкретных рабочих процессов:
+        от узкого браузерного инструмента до внутренней системы или первого релиза продукта.
+      </p>
+    </div>
+    <aside class="page-hero-note">
+      <span>Принцип</span>
+      <strong>Сначала — задача и пользовательский сценарий. Затем — подходящий объём технологии.</strong>
+      <p>Не автоматизируем всё подряд и не прячем сложность за количеством экранов.</p>
+    </aside>
+  </section>
+
+  <section class="section catalog-section" aria-labelledby="services-heading">
+    <div class="section-head">
+      <p class="kicker">Чем можем помочь</p>
+      <h2 id="services-heading">Четыре формата работы</h2>
+      <p class="lede">Выберите ближайший вариант. Границы конкретного проекта определим после знакомства с процессом.</p>
+    </div>
+    <div class="catalog-grid service-catalog-grid">
+      {services.map((service, index) => (
+        <a class="catalog-card reveal-up" href={`/services/${service.slug}/`} style={`--i:${index}`}>
+          <span class="catalog-no">{String(index + 1).padStart(2, "0")}</span>
+          <p class="catalog-eyebrow">{service.eyebrow}</p>
+          <h2>{service.title}</h2>
+          <p>{service.description}</p>
+          <strong>{service.outcome}</strong>
+          <span class="catalog-link">Подробнее →</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="section process-section" aria-labelledby="process-heading">
+    <div class="section-head">
+      <p class="kicker">Без лишнего ритуала</p>
+      <h2 id="process-heading">Как начинается работа</h2>
+    </div>
+    <ol class="process-grid">
+      <li><span>01</span><h3>Контекст</h3><p>Вы описываете процесс, пользователей и результат, которого сейчас не хватает.</p></li>
+      <li><span>02</span><h3>Границы</h3><p>Отделяем обязательный сценарий от функций, которые можно спокойно отложить.</p></li>
+      <li><span>03</span><h3>План</h3><p>Фиксируем этапы, интеграции, риски и способ проверить готовый результат.</p></li>
+      <li><span>04</span><h3>Первый релиз</h3><p>Создаём законченную версию, публикуем и собираем обратную связь.</p></li>
+    </ol>
+  </section>
+
+  <ContactBand title="Есть процесс, который давно просится в приложение?" />
+</SiteLayout>

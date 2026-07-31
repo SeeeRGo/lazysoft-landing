@@ -1,0 +1,49 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+
+const title = "Обсудить разработку веб-приложения — Lazysoft";
+const description =
+  "Опишите задачу на разработку веб-приложения, автоматизацию процесса, браузерное расширение или MVP.";
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/contact/">
+  <section class="page-hero contact-page-hero">
+    <div>
+      <Breadcrumbs items={[{ label: "Контакт" }]} />
+      <p class="eyebrow"><span class="dot"></span> Начать с контекста</p>
+      <h1>Расскажите,<br /><em>что повторяется.</em></h1>
+      <p class="page-hero-lede">
+        Необязательно готовить большое техническое задание. Для первого разговора достаточно
+        описать пользователя, текущий процесс и результат, который хочется получить.
+      </p>
+    </div>
+    <aside class="contact-direct-card">
+      <span>Написать напрямую</span>
+      <a href="mailto:hello@lazysoft.dev">hello@lazysoft.dev</a>
+      <p>Укажите в письме удобный способ связи. Репозитории и технический контекст можно приложить ссылками.</p>
+      <a class="btn btn-primary" href="mailto:hello@lazysoft.dev?subject=Задача для Lazysoft">Создать письмо →</a>
+    </aside>
+  </section>
+
+  <section class="section brief-section">
+    <div class="section-head"><p class="kicker">Короткий бриф</p><h2>Что поможет быстрее понять задачу</h2></div>
+    <ol class="brief-grid">
+      <li><span>01</span><h3>Кто пользователь?</h3><p>Сотрудник, клиент, партнёр или небольшая продуктовая команда.</p></li>
+      <li><span>02</span><h3>Что происходит сейчас?</h3><p>Какие шаги выполняются вручную и какие инструменты уже используются.</p></li>
+      <li><span>03</span><h3>Что должно измениться?</h3><p>Как будет выглядеть хороший результат для пользователя и бизнеса.</p></li>
+      <li><span>04</span><h3>Есть ли ограничения?</h3><p>Срок, существующий стек, обязательные интеграции или требования безопасности.</p></li>
+    </ol>
+  </section>
+
+  <section class="section contact-alternatives">
+    <div class="proof-card">
+      <div><p class="kicker">До разговора</p><h2>Посмотрите работу в открытую</h2></div>
+      <p>Исходный код проектов опубликован на GitHub, а разборы разработки и процессов — в статьях на Хабре.</p>
+      <div class="proof-links">
+        <a class="btn btn-ghost" href="https://github.com/SeeeRGo/" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+        <a class="btn btn-ghost" href="https://habr.com/ru/users/SeeeRgo/articles/" target="_blank" rel="noopener noreferrer">Хабр ↗</a>
+      </div>
+    </div>
+  </section>
+</SiteLayout>
