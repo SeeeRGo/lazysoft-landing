@@ -176,6 +176,7 @@
 .brief-step h3 { margin-top: .55rem; font: 800 clamp(1.9rem, 4vw, 2.65rem)/1.05 var(--font-display); letter-spacing: -.035em; }
 .brief-step-lede { max-width: 64ch; margin: .65rem 0 2rem; color: var(--ink-soft); font-size: .95rem; }
 .brief-path-choice { margin: 0 0 1.8rem; border: 0; }
+.brief-name-field { max-width: 520px; margin: 0 0 1.8rem; }
 .brief-path-choice legend { margin-bottom: .75rem; font-size: .82rem; font-weight: 800; color: var(--ink); }
 .brief-path-choice > div { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
 .brief-path-choice label { position: relative; cursor: pointer; }

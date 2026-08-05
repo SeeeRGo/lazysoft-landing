@@ -1,4 +1,5 @@
 type BriefPayload = {
+  requesterName: string;
   startingPoint: string;
   existingBrief: string;
   idea: string;
@@ -19,6 +20,7 @@ type BriefPayload = {
 };
 
 type BriefResult = {
+  requesterName: string;
   title: string;
   summary: string;
   user: string;
@@ -78,6 +80,7 @@ if (root) {
 
   function collectPayload(): BriefPayload {
     return {
+      requesterName: text("requesterName"),
       startingPoint: selected("startingPoint") || "idea",
       existingBrief: text("existingBrief"),
       idea: text("idea"),
@@ -120,6 +123,7 @@ if (root) {
     const titleSeed = sourceDescription.replace(/^(я хочу|хотим|нужно|сделать)\s+/i, "").split(/[.!?\n]/)[0].trim();
 
     return {
+      requesterName: payload.requesterName,
       title: `MVP: ${titleSeed || "первая версия продукта"}`.slice(0, 110),
       summary: sourceDescription,
       user: payload.audience || "Не определён в исходном описании — требуется уточнить",
@@ -212,6 +216,7 @@ if (root) {
       : fallback.threeDayPlan;
 
     return {
+      requesterName: String(candidate.requesterName || fallback.requesterName).slice(0, 80),
       title: String(candidate.title || fallback.title).slice(0, 140),
       summary: String(candidate.summary || fallback.summary),
       user: String(candidate.user || fallback.user),
@@ -234,7 +239,9 @@ if (root) {
   function toMarkdown(brief: BriefResult): string {
     const list = (items: string[], ordered = false) => items.map((item, index) => `${ordered ? `${index + 1}.` : "-"} ${item}`).join("\n");
     const plan = brief.threeDayPlan.map((item) => `### ${item.day}\n${list(item.tasks)}`).join("\n\n");
+    const requester = brief.requesterName ? `\nАвтор запроса: ${brief.requesterName}\n` : "";
     return `# ${brief.title}
+${requester}
 
 ## Краткое описание
 ${brief.summary}
@@ -292,6 +299,7 @@ ${brief.nextStep}
     outputTitle.textContent = brief.title;
     outputMode.textContent = mode === "ai" ? "Структурировано с RouterAI" : "Локальный черновик";
     outputBody.replaceChildren();
+    if (brief.requesterName) appendSection("Автор запроса", brief.requesterName);
     appendSection("Краткое описание", brief.summary);
     appendSection("Пользователь", brief.user);
     appendSection("Проблема", brief.problem);
