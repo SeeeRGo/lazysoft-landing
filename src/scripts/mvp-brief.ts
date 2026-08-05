@@ -1,0 +1,575 @@
+type BriefPayload = {
+  idea: string;
+  audience: string;
+  problem: string;
+  currentProcess: string;
+  desiredProcess: string;
+  success: string;
+  platform: string;
+  features: string[];
+  customFeatures: string;
+  laterFeatures: string;
+  dataInputs: string;
+  integrations: string;
+  references: string;
+  screenshotNotes: string;
+  screenshot?: { name: string; type: string; dataUrl: string };
+};
+
+type BriefResult = {
+  title: string;
+  summary: string;
+  user: string;
+  problem: string;
+  goal: string;
+  primaryScenario: string[];
+  included: string[];
+  outOfScope: string[];
+  screens: string[];
+  dataAndIntegrations: string[];
+  acceptanceCriteria: string[];
+  risksAndAssumptions: string[];
+  openQuestions: string[];
+  threeDayPlan: Array<{ day: string; tasks: string[] }>;
+  externalCosts: string[];
+  nextStep: string;
+};
+
+const root = document.querySelector<HTMLElement>("[data-brief-app]");
+
+if (root) {
+  const form = root.querySelector<HTMLFormElement>("[data-brief-form]")!;
+  const steps = Array.from(root.querySelectorAll<HTMLElement>("[data-step]"));
+  const progressSteps = Array.from(root.querySelectorAll<HTMLElement>("[data-progress-step]"));
+  const nextButton = root.querySelector<HTMLButtonElement>("[data-brief-next]")!;
+  const backButton = root.querySelector<HTMLButtonElement>("[data-brief-back]")!;
+  const progressText = root.querySelector<HTMLElement>("[data-progress-text]")!;
+  const progressBar = root.querySelector<HTMLElement>("[data-progress-bar]")!;
+  const validationMessage = root.querySelector<HTMLElement>("[data-validation-message]")!;
+  const generateButton = root.querySelector<HTMLButtonElement>("[data-generate-brief]")!;
+  const generationStatus = root.querySelector<HTMLElement>("[data-generation-status]")!;
+  const output = root.querySelector<HTMLElement>("[data-brief-output]")!;
+  const outputTitle = root.querySelector<HTMLElement>("[data-output-title]")!;
+  const outputMode = root.querySelector<HTMLElement>("[data-output-mode]")!;
+  const outputBody = root.querySelector<HTMLElement>("[data-output-body]")!;
+  const contactCta = root.querySelector<HTMLElement>("[data-contact-cta]")!;
+  const screenshotInput = root.querySelector<HTMLInputElement>("[data-screenshot-input]")!;
+  const screenshotPreview = root.querySelector<HTMLElement>("[data-screenshot-preview]")!;
+  const screenshotImage = root.querySelector<HTMLImageElement>("[data-screenshot-image]")!;
+  const screenshotName = root.querySelector<HTMLElement>("[data-screenshot-name]")!;
+  const screenshotRemove = root.querySelector<HTMLButtonElement>("[data-screenshot-remove]")!;
+
+  const storageKey = "lazysoft-mvp-brief-v1";
+  let currentStep = 0;
+  let screenshot: BriefPayload["screenshot"];
+  let currentBrief: BriefResult | null = null;
+  let currentMarkdown = "";
+  let saveTimer = 0;
+
+  const text = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | null)?.value.trim() ?? "";
+  const selected = (name: string) => {
+    const item = form.querySelector<HTMLInputElement>(`[name="${name}"]:checked`);
+    return item?.value ?? "";
+  };
+  const selectedMany = (name: string) =>
+    Array.from(form.querySelectorAll<HTMLInputElement>(`[name="${name}"]:checked`)).map((item) => item.value);
+
+  function collectPayload(): BriefPayload {
+    return {
+      idea: text("idea"),
+      audience: text("audience"),
+      problem: text("problem"),
+      currentProcess: text("currentProcess"),
+      desiredProcess: text("desiredProcess"),
+      success: text("success"),
+      platform: selected("platform"),
+      features: selectedMany("features"),
+      customFeatures: text("customFeatures"),
+      laterFeatures: text("laterFeatures"),
+      dataInputs: text("dataInputs"),
+      integrations: text("integrations"),
+      references: text("references"),
+      screenshotNotes: text("screenshotNotes"),
+      screenshot,
+    };
+  }
+
+  function splitIdeas(value: string): string[] {
+    return value
+      .split(/\n|;|\.(?=\s+[А-ЯA-Z0-9])/)
+      .map((part) => part.replace(/^\s*\d+[.)]\s*/, "").trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+
+  function unique(items: Array<string | undefined>): string[] {
+    return [...new Set(items.map((item) => item?.trim()).filter((item): item is string => Boolean(item)))];
+  }
+
+  function createLocalBrief(payload: BriefPayload): BriefResult {
+    const scenario = splitIdeas(payload.desiredProcess);
+    const custom = splitIdeas(payload.customFeatures);
+    const later = splitIdeas(payload.laterFeatures);
+    const integrations = splitIdeas(payload.integrations);
+    const inputs = splitIdeas(payload.dataInputs);
+    const titleSeed = payload.idea.replace(/^(я хочу|хотим|нужно|сделать)\s+/i, "").split(/[.!?\n]/)[0].trim();
+
+    return {
+      title: `MVP: ${titleSeed || "первая версия продукта"}`.slice(0, 110),
+      summary: payload.idea,
+      user: payload.audience,
+      problem: payload.problem,
+      goal: payload.success,
+      primaryScenario: scenario.length ? scenario : [payload.desiredProcess],
+      included: unique([
+        `Формат: ${payload.platform || "веб-приложение"}`,
+        ...payload.features,
+        ...custom,
+        "Базовый адаптивный интерфейс для основного сценария",
+        "Исходный код и инструкция запуска",
+      ]),
+      outOfScope: unique([
+        ...later,
+        "Функции за пределами согласованного основного сценария",
+        "Оплата хостинга, домена, платных API, AI-моделей, SMS/email и лицензий",
+      ]),
+      screens: unique([
+        "Стартовый экран или точка входа",
+        payload.features.includes("Форма ввода данных") ? "Экран ввода данных" : undefined,
+        payload.features.includes("Список и просмотр записей") ? "Список и просмотр результата" : undefined,
+        "Экран результата основного сценария",
+      ]),
+      dataAndIntegrations: unique([
+        ...inputs.map((item) => `Входные данные: ${item}`),
+        ...integrations.map((item) => `Интеграция: ${item}`),
+        payload.references ? `Материалы и ограничения: ${payload.references}` : undefined,
+        payload.screenshotNotes ? `Комментарий к скриншоту: ${payload.screenshotNotes}` : undefined,
+      ]),
+      acceptanceCriteria: unique([
+        payload.success,
+        "Пользователь может пройти основной сценарий от начала до результата без помощи разработчика",
+        "В согласованном сценарии нет блокирующих ошибок",
+      ]),
+      risksAndAssumptions: unique([
+        integrations.length ? "Доступность и ограничения внешних API нужно подтвердить до начала разработки" : "Необходимость внешних интеграций нужно подтвердить до начала разработки",
+        "Объём должен оставаться в пределах одного ключевого сценария",
+        "Все доступы и исходные материалы предоставляются до начала трёх рабочих дней",
+      ]),
+      openQuestions: unique([
+        !payload.dataInputs ? "Какие данные поступают на вход и в каком формате?" : undefined,
+        !payload.integrations ? "Нужны ли внешние сервисы или достаточно локальной логики?" : undefined,
+        "Где будет размещена тестовая версия и кто оплачивает инфраструктуру?",
+        "Какой один результат важнее всего показать первому пользователю?",
+      ]),
+      threeDayPlan: [
+        { day: "До старта", tasks: ["Согласовать сценарий, критерии готовности, доступы и внешние расходы"] },
+        { day: "День 1", tasks: ["Собрать структуру интерфейса", "Проверить рискованные технические места"] },
+        { day: "День 2", tasks: ["Реализовать основной сценарий", "Подключить данные и согласованные интеграции"] },
+        { day: "День 3", tasks: ["Проверить сценарий", "Исправить критичные ошибки", "Передать код и инструкцию"] },
+      ],
+      externalCosts: [
+        "Хостинг и домен — не входят в 10 000 ₽",
+        "Платные API, AI-модели, SMS, email, лицензии и комиссии — не входят в 10 000 ₽",
+        "Исполнитель перечисляет обязательные внешние расходы до начала работы",
+      ],
+      nextStep: "Сократить описание до одного проверяемого сценария, закрыть открытые вопросы и согласовать критерии готовности.",
+    };
+  }
+
+  function createElement(tag: string, className?: string, value?: string): HTMLElement {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (value !== undefined) element.textContent = value;
+    return element;
+  }
+
+  function appendSection(title: string, values: string | string[], ordered = false) {
+    const section = createElement("section", "brief-output-section");
+    section.append(createElement("h5", undefined, title));
+    if (Array.isArray(values)) {
+      const list = createElement(ordered ? "ol" : "ul");
+      (values.length ? values : ["Не указано — требуется уточнить"]).forEach((value) => list.append(createElement("li", undefined, value)));
+      section.append(list);
+    } else {
+      section.append(createElement("p", undefined, values || "Не указано — требуется уточнить"));
+    }
+    outputBody.append(section);
+  }
+
+  function normalizeBrief(candidate: Partial<BriefResult>, fallback: BriefResult): BriefResult {
+    const strings = (value: unknown, defaultValue: string[]) =>
+      Array.isArray(value) ? unique(value.map((item) => String(item))) : defaultValue;
+    const plans = Array.isArray(candidate.threeDayPlan)
+      ? candidate.threeDayPlan.slice(0, 6).map((item) => ({
+          day: String(item?.day ?? "Этап"),
+          tasks: strings(item?.tasks, []),
+        }))
+      : fallback.threeDayPlan;
+
+    return {
+      title: String(candidate.title || fallback.title).slice(0, 140),
+      summary: String(candidate.summary || fallback.summary),
+      user: String(candidate.user || fallback.user),
+      problem: String(candidate.problem || fallback.problem),
+      goal: String(candidate.goal || fallback.goal),
+      primaryScenario: strings(candidate.primaryScenario, fallback.primaryScenario),
+      included: strings(candidate.included, fallback.included),
+      outOfScope: strings(candidate.outOfScope, fallback.outOfScope),
+      screens: strings(candidate.screens, fallback.screens),
+      dataAndIntegrations: strings(candidate.dataAndIntegrations, fallback.dataAndIntegrations),
+      acceptanceCriteria: strings(candidate.acceptanceCriteria, fallback.acceptanceCriteria),
+      risksAndAssumptions: strings(candidate.risksAndAssumptions, fallback.risksAndAssumptions),
+      openQuestions: strings(candidate.openQuestions, fallback.openQuestions),
+      threeDayPlan: plans,
+      externalCosts: strings(candidate.externalCosts, fallback.externalCosts),
+      nextStep: String(candidate.nextStep || fallback.nextStep),
+    };
+  }
+
+  function toMarkdown(brief: BriefResult): string {
+    const list = (items: string[], ordered = false) => items.map((item, index) => `${ordered ? `${index + 1}.` : "-"} ${item}`).join("\n");
+    const plan = brief.threeDayPlan.map((item) => `### ${item.day}\n${list(item.tasks)}`).join("\n\n");
+    return `# ${brief.title}
+
+## Краткое описание
+${brief.summary}
+
+## Пользователь
+${brief.user}
+
+## Проблема
+${brief.problem}
+
+## Цель MVP
+${brief.goal}
+
+## Основной сценарий
+${list(brief.primaryScenario, true)}
+
+## Входит в первую версию
+${list(brief.included)}
+
+## Не входит в первую версию
+${list(brief.outOfScope)}
+
+## Экраны и состояния
+${list(brief.screens)}
+
+## Данные и интеграции
+${list(brief.dataAndIntegrations)}
+
+## Критерии готовности
+${list(brief.acceptanceCriteria)}
+
+## Риски и допущения
+${list(brief.risksAndAssumptions)}
+
+## Открытые вопросы
+${list(brief.openQuestions)}
+
+## План на три рабочих дня
+${plan}
+
+## Внешние расходы
+${list(brief.externalCosts)}
+
+## Следующий шаг
+${brief.nextStep}
+
+---
+Черновик подготовлен на lazysoft.ru. Он не является договором или окончательной оценкой до согласования исполнителем.
+`;
+  }
+
+  function renderBrief(brief: BriefResult, mode: "ai" | "local") {
+    currentBrief = brief;
+    currentMarkdown = toMarkdown(brief);
+    outputTitle.textContent = brief.title;
+    outputMode.textContent = mode === "ai" ? "Структурировано с RouterAI" : "Локальный черновик";
+    outputBody.replaceChildren();
+    appendSection("Краткое описание", brief.summary);
+    appendSection("Пользователь", brief.user);
+    appendSection("Проблема", brief.problem);
+    appendSection("Цель MVP", brief.goal);
+    appendSection("Основной сценарий", brief.primaryScenario, true);
+    appendSection("Входит в первую версию", brief.included);
+    appendSection("Не входит в первую версию", brief.outOfScope);
+    appendSection("Экраны и состояния", brief.screens);
+    appendSection("Данные и интеграции", brief.dataAndIntegrations);
+    appendSection("Критерии готовности", brief.acceptanceCriteria);
+    appendSection("Риски и допущения", brief.risksAndAssumptions);
+    appendSection("Открытые вопросы", brief.openQuestions);
+    brief.threeDayPlan.forEach((item) => appendSection(`План: ${item.day}`, item.tasks));
+    appendSection("Внешние расходы", brief.externalCosts);
+    appendSection("Следующий шаг", brief.nextStep);
+    output.hidden = false;
+    contactCta.hidden = false;
+    trackGoal(mode === "ai" ? "mvp_brief_ai_ready" : "mvp_brief_local_ready");
+  }
+
+  function showStatus(message: string, error = false) {
+    generationStatus.textContent = message;
+    generationStatus.hidden = false;
+    generationStatus.classList.toggle("is-error", error);
+  }
+
+  async function callApi(body: Record<string, unknown>) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 50_000);
+    try {
+      const response = await fetch("/api/mvp-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "AI-сервис не ответил");
+      return data;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  function validateStep(index: number): boolean {
+    validationMessage.textContent = "";
+    const section = steps[index];
+    const required = Array.from(section.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[required]"));
+    for (const field of required) {
+      field.classList.remove("is-invalid");
+      field.closest("label")?.classList.remove("is-invalid");
+      if (!field.checkValidity()) {
+        field.classList.add("is-invalid");
+        field.closest("label")?.classList.add("is-invalid");
+        validationMessage.textContent = field.type === "checkbox" ? "Подтвердите условия внешних расходов." : "Заполните отмеченные поля чуть подробнее.";
+        field.focus();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function showStep(index: number, shouldScroll = true) {
+    currentStep = Math.max(0, Math.min(steps.length - 1, index));
+    steps.forEach((step, stepIndex) => {
+      const active = stepIndex === currentStep;
+      step.hidden = !active;
+      step.classList.toggle("is-active", active);
+    });
+    progressSteps.forEach((step, stepIndex) => {
+      step.classList.toggle("is-active", stepIndex === currentStep);
+      step.classList.toggle("is-done", stepIndex < currentStep);
+    });
+    progressText.textContent = `Шаг ${currentStep + 1} из ${steps.length}`;
+    progressBar.style.width = `${((currentStep + 1) / steps.length) * 100}%`;
+    backButton.hidden = currentStep === 0;
+    nextButton.hidden = currentStep === steps.length - 1;
+    validationMessage.textContent = "";
+    if (shouldScroll) root.scrollIntoView({ behavior: "smooth", block: "start" });
+    trackGoal(`mvp_brief_step_${currentStep + 1}`);
+  }
+
+  function trackGoal(goal: string, params: Record<string, unknown> = {}) {
+    window.dispatchEvent(new CustomEvent("lazysoft:goal", { detail: { goal, ...params } }));
+    const dataLayer = (window as typeof window & { dataLayer?: unknown[] }).dataLayer;
+    dataLayer?.push({ event: goal, ...params });
+    const globalWindow = window as typeof window & { ym?: (...args: unknown[]) => void; __YANDEX_METRIKA_ID__?: number };
+    if (globalWindow.ym && globalWindow.__YANDEX_METRIKA_ID__) {
+      globalWindow.ym(globalWindow.__YANDEX_METRIKA_ID__, "reachGoal", goal, params);
+    }
+  }
+
+  function saveAnswers() {
+    window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(() => {
+      const values: Record<string, string | string[]> = {};
+      new FormData(form).forEach((value, key) => {
+        if (key === "screenshot" || key === "contact" || key === "contactName") return;
+        if (values[key]) values[key] = ([] as string[]).concat(values[key] as string | string[], String(value));
+        else values[key] = String(value);
+      });
+      localStorage.setItem(storageKey, JSON.stringify(values));
+    }, 250);
+  }
+
+  function restoreAnswers() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "{}") as Record<string, string | string[]>;
+      Object.entries(saved).forEach(([name, value]) => {
+        const fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`));
+        fields.forEach((field) => {
+          if (field instanceof HTMLInputElement && (field.type === "checkbox" || field.type === "radio")) {
+            field.checked = ([] as string[]).concat(value).includes(field.value);
+          } else if (typeof value === "string") field.value = value;
+        });
+      });
+    } catch {
+      localStorage.removeItem(storageKey);
+    }
+  }
+
+  async function compressImage(file: File): Promise<BriefPayload["screenshot"]> {
+    if (file.size > 8 * 1024 * 1024) throw new Error("Файл больше 8 МБ");
+    if (![/^image\/(png|jpeg|webp)$/].some((pattern) => pattern.test(file.type))) throw new Error("Поддерживаются PNG, JPG и WebP");
+    const bitmap = await createImageBitmap(file);
+    const maxSide = 1400;
+    const ratio = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * ratio));
+    canvas.height = Math.max(1, Math.round(bitmap.height * ratio));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Не удалось обработать изображение");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    return { name: file.name, type: "image/jpeg", dataUrl: canvas.toDataURL("image/jpeg", .76) };
+  }
+
+  nextButton.addEventListener("click", () => {
+    if (!validateStep(currentStep)) return;
+    saveAnswers();
+    showStep(currentStep + 1);
+  });
+  backButton.addEventListener("click", () => showStep(currentStep - 1));
+  form.addEventListener("input", saveAnswers);
+  form.addEventListener("change", saveAnswers);
+
+  screenshotInput.addEventListener("change", async () => {
+    const file = screenshotInput.files?.[0];
+    if (!file) return;
+    try {
+      screenshot = await compressImage(file);
+      screenshotImage.src = screenshot.dataUrl;
+      screenshotName.textContent = `${screenshot.name} · изображение уменьшено для анализа`;
+      screenshotPreview.hidden = false;
+      trackGoal("mvp_screenshot_added");
+    } catch (error) {
+      screenshotInput.value = "";
+      validationMessage.textContent = error instanceof Error ? error.message : "Не удалось прочитать скриншот";
+    }
+  });
+  screenshotRemove.addEventListener("click", () => {
+    screenshot = undefined;
+    screenshotInput.value = "";
+    screenshotImage.removeAttribute("src");
+    screenshotPreview.hidden = true;
+  });
+
+  root.querySelectorAll<HTMLButtonElement>("[data-speech-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const SpeechRecognition = (window as typeof window & { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }).SpeechRecognition
+        || (window as typeof window & { webkitSpeechRecognition?: new () => any }).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        validationMessage.textContent = "Распознавание речи не поддерживается этим браузером. Можно использовать голосовой ввод клавиатуры.";
+        return;
+      }
+      const field = form.elements.namedItem(button.dataset.speechTarget || "") as HTMLTextAreaElement | null;
+      if (!field) return;
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ru-RU";
+      recognition.interimResults = false;
+      recognition.continuous = false;
+      button.classList.add("is-listening");
+      button.textContent = "Слушаю…";
+      recognition.onresult = (event: any) => {
+        const transcript = String(event.results?.[0]?.[0]?.transcript || "").trim();
+        field.value = [field.value.trim(), transcript].filter(Boolean).join(field.value.trim() ? " " : "");
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        trackGoal("mvp_voice_input_used");
+      };
+      recognition.onerror = () => { validationMessage.textContent = "Не удалось распознать речь. Попробуйте ещё раз или напишите текстом."; };
+      recognition.onend = () => { button.classList.remove("is-listening"); button.textContent = "◉ Сказать"; };
+      recognition.start();
+    });
+  });
+
+  root.querySelectorAll<HTMLButtonElement>("[data-ai-refine]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const kind = button.dataset.aiRefine || "idea";
+      const suggestion = root.querySelector<HTMLElement>(`[data-ai-suggestion="${kind}"]`)!;
+      if (!sessionStorage.getItem("lazysoft-ai-refine-consent")) {
+        const accepted = window.confirm("Для подсказки ответы текущего шага будут отправлены в RouterAI. Не передавайте секретные или персональные данные. Продолжить?");
+        if (!accepted) return;
+        sessionStorage.setItem("lazysoft-ai-refine-consent", "1");
+      }
+      button.disabled = true;
+      button.textContent = "Разбираю…";
+      try {
+        const data = await callApi({ mode: "refine", kind, payload: { ...collectPayload(), screenshot: undefined } });
+        suggestion.textContent = data.suggestion || "Подсказка не сформирована.";
+        suggestion.hidden = false;
+        trackGoal("mvp_ai_refine_used", { kind });
+      } catch {
+        suggestion.textContent = "AI-подсказка сейчас недоступна. Продолжайте: итоговый локальный черновик всё равно будет собран.";
+        suggestion.hidden = false;
+      } finally {
+        button.disabled = false;
+        button.textContent = kind === "idea" ? "Уточнить формулировку" : "Проверить сценарий";
+      }
+    });
+  });
+
+  generateButton.addEventListener("click", async () => {
+    const payload = collectPayload();
+    const fallback = createLocalBrief(payload);
+    renderBrief(fallback, "local");
+    generateButton.disabled = true;
+    showStatus("Локальный черновик уже готов. Проверяем структуру через RouterAI…");
+    trackGoal("mvp_brief_generate_clicked");
+
+    const aiConsent = (form.elements.namedItem("aiConsent") as HTMLInputElement).checked;
+    if (!aiConsent) {
+      showStatus("Готов локальный черновик. Ответы не отправлялись во внешний AI-сервис.");
+      generateButton.disabled = false;
+      return;
+    }
+
+    try {
+      const data = await callApi({ mode: "brief", payload });
+      const aiBrief = normalizeBrief(data.brief || {}, fallback);
+      renderBrief(aiBrief, "ai");
+      showStatus("Готово: RouterAI структурировал ответы, обозначил допущения и открытые вопросы.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "RouterAI временно недоступен";
+      showStatus(`${message}. Локальный черновик сохранён — его можно скачать и использовать.`, true);
+    } finally {
+      generateButton.disabled = false;
+    }
+  });
+
+  root.querySelector<HTMLButtonElement>("[data-copy-brief]")!.addEventListener("click", async (event) => {
+    if (!currentMarkdown) return;
+    const button = event.currentTarget as HTMLButtonElement;
+    try {
+      await navigator.clipboard.writeText(currentMarkdown);
+      button.textContent = "Скопировано ✓";
+      window.setTimeout(() => { button.textContent = "Копировать"; }, 1800);
+      trackGoal("mvp_brief_copied");
+    } catch {
+      showStatus("Не удалось скопировать автоматически. Скачайте файл .md.", true);
+    }
+  });
+
+  root.querySelector<HTMLButtonElement>("[data-download-brief]")!.addEventListener("click", () => {
+    if (!currentMarkdown) return;
+    const blob = new Blob([currentMarkdown], { type: "text/markdown;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "lazysoft-mvp-brief.md";
+    link.click();
+    URL.revokeObjectURL(link.href);
+    trackGoal("mvp_brief_downloaded");
+  });
+  root.querySelector<HTMLButtonElement>("[data-print-brief]")!.addEventListener("click", () => {
+    trackGoal("mvp_brief_printed");
+    window.print();
+  });
+
+  root.querySelector<HTMLAnchorElement>("[data-telegram-link]")!.addEventListener("click", () => trackGoal("mvp_contact_telegram"));
+  root.querySelector<HTMLAnchorElement>("[data-email-link]")!.addEventListener("click", () => trackGoal("mvp_contact_email"));
+  document.querySelectorAll<HTMLAnchorElement>('a[href*="t.me/SeeeRGo88"]').forEach((link) => link.addEventListener("click", () => trackGoal("mvp_contact_telegram")));
+  document.querySelectorAll<HTMLAnchorElement>('a[href^="mailto:sergeymizin88@yandex.ru"]').forEach((link) => link.addEventListener("click", () => trackGoal("mvp_contact_email")));
+
+  restoreAnswers();
+  showStep(0, false);
+  trackGoal("mvp_landing_view");
+}

@@ -3,6 +3,7 @@ import { navLinks } from "../data/catalog";
 
 const pathname = Astro.url.pathname;
 const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
+const isMvpOffer = pathname === "/mvp-za-3-dnya/";
 ---
 
 <header class="nav" id="top">
@@ -14,6 +15,6 @@ const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.st
     {navLinks.map((link) => (
       <a href={link.href} aria-current={isActive(link.href) ? "page" : undefined}>{link.label}</a>
     ))}
-    <a class="nav-cta" href="/contact/">Обсудить задачу</a>
+    <a class="nav-cta" href={isMvpOffer ? "#brief" : "/contact/"}>{isMvpOffer ? "Получить ТЗ" : "Обсудить задачу"}</a>
   </nav>
 </header>

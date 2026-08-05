@@ -1,0 +1,400 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import "../styles/mvp.css";
+
+const title = "MVP за 3 дня и 10 000 ₽ — разработка первой версии | Lazysoft";
+const description =
+  "Соберите понятное ТЗ через бесплатный опрос и закажите MVP одного ключевого сценария за 3 рабочих дня и 10 000 рублей.";
+
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Разработка MVP за 3 рабочих дня",
+    description,
+    url: "https://lazysoft.ru/mvp-za-3-dnya/",
+    provider: { "@type": "Organization", name: "Lazysoft", url: "https://lazysoft.ru" },
+    offers: {
+      "@type": "Offer",
+      price: "10000",
+      priceCurrency: "RUB",
+      description: "Разработка одного согласованного ключевого сценария. Внешние платные сервисы и инфраструктура оплачиваются отдельно.",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Что входит в 10 000 рублей?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Разработка одного основного пользовательского сценария, базовый адаптивный интерфейс, исходный код, инструкция запуска и одна итерация небольших правок в пределах согласованного ТЗ.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Что оплачивается отдельно?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Хостинг, домен, платные API, нейросети, SMS, email-сервисы, лицензии и другие внешние интеграции не входят в 10 000 рублей. Все обязательные расходы исполнитель обозначит до начала работы.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Когда начинаются три дня?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Три рабочих дня начинаются после согласования короткого ТЗ, объёма, доступов и начала работы. Если задача не помещается в этот срок, исполнитель предложит сократить первую версию или даст отдельную оценку.",
+        },
+      },
+    ],
+  },
+];
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/mvp-za-3-dnya/" structuredData={structuredData} mainClass="mvp-page">
+  <section class="mvp-hero">
+    <div class="mvp-hero-copy">
+      <Breadcrumbs items={[{ label: "Услуги", href: "/services/" }, { label: "MVP за 3 дня" }]} />
+      <p class="mvp-badge"><span></span> Фиксированный старт для небольшой задачи</p>
+      <h1>MVP за <em>3 дня</em><br />и 10 000 ₽</h1>
+      <p class="mvp-hero-lede">
+        Один законченный пользовательский сценарий, который можно открыть, пройти и показать первым пользователям.
+        Перед заказом вы бесплатно соберёте понятное ТЗ — даже если решите ничего не заказывать.
+      </p>
+      <div class="mvp-hero-actions">
+        <a class="btn btn-primary" href="#brief">Проработать ТЗ бесплатно →</a>
+        <a class="btn btn-ghost" href="#scope">Что входит в цену</a>
+      </div>
+      <ul class="mvp-trust-line" aria-label="Условия предложения">
+        <li>Без обязательной заявки</li>
+        <li>ТЗ можно скачать</li>
+        <li>Исходный код ваш</li>
+      </ul>
+    </div>
+
+    <aside class="mvp-price-card">
+      <span class="mvp-price-label">Разработка</span>
+      <strong>10 000 ₽</strong>
+      <p>за согласованный объём одного ключевого сценария</p>
+      <div class="mvp-price-divider"></div>
+      <span class="mvp-price-label">Срок</span>
+      <strong>3 рабочих дня</strong>
+      <p>после согласования ТЗ, доступов и старта работы</p>
+      <div class="mvp-cost-note">
+        <b>Важно:</b> хостинг, домен, платные API, нейросети, SMS, email и лицензии оплачиваются отдельно.
+        Я заранее перечислю обязательные расходы — до начала разработки.
+      </div>
+    </aside>
+  </section>
+
+  <section class="mvp-fit section" id="scope">
+    <div class="section-head">
+      <p class="kicker">Честные границы</p>
+      <h2>Что реально сделать<br />за три дня</h2>
+      <p class="lede">Не «весь будущий стартап», а небольшую первую версию, которая проверяет главное действие продукта.</p>
+    </div>
+    <div class="mvp-scope-grid">
+      <article class="mvp-scope-card mvp-scope-in">
+        <span>Входит в 10 000 ₽</span>
+        <ul>
+          <li>Один основной пользовательский сценарий</li>
+          <li>Базовый адаптивный веб-интерфейс</li>
+          <li>Простое хранение данных, если оно нужно сценарию</li>
+          <li>Исходный код и инструкция запуска</li>
+          <li>Одна итерация небольших правок по согласованному ТЗ</li>
+        </ul>
+      </article>
+      <article class="mvp-scope-card mvp-scope-out">
+        <span>Не входит в стоимость</span>
+        <ul>
+          <li>Хостинг, домен и платная инфраструктура</li>
+          <li>Платные API, AI-модели, SMS и email-сервисы</li>
+          <li>Лицензии, подписки и комиссии сторонних площадок</li>
+          <li>Сложный индивидуальный дизайн и большая дизайн-система</li>
+          <li>Функции за пределами утверждённого сценария</li>
+        </ul>
+      </article>
+    </div>
+    <p class="mvp-scope-promise">
+      Если без внешнего сервиса проект не заработает, я назову сервис, примерную стоимость и бесплатные альтернативы
+      <strong>до того, как мы начнём работу</strong>. Никаких неожиданных обязательных расходов после старта.
+    </p>
+  </section>
+
+  <section class="mvp-brief-section" id="brief">
+    <div class="mvp-brief-intro">
+      <div>
+        <p class="kicker">Бесплатный лид-магнит</p>
+        <h2>Соберите ТЗ,<br />которое можно обсуждать</h2>
+      </div>
+      <p>
+        Ответьте на наводящие вопросы текстом или голосом, при необходимости приложите скриншот.
+        В конце получите структурированный черновик: цель, сценарий, границы MVP, критерии готовности,
+        риски, внешние расходы и вопросы, которые ещё нужно решить.
+      </p>
+    </div>
+
+    <div class="brief-shell" data-brief-app>
+      <aside class="brief-progress" aria-label="Прогресс подготовки ТЗ">
+        <div class="brief-progress-head"><span>Ваше ТЗ</span><strong data-progress-text>Шаг 1 из 5</strong></div>
+        <div class="brief-progress-bar" aria-hidden="true"><span data-progress-bar></span></div>
+        <ol>
+          <li class="is-active" data-progress-step="0"><span>1</span><div><b>Идея</b><small>Что и для кого</small></div></li>
+          <li data-progress-step="1"><span>2</span><div><b>Сценарий</b><small>Как это работает</small></div></li>
+          <li data-progress-step="2"><span>3</span><div><b>Границы</b><small>Что входит в MVP</small></div></li>
+          <li data-progress-step="3"><span>4</span><div><b>Материалы</b><small>Данные и скриншот</small></div></li>
+          <li data-progress-step="4"><span>5</span><div><b>Результат</b><small>Готовое ТЗ</small></div></li>
+        </ol>
+        <p>Ответы сохраняются только в вашем браузере. Контакты необязательны.</p>
+      </aside>
+
+      <form class="brief-form" data-brief-form novalidate>
+        <section class="brief-step is-active" data-step="0" aria-labelledby="brief-step-idea">
+          <p class="brief-step-no">Шаг 1</p>
+          <h3 id="brief-step-idea">Что вы хотите сделать?</h3>
+          <p class="brief-step-lede">Не подбирайте технические термины. Опишите идею так, как рассказали бы коллеге.</p>
+
+          <label class="brief-field">
+            <span>Идея продукта <b>*</b></span>
+            <small>Например: сервис, который собирает заявки из почты и создаёт задачи менеджерам.</small>
+            <textarea name="idea" rows="4" required minlength="20" placeholder="Я хочу сделать..."></textarea>
+            <button type="button" class="speech-button" data-speech-target="idea" aria-label="Продиктовать идею">◉ Сказать</button>
+          </label>
+
+          <label class="brief-field">
+            <span>Кто будет этим пользоваться? <b>*</b></span>
+            <small>Роль, опыт и контекст пользователя важнее возраста и пола.</small>
+            <textarea name="audience" rows="3" required minlength="10" placeholder="Пользователь — владелец небольшой компании, который..."></textarea>
+            <button type="button" class="speech-button" data-speech-target="audience" aria-label="Продиктовать описание пользователя">◉ Сказать</button>
+          </label>
+
+          <label class="brief-field">
+            <span>Какая проблема есть сейчас? <b>*</b></span>
+            <textarea name="problem" rows="3" required minlength="10" placeholder="Сейчас приходится вручную..."></textarea>
+          </label>
+
+          <div class="ai-helper">
+            <div><span>AI-помощник</span><p>Поможет отделить идею от решения и найдёт недостающие детали.</p></div>
+            <button type="button" class="ai-helper-button" data-ai-refine="idea">Уточнить формулировку</button>
+            <div class="ai-suggestion" data-ai-suggestion="idea" hidden></div>
+          </div>
+        </section>
+
+        <section class="brief-step" data-step="1" aria-labelledby="brief-step-flow" hidden>
+          <p class="brief-step-no">Шаг 2</p>
+          <h3 id="brief-step-flow">Как выглядит главное действие?</h3>
+          <p class="brief-step-lede">Представьте одного пользователя от первого клика до полезного результата.</p>
+
+          <label class="brief-field">
+            <span>Что пользователь делает сейчас? <b>*</b></span>
+            <small>Перечислите шаги, инструменты и ручные переходы.</small>
+            <textarea name="currentProcess" rows="4" required minlength="15" placeholder="1. Получает письмо. 2. Копирует данные в таблицу. 3. ..."></textarea>
+            <button type="button" class="speech-button" data-speech-target="currentProcess">◉ Сказать</button>
+          </label>
+
+          <label class="brief-field">
+            <span>Что должно происходить в MVP? <b>*</b></span>
+            <small>Один путь: входные данные → действие системы → готовый результат.</small>
+            <textarea name="desiredProcess" rows="4" required minlength="15" placeholder="Пользователь загружает..., система..., затем показывает..."></textarea>
+          </label>
+
+          <label class="brief-field">
+            <span>Как поймём, что первая версия полезна? <b>*</b></span>
+            <textarea name="success" rows="3" required minlength="10" placeholder="Пользователь сможет за 2 минуты получить..."></textarea>
+          </label>
+
+          <div class="ai-helper">
+            <div><span>AI-помощник</span><p>Проверит, заканчивается ли сценарий измеримым результатом.</p></div>
+            <button type="button" class="ai-helper-button" data-ai-refine="scenario">Проверить сценарий</button>
+            <div class="ai-suggestion" data-ai-suggestion="scenario" hidden></div>
+          </div>
+        </section>
+
+        <section class="brief-step" data-step="2" aria-labelledby="brief-step-scope" hidden>
+          <p class="brief-step-no">Шаг 3</p>
+          <h3 id="brief-step-scope">Что действительно нужно в первой версии?</h3>
+          <p class="brief-step-lede">Три дня требуют выбора. Отметьте только то, без чего главный сценарий не состоится.</p>
+
+          <fieldset class="brief-fieldset">
+            <legend>Формат продукта</legend>
+            <div class="choice-grid choice-grid-radio">
+              <label><input type="radio" name="platform" value="Веб-приложение" checked /><span>Веб-приложение</span></label>
+              <label><input type="radio" name="platform" value="Браузерное расширение" /><span>Расширение</span></label>
+              <label><input type="radio" name="platform" value="Внутренний инструмент" /><span>Внутренний инструмент</span></label>
+              <label><input type="radio" name="platform" value="Не уверен — нужен совет" /><span>Не уверен</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="brief-fieldset">
+            <legend>Возможности, без которых нельзя проверить идею</legend>
+            <div class="choice-grid">
+              <label><input type="checkbox" name="features" value="Форма ввода данных" /><span>Форма ввода</span></label>
+              <label><input type="checkbox" name="features" value="Список и просмотр записей" /><span>Список данных</span></label>
+              <label><input type="checkbox" name="features" value="Загрузка файла" /><span>Загрузка файла</span></label>
+              <label><input type="checkbox" name="features" value="Генерация документа или отчёта" /><span>Документ / отчёт</span></label>
+              <label><input type="checkbox" name="features" value="Интеграция с внешним API" /><span>Внешний API</span></label>
+              <label><input type="checkbox" name="features" value="Простая авторизация" /><span>Авторизация</span></label>
+            </div>
+          </fieldset>
+
+          <label class="brief-field">
+            <span>Что ещё обязательно?</span>
+            <textarea name="customFeatures" rows="3" placeholder="Одна или две функции, без которых проверка не имеет смысла..."></textarea>
+          </label>
+
+          <label class="brief-field">
+            <span>Что точно можно отложить?</span>
+            <textarea name="laterFeatures" rows="3" placeholder="Платежи, сложные роли, мобильное приложение, идеальный дизайн..."></textarea>
+          </label>
+
+          <div class="scope-reality-check">
+            <strong>Проверка объёма</strong>
+            <p>Если выбранные функции не помещаются в три дня, я предложу оставить один проверяемый сценарий. Расширение будет отдельной задачей, а не скрытой доплатой.</p>
+          </div>
+        </section>
+
+        <section class="brief-step" data-step="3" aria-labelledby="brief-step-materials" hidden>
+          <p class="brief-step-no">Шаг 4</p>
+          <h3 id="brief-step-materials">Что уже есть и с чем нужно соединиться?</h3>
+          <p class="brief-step-lede">Ссылки, примеры и скриншот часто объясняют задачу быстрее длинного документа.</p>
+
+          <label class="brief-field">
+            <span>Какие данные поступают на вход?</span>
+            <textarea name="dataInputs" rows="3" placeholder="Текст, Excel, фотография, форма, данные из CRM..."></textarea>
+            <button type="button" class="speech-button" data-speech-target="dataInputs">◉ Сказать</button>
+          </label>
+
+          <label class="brief-field">
+            <span>Нужны ли внешние сервисы и интеграции?</span>
+            <small>Например: Telegram, OpenAI/RouterAI, Google Sheets, CRM, платежи, email.</small>
+            <textarea name="integrations" rows="3" placeholder="Нужно получать данные из... и отправлять результат в..."></textarea>
+          </label>
+
+          <label class="brief-field">
+            <span>Ссылки и ограничения</span>
+            <textarea name="references" rows="3" placeholder="Пример похожего продукта, существующий сайт, API-документация, обязательный стек..."></textarea>
+          </label>
+
+          <div class="screenshot-field">
+            <div><span>Приложить скриншот</span><small>PNG, JPG или WebP до 8 МБ. Перед отправкой изображение будет уменьшено в браузере.</small></div>
+            <label class="screenshot-drop">
+              <input type="file" name="screenshot" accept="image/png,image/jpeg,image/webp" data-screenshot-input />
+              <span>＋ Выбрать скриншот</span>
+            </label>
+            <div class="screenshot-preview" data-screenshot-preview hidden>
+              <img alt="Предпросмотр приложенного скриншота" data-screenshot-image />
+              <div><strong data-screenshot-name></strong><button type="button" data-screenshot-remove>Удалить</button></div>
+            </div>
+          </div>
+
+          <label class="brief-field">
+            <span>Что важно заметить на скриншоте?</span>
+            <textarea name="screenshotNotes" rows="2" placeholder="Нужно повторить этот сценарий / проблема находится в этом месте..."></textarea>
+          </label>
+
+          <label class="cost-confirmation">
+            <input type="checkbox" name="externalCostsAccepted" required />
+            <span>
+              Я понимаю: хостинг, домен, платные API, AI-модели, SMS/email и другие внешние сервисы не входят в 10 000 ₽.
+              Исполнитель перечислит обязательные расходы до начала работы. <b>*</b>
+            </span>
+          </label>
+        </section>
+
+        <section class="brief-step brief-result-step" data-step="4" aria-labelledby="brief-step-result" hidden>
+          <p class="brief-step-no">Шаг 5</p>
+          <h3 id="brief-step-result">Ваш черновик ТЗ</h3>
+          <p class="brief-step-lede">
+            Контакт не нужен для получения результата. Вы сможете скопировать или скачать ТЗ и использовать его с любым исполнителем.
+          </p>
+
+          <div class="ai-consent-box">
+            <label>
+              <input type="checkbox" name="aiConsent" checked />
+              <span>Разрешаю отправить ответы и приложенный скриншот в RouterAI для структурирования ТЗ.</span>
+            </label>
+            <p>Не прикладывайте пароли, персональные данные клиентов и коммерческие секреты. Без согласия будет создан локальный черновик прямо в браузере.</p>
+          </div>
+
+          <div class="optional-contact optional-contact-note">
+            <div>
+              <span>Контакт не собирается</span>
+              <p>Сначала получите результат. После этого вы сами решите, написать мне в Telegram, отправить ТЗ на почту или продолжить без заявки.</p>
+            </div>
+          </div>
+
+          <button type="button" class="generate-brief-button" data-generate-brief>
+            <span>Собрать моё ТЗ</span><small>локально + RouterAI при согласии</small>
+          </button>
+
+          <div class="brief-generation-status" data-generation-status hidden aria-live="polite"></div>
+          <div class="brief-output" data-brief-output hidden>
+            <div class="brief-output-head">
+              <div><span data-output-mode>Черновик ТЗ</span><strong data-output-title></strong></div>
+              <div class="brief-output-actions">
+                <button type="button" data-copy-brief>Копировать</button>
+                <button type="button" data-download-brief>Скачать .md</button>
+                <button type="button" data-print-brief>Печать / PDF</button>
+              </div>
+            </div>
+            <div class="brief-output-body" data-output-body></div>
+          </div>
+
+          <div class="brief-contact-cta" data-contact-cta hidden>
+            <div><p class="kicker">Если захотите реализовать</p><h4>Обсудим, помещается ли этот MVP в 3 дня</h4><p>Отправьте мне получившееся ТЗ. Если объём больше оффера, я честно предложу сокращение или отдельную оценку.</p></div>
+            <div>
+              <a class="btn btn-primary" href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer" data-telegram-link>Написать в Telegram ↗</a>
+              <a class="btn btn-ghost" href="mailto:sergeymizin88@yandex.ru" data-email-link>Написать на почту</a>
+              <small>Telegram: @SeeeRGo88 · Email: sergeymizin88@yandex.ru</small>
+            </div>
+          </div>
+        </section>
+
+        <div class="brief-navigation">
+          <button type="button" class="brief-back" data-brief-back hidden>← Назад</button>
+          <span data-validation-message aria-live="polite"></span>
+          <button type="button" class="brief-next" data-brief-next>Дальше →</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="mvp-how section" id="process">
+    <div class="section-head"><p class="kicker">После ТЗ</p><h2>Как проходят три дня</h2></div>
+    <ol class="mvp-days">
+      <li><span>До старта</span><h3>Фиксируем объём</h3><p>Согласуем сценарий, критерии готовности, доступы и все внешние расходы.</p></li>
+      <li><span>День 1</span><h3>Скелет продукта</h3><p>Собираю интерфейс и основную логику, проверяю технически рискованные места.</p></li>
+      <li><span>День 2</span><h3>Рабочий сценарий</h3><p>Соединяю шаги, данные и необходимые интеграции в законченный путь пользователя.</p></li>
+      <li><span>День 3</span><h3>Проверка и передача</h3><p>Исправляю критичные ошибки, передаю код, инструкцию и демонстрирую результат.</p></li>
+    </ol>
+  </section>
+
+  <section class="mvp-faq section" id="faq">
+    <div class="section-head"><p class="kicker">Перед началом</p><h2>Вопросы об оффере</h2></div>
+    <div class="faq-list">
+      <details><summary>Любой ли MVP можно сделать за три дня?</summary><p>Нет. Оффер рассчитан на один небольшой и законченный сценарий. Если задача шире, сначала сокращаем первую версию или оцениваем её отдельно. Обещать большой продукт за три дня было бы нечестно.</p></details>
+      <details><summary>Что именно я получу за 10 000 рублей?</summary><p>Рабочую версию согласованного сценария, исходный код, инструкцию запуска и одну итерацию небольших правок внутри утверждённого ТЗ.</p></details>
+      <details><summary>Хостинг и платные интеграции входят в цену?</summary><p>Нет. Хостинг, домен, платные API, AI-модели, SMS, email, лицензии и комиссии оплачиваются отдельно. До старта я перечислю необходимые сервисы, примерные расходы и возможные бесплатные альтернативы.</p></details>
+      <details><summary>Обязательно ли заказывать разработку после опроса?</summary><p>Нет. Скопируйте или скачайте ТЗ и используйте его как угодно. Контактные данные также необязательны.</p></details>
+      <details><summary>Что происходит со скриншотом?</summary><p>Изображение уменьшается в браузере и отправляется в RouterAI только после вашего согласия. Оно используется для подготовки текущего ТЗ и не публикуется на сайте. Не прикладывайте секретные или персональные данные.</p></details>
+    </div>
+  </section>
+
+  <section class="mvp-final-contact section">
+    <div>
+      <p class="kicker">Можно начать с сообщения</p>
+      <h2>Уже есть описание проекта?</h2>
+      <p>Пришлите его напрямую. Я проверю объём и до старта обозначу, что входит в 10 000 ₽, а что потребует внешних расходов или отдельной оценки.</p>
+    </div>
+    <div>
+      <a class="btn btn-primary" href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer">Telegram: @SeeeRGo88 ↗</a>
+      <a class="btn btn-ghost" href="mailto:sergeymizin88@yandex.ru">sergeymizin88@yandex.ru</a>
+    </div>
+  </section>
+
+  <script src="../scripts/mvp-brief.ts"></script>
+</SiteLayout>

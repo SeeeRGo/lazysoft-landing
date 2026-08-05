@@ -1,7 +1,7 @@
 import { apps, services } from "../data/catalog";
 
 const site = "https://lazysoft.ru";
-const staticPaths = ["/", "/services/", "/apps/", "/about/", "/articles/", "/contact/"];
+const staticPaths = ["/", "/services/", "/apps/", "/about/", "/articles/", "/contact/", "/mvp-za-3-dnya/"];
 
 export const GET = () => {
   const urls = [

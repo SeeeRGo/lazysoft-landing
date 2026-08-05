@@ -49,6 +49,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: cr.yandex/${{ env.REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          build-args: |
+            PUBLIC_YANDEX_METRIKA_ID=${{ vars.YANDEX_METRIKA_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -66,6 +68,9 @@ jobs:
           revision-core-fraction: "100"
           revision-concurrency: "16"
           revision-execution-timeout: "30"
+          revision-env: |
+            ROUTERAI_API_KEY=${{ secrets.ROUTERAI_API_KEY }}
+            ROUTERAI_MODEL=openai/gpt-4o-mini
 
       - name: Verify deployment through API Gateway
         run: |
