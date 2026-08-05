@@ -1,4 +1,6 @@
 type BriefPayload = {
+  startingPoint: string;
+  existingBrief: string;
   idea: string;
   audience: string;
   problem: string;
@@ -76,6 +78,8 @@ if (root) {
 
   function collectPayload(): BriefPayload {
     return {
+      startingPoint: selected("startingPoint") || "idea",
+      existingBrief: text("existingBrief"),
       idea: text("idea"),
       audience: text("audience"),
       problem: text("problem"),
@@ -107,37 +111,38 @@ if (root) {
   }
 
   function createLocalBrief(payload: BriefPayload): BriefResult {
-    const scenario = splitIdeas(payload.desiredProcess);
+    const sourceDescription = payload.idea || payload.existingBrief;
+    const scenario = splitIdeas(payload.desiredProcess || payload.existingBrief);
     const custom = splitIdeas(payload.customFeatures);
     const later = splitIdeas(payload.laterFeatures);
     const integrations = splitIdeas(payload.integrations);
     const inputs = splitIdeas(payload.dataInputs);
-    const titleSeed = payload.idea.replace(/^(я хочу|хотим|нужно|сделать)\s+/i, "").split(/[.!?\n]/)[0].trim();
+    const titleSeed = sourceDescription.replace(/^(я хочу|хотим|нужно|сделать)\s+/i, "").split(/[.!?\n]/)[0].trim();
 
     return {
       title: `MVP: ${titleSeed || "первая версия продукта"}`.slice(0, 110),
-      summary: payload.idea,
-      user: payload.audience,
-      problem: payload.problem,
-      goal: payload.success,
-      primaryScenario: scenario.length ? scenario : [payload.desiredProcess],
+      summary: sourceDescription,
+      user: payload.audience || "Не определён в исходном описании — требуется уточнить",
+      problem: payload.problem || "Требуется уточнить по исходному описанию",
+      goal: payload.success || "Критерий полезности требуется согласовать",
+      primaryScenario: scenario.length ? scenario : ["Выделить наиболее ценные пользовательские сценарии из исходного описания"],
       included: unique([
         `Формат: ${payload.platform || "веб-приложение"}`,
         ...payload.features,
         ...custom,
-        "Базовый адаптивный интерфейс для основного сценария",
+        "Базовый адаптивный интерфейс для согласованных наиболее ценных сценариев",
         "Исходный код и инструкция запуска",
       ]),
       outOfScope: unique([
         ...later,
-        "Функции за пределами согласованного основного сценария",
+        "Функции за пределами согласованного объёма работ",
         "Оплата хостинга, домена, платных API, AI-моделей, SMS/email и лицензий",
       ]),
       screens: unique([
         "Стартовый экран или точка входа",
         payload.features.includes("Форма ввода данных") ? "Экран ввода данных" : undefined,
         payload.features.includes("Список и просмотр записей") ? "Список и просмотр результата" : undefined,
-        "Экран результата основного сценария",
+        "Экран результата согласованных сценариев",
       ]),
       dataAndIntegrations: unique([
         ...inputs.map((item) => `Входные данные: ${item}`),
@@ -147,24 +152,24 @@ if (root) {
       ]),
       acceptanceCriteria: unique([
         payload.success,
-        "Пользователь может пройти основной сценарий от начала до результата без помощи разработчика",
-        "В согласованном сценарии нет блокирующих ошибок",
+        "Пользователь может пройти согласованные сценарии от начала до результата без помощи разработчика",
+        "В согласованном объёме нет блокирующих ошибок",
       ]),
       risksAndAssumptions: unique([
         integrations.length ? "Доступность и ограничения внешних API нужно подтвердить до начала разработки" : "Необходимость внешних интеграций нужно подтвердить до начала разработки",
-        "Объём должен оставаться в пределах одного ключевого сценария",
+        "Предлагаемый объём может отличаться от исходного ТЗ и должен быть явно согласован обеими сторонами до старта",
         "Все доступы и исходные материалы предоставляются до начала трёх рабочих дней",
       ]),
       openQuestions: unique([
         !payload.dataInputs ? "Какие данные поступают на вход и в каком формате?" : undefined,
         !payload.integrations ? "Нужны ли внешние сервисы или достаточно локальной логики?" : undefined,
         "Где будет размещена тестовая версия и кто оплачивает инфраструктуру?",
-        "Какой один результат важнее всего показать первому пользователю?",
+        "Какие результаты важнее всего показать первым пользователям?",
       ]),
       threeDayPlan: [
         { day: "До старта", tasks: ["Согласовать сценарий, критерии готовности, доступы и внешние расходы"] },
         { day: "День 1", tasks: ["Собрать структуру интерфейса", "Проверить рискованные технические места"] },
-        { day: "День 2", tasks: ["Реализовать основной сценарий", "Подключить данные и согласованные интеграции"] },
+        { day: "День 2", tasks: ["Реализовать наиболее ценные согласованные сценарии", "Подключить данные и согласованные интеграции"] },
         { day: "День 3", tasks: ["Проверить сценарий", "Исправить критичные ошибки", "Передать код и инструкцию"] },
       ],
       externalCosts: [
@@ -172,7 +177,7 @@ if (root) {
         "Платные API, AI-модели, SMS, email, лицензии и комиссии — не входят в 10 000 ₽",
         "Исполнитель перечисляет обязательные внешние расходы до начала работы",
       ],
-      nextStep: "Сократить описание до одного проверяемого сценария, закрыть открытые вопросы и согласовать критерии готовности.",
+      nextStep: "Выделить наиболее ценные проверяемые сценарии, закрыть открытые вопросы и письменно согласовать обеими сторонами итоговый объём до начала работы.",
     };
   }
 
@@ -243,7 +248,7 @@ ${brief.problem}
 ## Цель MVP
 ${brief.goal}
 
-## Основной сценарий
+## Наиболее ценные пользовательские сценарии
 ${list(brief.primaryScenario, true)}
 
 ## Входит в первую версию
@@ -277,7 +282,7 @@ ${list(brief.externalCosts)}
 ${brief.nextStep}
 
 ---
-Черновик подготовлен на lazysoft.ru. Он не является договором или окончательной оценкой до согласования исполнителем.
+Черновик подготовлен на lazysoft.ru. Итоговый предлагаемый объём работ может отличаться от этого ТЗ. Работа начинается только после явного согласования состава работ, критериев готовности, срока и внешних расходов обеими сторонами.
 `;
   }
 
@@ -291,7 +296,7 @@ ${brief.nextStep}
     appendSection("Пользователь", brief.user);
     appendSection("Проблема", brief.problem);
     appendSection("Цель MVP", brief.goal);
-    appendSection("Основной сценарий", brief.primaryScenario, true);
+    appendSection("Наиболее ценные пользовательские сценарии", brief.primaryScenario, true);
     appendSection("Входит в первую версию", brief.included);
     appendSection("Не входит в первую версию", brief.outOfScope);
     appendSection("Экраны и состояния", brief.screens);
@@ -408,6 +413,30 @@ ${brief.nextStep}
     }
   }
 
+  function syncStartingPoint(shouldTrack = false) {
+    const startingPoint = selected("startingPoint") || "idea";
+    root.classList.toggle("is-existing-brief", startingPoint === "existing");
+    root.querySelectorAll<HTMLElement>("[data-brief-path-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.briefPathPanel !== startingPoint;
+    });
+    root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[data-guided-required]").forEach((field) => {
+      field.required = startingPoint === "idea";
+      if (!field.required) field.classList.remove("is-invalid");
+    });
+    root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[data-existing-required]").forEach((field) => {
+      field.required = startingPoint === "existing";
+      if (!field.required) field.classList.remove("is-invalid");
+    });
+    const flowLede = root.querySelector<HTMLElement>("[data-flow-lede]");
+    if (flowLede) {
+      flowLede.textContent = startingPoint === "existing"
+        ? "Если нужные детали уже есть в вашем тексте, этот шаг можно пропустить. Иначе добавьте то, что важно учесть."
+        : "Представьте одного пользователя от первого клика до полезного результата.";
+    }
+    validationMessage.textContent = "";
+    if (shouldTrack) trackGoal("mvp_brief_starting_point", { startingPoint });
+  }
+
   async function compressImage(file: File): Promise<BriefPayload["screenshot"]> {
     if (file.size > 8 * 1024 * 1024) throw new Error("Файл больше 8 МБ");
     if (![/^image\/(png|jpeg|webp)$/].some((pattern) => pattern.test(file.type))) throw new Error("Поддерживаются PNG, JPG и WebP");
@@ -430,6 +459,9 @@ ${brief.nextStep}
     showStep(currentStep + 1);
   });
   backButton.addEventListener("click", () => showStep(currentStep - 1));
+  form.querySelectorAll<HTMLInputElement>('[name="startingPoint"]').forEach((field) => {
+    field.addEventListener("change", () => syncStartingPoint(true));
+  });
   form.addEventListener("input", saveAnswers);
   form.addEventListener("change", saveAnswers);
 
@@ -570,6 +602,7 @@ ${brief.nextStep}
   document.querySelectorAll<HTMLAnchorElement>('a[href^="mailto:sergeymizin88@yandex.ru"]').forEach((link) => link.addEventListener("click", () => trackGoal("mvp_contact_email")));
 
   restoreAnswers();
+  syncStartingPoint();
   showStep(0, false);
   trackGoal("mvp_landing_view");
 }

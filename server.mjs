@@ -108,6 +108,8 @@ function cleanPayload(input) {
   }
 
   return {
+    startingPoint: payload.startingPoint === "existing" ? "existing" : "idea",
+    existingBrief: cleanText(payload.existingBrief, 12_000),
     idea: cleanText(payload.idea),
     audience: cleanText(payload.audience),
     problem: cleanText(payload.problem),
@@ -127,6 +129,10 @@ function cleanPayload(input) {
 }
 
 function validatePayload(payload, mode) {
+  if (payload.startingPoint === "existing") {
+    if (!payload.existingBrief || payload.existingBrief.length < 30) return "Добавьте существующее ТЗ или описание идеи.";
+    return "";
+  }
   if (!payload.idea || !payload.audience || !payload.problem) return "Заполните идею, пользователя и проблему.";
   if (mode === "brief" && (!payload.currentProcess || !payload.desiredProcess || !payload.success)) {
     return "Для ТЗ не хватает текущего процесса, желаемого сценария или критерия успеха.";
@@ -150,7 +156,7 @@ async function callRouterAi({ mode, kind, payload }) {
   const isRefine = mode === "refine";
   const systemPrompt = isRefine
     ? `Ты продуктовый аналитик. Помоги человеку точнее сформулировать ${kind === "scenario" ? "основной пользовательский сценарий MVP" : "идею, пользователя и проблему"}. Не придумывай факты. Отделяй проблему от предложенного решения. Верни только JSON: {"suggestion":"краткая улучшенная формулировка на русском","questions":["до 3 конкретных уточняющих вопросов"]}.`
-    : `Ты senior product analyst и технический редактор. По ответам потенциального клиента составь честный черновик ТЗ на маленький MVP с ОДНИМ ключевым сценарием. Сохраняй смысл и лексику клиента, не выдумывай функции, цифры, интеграции и бизнес-факты. Всё неясное помечай как допущение или открытый вопрос. Оффер: 10 000 рублей только за разработку согласованного объёма, 3 рабочих дня после согласования ТЗ, доступов и старта. Хостинг, домен, платные API, AI-модели, SMS/email, лицензии, комиссии и другие внешние сервисы НЕ входят в цену; их нужно перечислить до старта. Если объём не помещается в 3 дня, сократи до проверяемого сценария и вынеси остальное в outOfScope. Верни только валидный JSON с ключами: title, summary, user, problem, goal, primaryScenario[], included[], outOfScope[], screens[], dataAndIntegrations[], acceptanceCriteria[], risksAndAssumptions[], openQuestions[], threeDayPlan[{day,tasks[]}], externalCosts[], nextStep. Все значения на русском языке.`;
+    : `Ты senior product analyst и технический редактор. По ответам потенциального клиента или его существующему описанию составь честный черновик ТЗ на маленький MVP с наиболее ценными пользовательскими сценариями. Сохраняй смысл и лексику клиента, не выдумывай функции, цифры, интеграции и бизнес-факты. Всё неясное помечай как допущение или открытый вопрос. Оффер: 10 000 рублей только за разработку отдельно согласованного обеими сторонами объёма, 3 рабочих дня после согласования состава работ, критериев готовности, доступов и старта. Хостинг, домен, платные API, AI-модели, SMS/email, лицензии, комиссии и другие внешние сервисы НЕ входят в цену; их нужно перечислить до старта. Если исходное или полученное ТЗ не помещается в 3 дня, предложи меньший объём наиболее ценных проверяемых сценариев и вынеси остальное в outOfScope. Обязательно укажи, что предлагаемый объём может отличаться от исходного ТЗ и работа не начинается без явного согласия обеих сторон. Верни только валидный JSON с ключами: title, summary, user, problem, goal, primaryScenario[], included[], outOfScope[], screens[], dataAndIntegrations[], acceptanceCriteria[], risksAndAssumptions[], openQuestions[], threeDayPlan[{day,tasks[]}], externalCosts[], nextStep. Все значения на русском языке.`;
 
   const compactPayload = { ...payload, screenshot: payload.screenshot ? { name: payload.screenshot.name, note: payload.screenshotNotes } : undefined };
   const userText = isRefine
