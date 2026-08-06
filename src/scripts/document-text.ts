@@ -17,7 +17,8 @@ async function extractPdf(file: File): Promise<ExtractedDocument> {
   ]);
   const pdfWorkerUrl = workerModule.default;
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-  const document = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
+  const document = await loadingTask.promise;
   const totalPages = document.numPages;
   const pageCount = Math.min(totalPages, maxPdfPages);
   const pages: string[] = [];
@@ -33,7 +34,7 @@ async function extractPdf(file: File): Promise<ExtractedDocument> {
     page.cleanup();
   }
 
-  await document.destroy();
+  await loadingTask.destroy();
   return {
     text: pages.join("\n\n"),
     details: totalPages > maxPdfPages

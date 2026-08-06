@@ -373,12 +373,3 @@
   .mvp-days { grid-template-columns: 1fr; }
   .mvp-days li { min-height: 175px; }
 }
-
-@media print {
-  body * { visibility: hidden !important; }
-  .brief-output, .brief-output * { visibility: visible !important; }
-  .brief-output { position: absolute; inset: 0; border: 0; }
-  .brief-output-actions { display: none !important; }
-  .brief-output-head { color: #000; background: #fff; border-bottom: 2px solid #000; }
-  .brief-output-head span { color: #000; }
-}

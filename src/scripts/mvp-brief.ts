@@ -304,7 +304,7 @@ ${brief.nextStep}
     currentBrief = brief;
     currentMarkdown = toMarkdown(brief);
     outputTitle.textContent = brief.title;
-    outputMode.textContent = mode === "ai" ? "Структурировано с RouterAI" : "Локальный черновик";
+    outputMode.textContent = mode === "ai" ? "Структурировано с помощью ИИ" : "Локальный черновик";
     outputBody.replaceChildren();
     if (brief.requesterName) appendSection("Автор запроса", brief.requesterName);
     appendSection("Краткое описание", brief.summary);
@@ -595,7 +595,7 @@ ${brief.nextStep}
       const kind = button.dataset.aiRefine || "idea";
       const suggestion = root.querySelector<HTMLElement>(`[data-ai-suggestion="${kind}"]`)!;
       if (!sessionStorage.getItem("lazysoft-ai-refine-consent")) {
-        const accepted = window.confirm("Для подсказки ответы текущего шага будут отправлены в RouterAI. Не передавайте секретные или персональные данные. Продолжить?");
+        const accepted = window.confirm("Для подсказки ответы текущего шага будут переданы внешнему ИИ-сервису. Не передавайте секретные или персональные данные. Продолжить?");
         if (!accepted) return;
         sessionStorage.setItem("lazysoft-ai-refine-consent", "1");
       }
@@ -621,7 +621,7 @@ ${brief.nextStep}
     const fallback = createLocalBrief(payload);
     renderBrief(fallback, "local");
     generateButton.disabled = true;
-    showStatus("Локальный черновик уже готов. Проверяем структуру через RouterAI…");
+    showStatus("Локальный черновик уже готов. Проверяем структуру с помощью ИИ…");
     trackGoal("mvp_brief_generate_clicked");
 
     const aiConsent = (form.elements.namedItem("aiConsent") as HTMLInputElement).checked;
@@ -635,9 +635,9 @@ ${brief.nextStep}
       const data = await callApi({ mode: "brief", payload });
       const aiBrief = normalizeBrief(data.brief || {}, fallback);
       renderBrief(aiBrief, "ai");
-      showStatus("Готово: RouterAI структурировал ответы, обозначил допущения и открытые вопросы.");
+      showStatus("Готово: ИИ структурировал ответы, обозначил допущения и открытые вопросы.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "RouterAI временно недоступен";
+      const message = error instanceof Error ? error.message : "ИИ-сервис временно недоступен";
       showStatus(`${message}. Локальный черновик сохранён — его можно скачать и использовать.`, true);
     } finally {
       generateButton.disabled = false;
@@ -667,15 +667,32 @@ ${brief.nextStep}
     URL.revokeObjectURL(link.href);
     trackGoal("mvp_brief_downloaded");
   });
-  root.querySelector<HTMLButtonElement>("[data-print-brief]")!.addEventListener("click", () => {
-    trackGoal("mvp_brief_printed");
-    window.print();
+  root.querySelector<HTMLButtonElement>("[data-download-pdf]")!.addEventListener("click", async (event) => {
+    if (!currentBrief) return;
+    const button = event.currentTarget as HTMLButtonElement;
+    const originalText = button.textContent || "Скачать PDF";
+    button.disabled = true;
+    button.textContent = "Готовлю PDF…";
+    try {
+      const { downloadBriefPdf } = await import("./brief-pdf");
+      await downloadBriefPdf(currentBrief);
+      button.textContent = "PDF скачан ✓";
+      trackGoal("mvp_brief_pdf_downloaded");
+    } catch {
+      button.textContent = originalText;
+      showStatus("Не удалось собрать PDF. Скачайте файл .md или попробуйте ещё раз.", true);
+    } finally {
+      window.setTimeout(() => {
+        button.disabled = false;
+        button.textContent = originalText;
+      }, 1800);
+    }
   });
 
   root.querySelector<HTMLAnchorElement>("[data-telegram-link]")!.addEventListener("click", () => trackGoal("mvp_contact_telegram"));
   root.querySelector<HTMLAnchorElement>("[data-email-link]")!.addEventListener("click", () => trackGoal("mvp_contact_email"));
   document.querySelectorAll<HTMLAnchorElement>('a[href*="t.me/SeeeRGo88"]').forEach((link) => link.addEventListener("click", () => trackGoal("mvp_contact_telegram")));
-  document.querySelectorAll<HTMLAnchorElement>('a[href^="mailto:sergeymizin88@yandex.ru"]').forEach((link) => link.addEventListener("click", () => trackGoal("mvp_contact_email")));
+  document.querySelectorAll<HTMLAnchorElement>('a[href^="mailto:hello@lazysoft.ru"]').forEach((link) => link.addEventListener("click", () => trackGoal("mvp_contact_email")));
 
   restoreAnswers();
   syncStartingPoint();

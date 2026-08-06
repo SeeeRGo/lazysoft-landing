@@ -243,9 +243,9 @@ async function handleBriefApi(request, response) {
     const status = Number(error?.status || 500);
     const messages = {
       AI_NOT_CONFIGURED: "AI-помощник пока не настроен",
-      AI_UPSTREAM_ERROR: "RouterAI временно не обработал запрос",
-      AI_EMPTY_RESPONSE: "RouterAI вернул пустой ответ",
-      AI_TIMEOUT: "RouterAI не успел ответить",
+      AI_UPSTREAM_ERROR: "ИИ-сервис временно не обработал запрос",
+      AI_EMPTY_RESPONSE: "ИИ-сервис вернул пустой ответ",
+      AI_TIMEOUT: "ИИ-сервис не успел ответить",
       PAYLOAD_TOO_LARGE: "Скриншот или ответы слишком большие",
       INVALID_JSON: "Некорректный формат запроса",
       INVALID_IMAGE: "Некорректный формат изображения",

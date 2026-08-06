@@ -326,7 +326,7 @@ const structuredData = [
 
           <label class="brief-field">
             <span>Нужны ли внешние сервисы и интеграции?</span>
-            <small>Например: Telegram, OpenAI/RouterAI, Google Sheets, CRM, платежи, email.</small>
+            <small>Например: Telegram, внешний ИИ-сервис, Google Sheets, CRM, платежи, email.</small>
             <textarea name="integrations" rows="3" placeholder="Нужно получать данные из... и отправлять результат в..."></textarea>
           </label>
 
@@ -371,7 +371,7 @@ const structuredData = [
           <div class="ai-consent-box">
             <label>
               <input type="checkbox" name="aiConsent" checked />
-              <span>Разрешаю отправить ответы и приложенный скриншот в RouterAI для структурирования ТЗ.</span>
+              <span>Согласен передать ответы и приложенный скриншот внешнему ИИ-сервису для подготовки ТЗ.</span>
             </label>
             <p>Не прикладывайте пароли, персональные данные клиентов и коммерческие секреты. Без согласия будет создан локальный черновик прямо в браузере.</p>
           </div>
@@ -384,7 +384,7 @@ const structuredData = [
           </div>
 
           <button type="button" class="generate-brief-button" data-generate-brief>
-            <span>Собрать моё ТЗ</span><small>локально + RouterAI при согласии</small>
+            <span>Собрать моё ТЗ</span><small>локальный черновик + обработка ИИ при согласии</small>
           </button>
 
           <div class="brief-generation-status" data-generation-status hidden aria-live="polite"></div>
@@ -394,7 +394,7 @@ const structuredData = [
               <div class="brief-output-actions">
                 <button type="button" data-copy-brief>Копировать</button>
                 <button type="button" data-download-brief>Скачать .md</button>
-                <button type="button" data-print-brief>Печать / PDF</button>
+                <button type="button" data-download-pdf>Скачать PDF</button>
               </div>
             </div>
             <div class="brief-output-body" data-output-body></div>
@@ -404,8 +404,8 @@ const structuredData = [
             <div><p class="kicker">Если захотите реализовать</p><h4>Обсудим, помещается ли этот MVP в 3 дня</h4><p>Отправьте мне получившееся ТЗ. Если объём больше оффера, я честно предложу сокращение или отдельную оценку.</p></div>
             <div>
               <a class="btn btn-primary" href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer" data-telegram-link>Написать в Telegram ↗</a>
-              <a class="btn btn-ghost" href="mailto:sergeymizin88@yandex.ru" data-email-link>Написать на почту</a>
-              <small>Telegram: @SeeeRGo88 · Email: sergeymizin88@yandex.ru</small>
+              <a class="btn btn-ghost" href="mailto:hello@lazysoft.ru" data-email-link>Написать на почту</a>
+              <small>Telegram: @SeeeRGo88 · Email: hello@lazysoft.ru</small>
             </div>
           </div>
         </section>
@@ -436,7 +436,7 @@ const structuredData = [
       <details><summary>Что именно я получу за 10 000 рублей?</summary><p>Рабочую версию согласованного объёма, исходный код, инструкцию запуска и одну итерацию небольших правок. Предлагаемый состав работ может отличаться от исходного ТЗ и всегда утверждается обеими сторонами до начала разработки.</p></details>
       <details><summary>Хостинг и платные интеграции входят в цену?</summary><p>Нет. Хостинг, домен, платные API, AI-модели, SMS, email, лицензии и комиссии оплачиваются отдельно. До старта я перечислю необходимые сервисы, примерные расходы и возможные бесплатные альтернативы.</p></details>
       <details><summary>Обязательно ли заказывать разработку после опроса?</summary><p>Нет. Скопируйте или скачайте ТЗ и используйте его как угодно. Контактные данные также необязательны.</p></details>
-      <details><summary>Что происходит со скриншотом?</summary><p>Изображение уменьшается в браузере и отправляется в RouterAI только после вашего согласия. Оно используется для подготовки текущего ТЗ и не публикуется на сайте. Не прикладывайте секретные или персональные данные.</p></details>
+      <details><summary>Что происходит со скриншотом?</summary><p>Изображение уменьшается в браузере и передаётся внешнему ИИ-сервису только после вашего согласия. Оно используется для подготовки текущего ТЗ и не публикуется на сайте. Не прикладывайте секретные или персональные данные.</p></details>
     </div>
   </section>
 
@@ -448,7 +448,7 @@ const structuredData = [
     </div>
     <div>
       <a class="btn btn-primary" href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer">Telegram: @SeeeRGo88 ↗</a>
-      <a class="btn btn-ghost" href="mailto:sergeymizin88@yandex.ru">sergeymizin88@yandex.ru</a>
+      <a class="btn btn-ghost" href="mailto:hello@lazysoft.ru">hello@lazysoft.ru</a>
     </div>
   </section>
 
