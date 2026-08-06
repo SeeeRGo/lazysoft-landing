@@ -16,6 +16,7 @@ type BriefForPdf = {
   threeDayPlan: Array<{ day: string; tasks: string[] }>;
   externalCosts: string[];
   nextStep: string;
+  screenshot?: { name: string; type: string; dataUrl: string };
 };
 
 type PdfNode = Record<string, unknown>;
@@ -43,6 +44,19 @@ function safeFilename(value: string): string {
   return `lazysoft-${slug || "mvp-brief"}.pdf`;
 }
 
+function screenshotSection(screenshot: NonNullable<BriefForPdf["screenshot"]>): PdfNode[] {
+  return [
+    {
+      stack: [
+        { text: "Приложенный скриншот", style: "sectionHeading", margin: [0, 0, 0, 10] },
+        { image: screenshot.dataUrl, fit: [507, 570], alignment: "center", margin: [0, 0, 0, 8] },
+        { text: screenshot.name || "Скриншот к задаче", style: "caption", alignment: "center" },
+      ],
+      pageBreak: "before",
+    },
+  ];
+}
+
 export async function downloadBriefPdf(brief: BriefForPdf): Promise<void> {
   const [{ default: pdfMake }, { default: virtualFonts }] = await Promise.all([
     import("pdfmake/build/pdfmake.js"),
@@ -62,6 +76,7 @@ export async function downloadBriefPdf(brief: BriefForPdf): Promise<void> {
     ...listSection("Не входит в первую версию", brief.outOfScope),
     ...listSection("Экраны и состояния", brief.screens),
     ...listSection("Данные и интеграции", brief.dataAndIntegrations),
+    ...(brief.screenshot ? screenshotSection(brief.screenshot) : []),
     ...listSection("Критерии готовности", brief.acceptanceCriteria),
     ...listSection("Риски и допущения", brief.risksAndAssumptions),
     ...listSection("Открытые вопросы", brief.openQuestions),
@@ -99,6 +114,7 @@ export async function downloadBriefPdf(brief: BriefForPdf): Promise<void> {
       body: { margin: [0, 0, 0, 3] },
       list: { margin: [3, 0, 0, 3] },
       notice: { fontSize: 8, color: "#58716d", margin: [0, 18, 0, 0] },
+      caption: { fontSize: 8, color: "#58716d", italics: true },
     },
   };
 

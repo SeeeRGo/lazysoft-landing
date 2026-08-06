@@ -1,3 +1,5 @@
+type ScreenshotAttachment = { name: string; type: string; dataUrl: string };
+
 type BriefPayload = {
   requesterName: string;
   startingPoint: string;
@@ -14,7 +16,7 @@ type BriefPayload = {
   integrations: string;
   references: string;
   screenshotNotes: string;
-  screenshot?: { name: string; type: string; dataUrl: string };
+  screenshot?: ScreenshotAttachment;
 };
 
 type BriefResult = {
@@ -35,6 +37,7 @@ type BriefResult = {
   threeDayPlan: Array<{ day: string; tasks: string[] }>;
   externalCosts: string[];
   nextStep: string;
+  screenshot?: ScreenshotAttachment;
 };
 
 const root = document.querySelector<HTMLElement>("[data-brief-app]");
@@ -209,6 +212,7 @@ if (root) {
         "Исполнитель перечисляет обязательные внешние расходы до начала работы",
       ],
       nextStep: "Выделить наиболее ценные проверяемые сценарии, закрыть открытые вопросы и письменно согласовать обеими сторонами итоговый объём до начала работы.",
+      screenshot: payload.screenshot,
     };
   }
 
@@ -269,6 +273,7 @@ if (root) {
       threeDayPlan: plans,
       externalCosts: strings(candidate.externalCosts, fallback.externalCosts),
       nextStep: String(candidate.nextStep || fallback.nextStep),
+      screenshot: fallback.screenshot,
     };
   }
 
@@ -323,6 +328,10 @@ ${list(brief.externalCosts)}
 
 ## Следующий шаг
 ${brief.nextStep}
+${brief.screenshot ? `
+## Приложенный скриншот
+${brief.screenshot.name} — изображение включено в PDF-версию документа.
+` : ""}
 
 ---
 Черновик подготовлен на lazysoft.ru. Итоговый предлагаемый объём работ может отличаться от этого ТЗ. Работа начинается только после явного согласования состава работ, критериев готовности, срока и внешних расходов обеими сторонами.
@@ -579,7 +588,7 @@ ${brief.nextStep}
     if (shouldTrack) trackGoal("mvp_brief_starting_point", { startingPoint });
   }
 
-  async function compressImage(file: File): Promise<BriefPayload["screenshot"]> {
+  async function compressImage(file: File): Promise<ScreenshotAttachment> {
     if (file.size > 8 * 1024 * 1024) throw new Error("Файл больше 8 МБ");
     if (![/^image\/(png|jpeg|webp)$/].some((pattern) => pattern.test(file.type))) throw new Error("Поддерживаются PNG, JPG и WebP");
     const bitmap = await createImageBitmap(file);
@@ -704,13 +713,17 @@ ${brief.nextStep}
     try {
       screenshot = await compressImage(file);
       screenshotImage.src = screenshot.dataUrl;
+      await screenshotImage.decode();
       screenshotName.textContent = `${screenshot.name} · изображение уменьшено для анализа`;
       screenshotPreview.hidden = false;
       inputMethods.set("screenshot", "file");
       trackFieldCompleted(screenshotInput, "file");
       trackGoal("mvp_screenshot_added");
     } catch (error) {
+      screenshot = undefined;
       screenshotInput.value = "";
+      screenshotImage.removeAttribute("src");
+      screenshotPreview.hidden = true;
       validationMessage.textContent = error instanceof Error ? error.message : "Не удалось прочитать скриншот";
     }
   });
