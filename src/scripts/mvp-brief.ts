@@ -74,6 +74,37 @@ if (root) {
   let currentMarkdown = "";
   let saveTimer = 0;
   let extractedDocumentText = "";
+  let formStarted = false;
+  let formCompleted = false;
+  let abandonmentTracked = false;
+  let stepEnteredAt = performance.now();
+
+  type AnalyticsInputMethod = "text" | "voice" | "file" | "selection";
+
+  const analyticsFieldNames = new Set([
+    "requesterName",
+    "startingPoint",
+    "existingBrief",
+    "idea",
+    "audience",
+    "problem",
+    "currentProcess",
+    "desiredProcess",
+    "success",
+    "customFeatures",
+    "laterFeatures",
+    "dataInputs",
+    "integrations",
+    "references",
+    "screenshot",
+    "screenshotNotes",
+    "externalCostsAccepted",
+    "aiConsent",
+  ]);
+  const startedFields = new Set<string>();
+  const completedFields = new Set<string>();
+  const completedSteps = new Set<number>();
+  const inputMethods = new Map<string, AnalyticsInputMethod>();
 
   const text = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | null)?.value.trim() ?? "";
   const selected = (name: string) => {
@@ -167,7 +198,7 @@ if (root) {
         "Какие результаты важнее всего показать первым пользователям?",
       ]),
       threeDayPlan: [
-        { day: "До старта", tasks: ["Согласовать сценарий, критерии готовности, доступы и внешние расходы"] },
+        { day: "Этап до старта", tasks: ["Согласовать сценарий, критерии готовности, доступы и внешние расходы"] },
         { day: "День 1", tasks: ["Собрать структуру интерфейса", "Проверить рискованные технические места"] },
         { day: "День 2", tasks: ["Реализовать наиболее ценные согласованные сценарии", "Подключить данные и согласованные интеграции"] },
         { day: "День 3", tasks: ["Проверить сценарий", "Исправить критичные ошибки", "Передать код и инструкцию"] },
@@ -201,12 +232,21 @@ if (root) {
     outputBody.append(section);
   }
 
+  function normalizePlanLabel(value: unknown, index: number): string {
+    const label = String(value ?? "").trim();
+    if (/^(этап\s+)?до\s+старта$/i.test(label)) return "Этап до старта";
+    const dayNumber = label.match(/^(?:день\s*)?(\d+)$/i)?.[1];
+    if (dayNumber) return `День ${dayNumber}`;
+    if (/^день\b/i.test(label)) return label;
+    return label ? `Этап ${index + 1}: ${label}` : `Этап ${index + 1}`;
+  }
+
   function normalizeBrief(candidate: Partial<BriefResult>, fallback: BriefResult): BriefResult {
     const strings = (value: unknown, defaultValue: string[]) =>
       Array.isArray(value) ? unique(value.map((item) => String(item))) : defaultValue;
     const plans = Array.isArray(candidate.threeDayPlan)
-      ? candidate.threeDayPlan.slice(0, 6).map((item) => ({
-          day: String(item?.day ?? "Этап"),
+      ? candidate.threeDayPlan.slice(0, 6).map((item, index) => ({
+          day: normalizePlanLabel(item?.day, index),
           tasks: strings(item?.tasks, []),
         }))
       : fallback.threeDayPlan;
@@ -308,7 +348,7 @@ ${brief.nextStep}
     appendSection("Критерии готовности", brief.acceptanceCriteria);
     appendSection("Риски и допущения", brief.risksAndAssumptions);
     appendSection("Открытые вопросы", brief.openQuestions);
-    brief.threeDayPlan.forEach((item) => appendSection(`План: ${item.day}`, item.tasks));
+    brief.threeDayPlan.forEach((item) => appendSection(item.day, item.tasks));
     appendSection("Внешние расходы", brief.externalCosts);
     appendSection("Следующий шаг", brief.nextStep);
     output.hidden = false;
@@ -351,6 +391,11 @@ ${brief.nextStep}
         field.classList.add("is-invalid");
         field.closest("label")?.classList.add("is-invalid");
         validationMessage.textContent = field.type === "checkbox" ? "Подтвердите условия внешних расходов." : "Заполните отмеченные поля чуть подробнее.";
+        trackGoal("mvp_brief_validation_error", {
+          field: field.name,
+          step: index + 1,
+          reason: fieldHasAnswer(field) ? "too_short" : "empty",
+        });
         field.focus();
         return false;
       }
@@ -376,6 +421,7 @@ ${brief.nextStep}
     validationMessage.textContent = "";
     if (shouldScroll) root.scrollIntoView({ behavior: "smooth", block: "start" });
     trackGoal(`mvp_brief_step_${currentStep + 1}`);
+    stepEnteredAt = performance.now();
   }
 
   function trackGoal(goal: string, params: Record<string, unknown> = {}) {
@@ -384,8 +430,100 @@ ${brief.nextStep}
     dataLayer?.push({ event: goal, ...params });
     const globalWindow = window as typeof window & { ym?: (...args: unknown[]) => void; __YANDEX_METRIKA_ID__?: number };
     if (globalWindow.ym && globalWindow.__YANDEX_METRIKA_ID__) {
+      const safeDetail = [params.field, params.step ? `step_${params.step}` : "", params.method, params.startingPoint]
+        .filter((value): value is string | number => typeof value === "string" || typeof value === "number")
+        .map((value) => String(value).replace(/[^a-zA-Z0-9_-]/g, "_"))
+        .filter(Boolean)
+        .join("__");
+      const visitParameter = safeDetail ? `${goal}__${safeDetail}` : goal;
+      globalWindow.ym(globalWindow.__YANDEX_METRIKA_ID__, "params", { lazysoft_mvp: { [visitParameter]: true } });
       globalWindow.ym(globalWindow.__YANDEX_METRIKA_ID__, "reachGoal", goal, params);
     }
+  }
+
+  function durationBucket(durationMs: number): string {
+    const seconds = durationMs / 1000;
+    if (seconds < 30) return "under_30s";
+    if (seconds < 120) return "30s_2m";
+    if (seconds < 300) return "2m_5m";
+    return "over_5m";
+  }
+
+  function fieldName(field: Element | null): string | null {
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return null;
+    return analyticsFieldNames.has(field.name) ? field.name : null;
+  }
+
+  function fieldHasAnswer(field: HTMLInputElement | HTMLTextAreaElement): boolean {
+    if (field instanceof HTMLInputElement && field.type === "radio") {
+      return Boolean(form.querySelector<HTMLInputElement>(`[name="${field.name}"]:checked`));
+    }
+    if (field instanceof HTMLInputElement && field.type === "checkbox") return field.checked;
+    return field.value.trim().length > 0;
+  }
+
+  function beginForm(field: HTMLInputElement | HTMLTextAreaElement) {
+    if (formStarted) return;
+    formStarted = true;
+    trackGoal("mvp_brief_started", {
+      field: field.name,
+      step: currentStep + 1,
+      startingPoint: selected("startingPoint") || "idea",
+    });
+  }
+
+  function trackFieldStarted(field: HTMLInputElement | HTMLTextAreaElement, method?: AnalyticsInputMethod) {
+    const name = fieldName(field);
+    if (!name) return;
+    beginForm(field);
+    if (method) inputMethods.set(name, method);
+    if (startedFields.has(name)) return;
+    startedFields.add(name);
+    trackGoal("mvp_brief_field_started", {
+      field: name,
+      step: currentStep + 1,
+      method: inputMethods.get(name) || method || "text",
+    });
+  }
+
+  function trackFieldCompleted(field: HTMLInputElement | HTMLTextAreaElement, method?: AnalyticsInputMethod) {
+    const name = fieldName(field);
+    if (!name || !fieldHasAnswer(field)) return;
+    trackFieldStarted(field, method);
+    if (method) inputMethods.set(name, method);
+    if (completedFields.has(name)) return;
+    completedFields.add(name);
+    trackGoal("mvp_brief_field_completed", {
+      field: name,
+      step: currentStep + 1,
+      method: inputMethods.get(name) || method || "text",
+    });
+  }
+
+  function trackCompletedFields(section: HTMLElement) {
+    section.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input[name], textarea[name]").forEach((field) => {
+      if (field.closest("[hidden]") || !fieldHasAnswer(field)) return;
+      const defaultMethod: AnalyticsInputMethod = field.type === "radio" || field.type === "checkbox" ? "selection" : "text";
+      trackFieldCompleted(field, inputMethods.get(field.name) || defaultMethod);
+    });
+  }
+
+  function trackStepCompleted(index: number) {
+    const section = steps[index];
+    trackCompletedFields(section);
+    if (completedSteps.has(index)) return;
+    completedSteps.add(index);
+    const answeredFields = new Set(
+      Array.from(section.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input[name], textarea[name]"))
+        .filter((field) => !field.closest("[hidden]") && fieldHasAnswer(field))
+        .map((field) => field.name),
+    ).size;
+    trackGoal("mvp_brief_step_completed", {
+      step: index + 1,
+      duration: durationBucket(performance.now() - stepEnteredAt),
+      answeredFields,
+      startingPoint: selected("startingPoint") || "idea",
+    });
   }
 
   function saveAnswers() {
@@ -479,14 +617,42 @@ ${brief.nextStep}
   nextButton.addEventListener("click", () => {
     if (!validateStep(currentStep)) return;
     saveAnswers();
+    trackStepCompleted(currentStep);
     showStep(currentStep + 1);
   });
   backButton.addEventListener("click", () => showStep(currentStep - 1));
   form.querySelectorAll<HTMLInputElement>('[name="startingPoint"]').forEach((field) => {
     field.addEventListener("change", () => syncStartingPoint(true));
   });
-  form.addEventListener("input", saveAnswers);
-  form.addEventListener("change", saveAnswers);
+  form.addEventListener("focusin", (event) => {
+    const field = event.target;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    const method: AnalyticsInputMethod = field.type === "radio" || field.type === "checkbox"
+      ? "selection"
+      : field.type === "file" ? "file" : "text";
+    trackFieldStarted(field, method);
+  });
+  form.addEventListener("focusout", (event) => {
+    const field = event.target;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    trackFieldCompleted(field);
+  });
+  form.addEventListener("input", (event) => {
+    saveAnswers();
+    const field = event.target;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    if (!inputMethods.has(field.name)) inputMethods.set(field.name, field.type === "file" ? "file" : "text");
+    trackFieldStarted(field, inputMethods.get(field.name));
+  });
+  form.addEventListener("change", (event) => {
+    saveAnswers();
+    const field = event.target;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    const method: AnalyticsInputMethod = field.type === "radio" || field.type === "checkbox"
+      ? "selection"
+      : field.type === "file" ? "file" : inputMethods.get(field.name) || "text";
+    trackFieldCompleted(field, method);
+  });
 
   existingBriefFile.addEventListener("change", async () => {
     const file = existingBriefFile.files?.[0];
@@ -504,10 +670,12 @@ ${brief.nextStep}
       if (extracted.text.trim().length < 30) throw new Error("В документе не найден читаемый текст. Если это скан, вставьте описание вручную.");
       const maxLength = 12_000;
       extractedDocumentText = extracted.text.trim().slice(0, maxLength);
+      inputMethods.set("existingBrief", "file");
       existingBriefInput.value = extractedDocumentText;
       existingBriefInput.dispatchEvent(new Event("input", { bubbles: true }));
       const wasTruncated = extracted.text.trim().length > maxLength;
       existingFileDetails.textContent = `${extracted.details}. Текст добавлен в поле ниже${wasTruncated ? " (взяты первые 12 000 знаков)" : ""}.`;
+      trackFieldCompleted(existingBriefInput, "file");
       trackGoal("mvp_existing_brief_file_added", { extension: file.name.split(".").pop()?.toLowerCase() || "unknown" });
     } catch (error) {
       existingBriefFile.value = "";
@@ -538,6 +706,8 @@ ${brief.nextStep}
       screenshotImage.src = screenshot.dataUrl;
       screenshotName.textContent = `${screenshot.name} · изображение уменьшено для анализа`;
       screenshotPreview.hidden = false;
+      inputMethods.set("screenshot", "file");
+      trackFieldCompleted(screenshotInput, "file");
       trackGoal("mvp_screenshot_added");
     } catch (error) {
       screenshotInput.value = "";
@@ -569,9 +739,11 @@ ${brief.nextStep}
       button.textContent = "Слушаю…";
       recognition.onresult = (event: any) => {
         const transcript = String(event.results?.[0]?.[0]?.transcript || "").trim();
+        inputMethods.set(field.name, "voice");
         field.value = [field.value.trim(), transcript].filter(Boolean).join(field.value.trim() ? " " : "");
         field.dispatchEvent(new Event("input", { bubbles: true }));
-        trackGoal("mvp_voice_input_used");
+        trackFieldCompleted(field, "voice");
+        trackGoal("mvp_voice_input_used", { field: field.name, step: currentStep + 1 });
       };
       recognition.onerror = () => { validationMessage.textContent = "Не удалось распознать речь. Попробуйте ещё раз или напишите текстом."; };
       recognition.onend = () => { button.classList.remove("is-listening"); button.textContent = "◉ Сказать"; };
@@ -606,6 +778,14 @@ ${brief.nextStep}
   });
 
   generateButton.addEventListener("click", async () => {
+    if (!formCompleted) {
+      trackStepCompleted(currentStep);
+      trackGoal("mvp_brief_form_completed", {
+        startingPoint: selected("startingPoint") || "idea",
+        aiConsent: (form.elements.namedItem("aiConsent") as HTMLInputElement).checked ? "yes" : "no",
+      });
+      formCompleted = true;
+    }
     const payload = collectPayload();
     const fallback = createLocalBrief(payload);
     renderBrief(fallback, "local");
@@ -678,10 +858,20 @@ ${brief.nextStep}
     }
   });
 
-  root.querySelector<HTMLAnchorElement>("[data-telegram-link]")!.addEventListener("click", () => trackGoal("mvp_contact_telegram"));
-  root.querySelector<HTMLAnchorElement>("[data-email-link]")!.addEventListener("click", () => trackGoal("mvp_contact_email"));
   document.querySelectorAll<HTMLAnchorElement>('a[href*="t.me/SeeeRGo88"]').forEach((link) => link.addEventListener("click", () => trackGoal("mvp_contact_telegram")));
   document.querySelectorAll<HTMLAnchorElement>('a[href^="mailto:hello@lazysoft.ru"]').forEach((link) => link.addEventListener("click", () => trackGoal("mvp_contact_email")));
+
+  window.addEventListener("pagehide", () => {
+    if (!formStarted || formCompleted || abandonmentTracked) return;
+    abandonmentTracked = true;
+    trackCompletedFields(steps[currentStep]);
+    trackGoal("mvp_brief_abandoned", {
+      step: currentStep + 1,
+      duration: durationBucket(performance.now() - stepEnteredAt),
+      startingPoint: selected("startingPoint") || "idea",
+      completedFields: completedFields.size,
+    });
+  });
 
   restoreAnswers();
   syncStartingPoint();
