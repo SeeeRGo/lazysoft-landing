@@ -117,8 +117,6 @@ function cleanPayload(input) {
     currentProcess: cleanText(payload.currentProcess),
     desiredProcess: cleanText(payload.desiredProcess),
     success: cleanText(payload.success),
-    platform: cleanText(payload.platform, 200),
-    features: cleanStringArray(payload.features),
     customFeatures: cleanText(payload.customFeatures),
     laterFeatures: cleanText(payload.laterFeatures),
     dataInputs: cleanText(payload.dataInputs),
@@ -135,8 +133,8 @@ function validatePayload(payload, mode) {
     return "";
   }
   if (!payload.idea || !payload.audience || !payload.problem) return "Заполните идею, пользователя и проблему.";
-  if (mode === "brief" && (!payload.currentProcess || !payload.desiredProcess || !payload.success)) {
-    return "Для ТЗ не хватает текущего процесса, желаемого сценария или критерия успеха.";
+  if (mode === "brief" && (!payload.currentProcess || !payload.desiredProcess || !payload.success || !payload.customFeatures)) {
+    return "Для ТЗ не хватает текущего процесса, желаемого сценария, обязательных возможностей или критерия успеха.";
   }
   return "";
 }

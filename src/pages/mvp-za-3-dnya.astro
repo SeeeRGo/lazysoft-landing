@@ -275,31 +275,10 @@ const structuredData = [
           <h3 id="brief-step-scope">Что действительно нужно в первой версии?</h3>
           <p class="brief-step-lede">Три дня требуют выбора. Отметьте только то, без чего главный сценарий не состоится.</p>
 
-          <fieldset class="brief-fieldset">
-            <legend>Формат продукта</legend>
-            <div class="choice-grid choice-grid-radio">
-              <label><input type="radio" name="platform" value="Веб-приложение" checked /><span>Веб-приложение</span></label>
-              <label><input type="radio" name="platform" value="Браузерное расширение" /><span>Расширение</span></label>
-              <label><input type="radio" name="platform" value="Внутренний инструмент" /><span>Внутренний инструмент</span></label>
-              <label><input type="radio" name="platform" value="Не уверен — нужен совет" /><span>Не уверен</span></label>
-            </div>
-          </fieldset>
-
-          <fieldset class="brief-fieldset">
-            <legend>Возможности, без которых нельзя проверить идею</legend>
-            <div class="choice-grid">
-              <label><input type="checkbox" name="features" value="Форма ввода данных" /><span>Форма ввода</span></label>
-              <label><input type="checkbox" name="features" value="Список и просмотр записей" /><span>Список данных</span></label>
-              <label><input type="checkbox" name="features" value="Загрузка файла" /><span>Загрузка файла</span></label>
-              <label><input type="checkbox" name="features" value="Генерация документа или отчёта" /><span>Документ / отчёт</span></label>
-              <label><input type="checkbox" name="features" value="Интеграция с внешним API" /><span>Внешний API</span></label>
-              <label><input type="checkbox" name="features" value="Простая авторизация" /><span>Авторизация</span></label>
-            </div>
-          </fieldset>
-
           <label class="brief-field">
-            <span>Что ещё обязательно?</span>
-            <textarea name="customFeatures" rows="3" placeholder="Одна или две функции, без которых проверка не имеет смысла..."></textarea>
+            <span>Что обязательно? <b>*</b></span>
+            <small>Опишите возможности, без которых первая версия не решит задачу пользователя.</small>
+            <textarea name="customFeatures" rows="4" required minlength="10" data-guided-required placeholder="Например: загрузить файл, обработать данные и скачать готовый отчёт..."></textarea>
           </label>
 
           <label class="brief-field">
@@ -308,8 +287,8 @@ const structuredData = [
           </label>
 
           <div class="scope-reality-check">
-            <strong>Проверка объёма</strong>
-            <p>Если выбранные функции не помещаются в три дня, я предложу оставить наиболее ценные проверяемые сценарии. Расширение будет отдельной задачей, а не скрытой доплатой.</p>
+            <strong>Граница первой версии</strong>
+            <p>Сопоставлю обязательные возможности с тем, что можно отложить. Если весь описанный объём не помещается в три дня, предложу сократить первую версию до наиболее ценных сценариев. Окончательный состав работ согласуем до начала разработки.</p>
           </div>
         </section>
 

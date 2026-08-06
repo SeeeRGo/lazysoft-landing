@@ -8,8 +8,6 @@ type BriefPayload = {
   currentProcess: string;
   desiredProcess: string;
   success: string;
-  platform: string;
-  features: string[];
   customFeatures: string;
   laterFeatures: string;
   dataInputs: string;
@@ -82,9 +80,6 @@ if (root) {
     const item = form.querySelector<HTMLInputElement>(`[name="${name}"]:checked`);
     return item?.value ?? "";
   };
-  const selectedMany = (name: string) =>
-    Array.from(form.querySelectorAll<HTMLInputElement>(`[name="${name}"]:checked`)).map((item) => item.value);
-
   function collectPayload(): BriefPayload {
     return {
       requesterName: text("requesterName"),
@@ -96,8 +91,6 @@ if (root) {
       currentProcess: text("currentProcess"),
       desiredProcess: text("desiredProcess"),
       success: text("success"),
-      platform: selected("platform"),
-      features: selectedMany("features"),
       customFeatures: text("customFeatures"),
       laterFeatures: text("laterFeatures"),
       dataInputs: text("dataInputs"),
@@ -138,8 +131,6 @@ if (root) {
       goal: payload.success || "Критерий полезности требуется согласовать",
       primaryScenario: scenario.length ? scenario : ["Выделить наиболее ценные пользовательские сценарии из исходного описания"],
       included: unique([
-        `Формат: ${payload.platform || "веб-приложение"}`,
-        ...payload.features,
         ...custom,
         "Базовый адаптивный интерфейс для согласованных наиболее ценных сценариев",
         "Исходный код и инструкция запуска",
@@ -151,8 +142,6 @@ if (root) {
       ]),
       screens: unique([
         "Стартовый экран или точка входа",
-        payload.features.includes("Форма ввода данных") ? "Экран ввода данных" : undefined,
-        payload.features.includes("Список и просмотр записей") ? "Список и просмотр результата" : undefined,
         "Экран результата согласованных сценариев",
       ]),
       dataAndIntegrations: unique([
