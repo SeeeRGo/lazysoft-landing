@@ -191,6 +191,22 @@
 .brief-path-choice small { display: block; margin-top: .4rem; color: var(--ink-soft); font-size: .73rem; line-height: 1.45; }
 .brief-path-panel[hidden] { display: none; }
 .brief-path-panel > .brief-field:first-child { margin-top: 0; }
+.brief-document-upload { padding: 1.1rem; border: 1px solid rgba(35,127,120,.28); border-radius: 17px; background: linear-gradient(145deg, rgba(220,235,231,.72), #f7faf7); }
+.brief-document-upload > div:first-child > span { display: block; font-size: .92rem; font-weight: 800; }
+.brief-document-upload > div:first-child > small { display: block; margin-top: .25rem; color: var(--ink-soft); font-size: .74rem; line-height: 1.45; }
+.brief-document-picker { display: inline-flex; margin-top: .85rem; cursor: pointer; }
+.brief-document-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.brief-document-picker span { padding: .72rem 1rem; border: 1px solid var(--ink); border-radius: 999px; background: white; font-size: .8rem; font-weight: 800; box-shadow: 0 5px 14px rgba(23,61,57,.08); transition: border-color .2s, background .2s, color .2s; }
+.brief-document-picker:hover span, .brief-document-picker input:focus-visible + span { border-color: var(--mvp-accent); background: var(--mvp-accent); color: white; }
+.brief-document-status { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-top: .85rem; padding-top: .85rem; border-top: 1px dashed rgba(22,58,58,.22); }
+.brief-document-status strong, .brief-document-status small { display: block; }
+.brief-document-status strong { font-size: .8rem; overflow-wrap: anywhere; }
+.brief-document-status small { margin-top: .2rem; color: var(--ink-soft); font-size: .7rem; }
+.brief-document-status button { flex: 0 0 auto; border: 0; background: none; color: var(--mvp-danger); font-size: .75rem; font-weight: 800; cursor: pointer; }
+.brief-document-status.is-loading button { opacity: .4; cursor: wait; }
+.brief-document-status.is-error small { color: var(--mvp-danger); }
+.brief-input-divider { display: flex; align-items: center; gap: .7rem; margin: 1.25rem 0; color: var(--ink-soft); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+.brief-input-divider::before, .brief-input-divider::after { content: ""; height: 1px; flex: 1; background: rgba(22,58,58,.15); }
 .brief-path-note { margin-top: 1rem; padding: 1rem 1.1rem; border-radius: 15px; background: var(--mvp-accent-soft); }
 .brief-path-note strong { font-size: .82rem; }
 .brief-path-note p { margin-top: .25rem; color: var(--ink-soft); font-size: .78rem; }
@@ -209,6 +225,7 @@
 .brief-field textarea:hover, .brief-field input:hover, .optional-contact input:hover { border-color: rgba(23,104,97,.42); }
 .brief-field textarea:focus, .brief-field input:focus, .optional-contact input:focus { outline: none; border-color: var(--teal-deep); background: white; box-shadow: 0 0 0 4px rgba(35,127,120,.11), 0 8px 24px rgba(23,61,57,.07); }
 .brief-field textarea.is-invalid, .cost-confirmation.is-invalid { border-color: var(--mvp-danger); }
+.brief-field.has-speech-input textarea { padding-bottom: 3rem; }
 .speech-button { position: absolute; right: .7rem; bottom: .7rem; padding: .42rem .68rem; border: 1px solid rgba(23,61,57,.18); border-radius: 999px; background: var(--mvp-accent-soft); color: var(--teal-deep); font: 750 .68rem/1 var(--font-mono); cursor: pointer; box-shadow: 0 3px 10px rgba(23,61,57,.08); }
 .speech-button:hover, .speech-button.is-listening { background: var(--mvp-accent); color: white; }
 

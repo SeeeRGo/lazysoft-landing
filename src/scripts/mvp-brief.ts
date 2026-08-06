@@ -62,6 +62,12 @@ if (root) {
   const screenshotImage = root.querySelector<HTMLImageElement>("[data-screenshot-image]")!;
   const screenshotName = root.querySelector<HTMLElement>("[data-screenshot-name]")!;
   const screenshotRemove = root.querySelector<HTMLButtonElement>("[data-screenshot-remove]")!;
+  const existingBriefInput = form.elements.namedItem("existingBrief") as HTMLTextAreaElement;
+  const existingBriefFile = root.querySelector<HTMLInputElement>("[data-existing-brief-file]")!;
+  const existingFileStatus = root.querySelector<HTMLElement>("[data-existing-file-status]")!;
+  const existingFileName = root.querySelector<HTMLElement>("[data-existing-file-name]")!;
+  const existingFileDetails = root.querySelector<HTMLElement>("[data-existing-file-details]")!;
+  const existingFileRemove = root.querySelector<HTMLButtonElement>("[data-existing-file-remove]")!;
 
   const storageKey = "lazysoft-mvp-brief-v1";
   let currentStep = 0;
@@ -69,6 +75,7 @@ if (root) {
   let currentBrief: BriefResult | null = null;
   let currentMarkdown = "";
   let saveTimer = 0;
+  let extractedDocumentText = "";
 
   const text = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | null)?.value.trim() ?? "";
   const selected = (name: string) => {
@@ -397,7 +404,7 @@ ${brief.nextStep}
     saveTimer = window.setTimeout(() => {
       const values: Record<string, string | string[]> = {};
       new FormData(form).forEach((value, key) => {
-        if (key === "screenshot" || key === "contact" || key === "contactName") return;
+        if (key === "screenshot" || key === "existingBriefFile" || key === "contact" || key === "contactName") return;
         if (values[key]) values[key] = ([] as string[]).concat(values[key] as string | string[], String(value));
         else values[key] = String(value);
       });
@@ -461,6 +468,25 @@ ${brief.nextStep}
     return { name: file.name, type: "image/jpeg", dataUrl: canvas.toDataURL("image/jpeg", .76) };
   }
 
+  function ensureSpeechInputs() {
+    form.querySelectorAll<HTMLTextAreaElement>("textarea[name]").forEach((field) => {
+      const label = field.closest<HTMLLabelElement>(".brief-field");
+      if (!label) return;
+      label.classList.add("has-speech-input");
+      if (label.querySelector(`[data-speech-target="${field.name}"]`)) return;
+      const prompt = label.querySelector<HTMLElement>(":scope > span")?.textContent?.replace("*", "").trim() || "ответ";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "speech-button";
+      button.dataset.speechTarget = field.name;
+      button.setAttribute("aria-label", `Продиктовать: ${prompt}`);
+      button.textContent = "◉ Сказать";
+      label.append(button);
+    });
+  }
+
+  ensureSpeechInputs();
+
   nextButton.addEventListener("click", () => {
     if (!validateStep(currentStep)) return;
     saveAnswers();
@@ -472,6 +498,48 @@ ${brief.nextStep}
   });
   form.addEventListener("input", saveAnswers);
   form.addEventListener("change", saveAnswers);
+
+  existingBriefFile.addEventListener("change", async () => {
+    const file = existingBriefFile.files?.[0];
+    if (!file) return;
+    existingFileStatus.hidden = false;
+    existingFileStatus.classList.remove("is-error");
+    existingFileStatus.classList.add("is-loading");
+    existingFileName.textContent = file.name;
+    existingFileDetails.textContent = "Извлекаю текст из документа…";
+    existingFileRemove.disabled = true;
+    validationMessage.textContent = "";
+    try {
+      const { extractDocumentText } = await import("./document-text");
+      const extracted = await extractDocumentText(file);
+      if (extracted.text.trim().length < 30) throw new Error("В документе не найден читаемый текст. Если это скан, вставьте описание вручную.");
+      const maxLength = 12_000;
+      extractedDocumentText = extracted.text.trim().slice(0, maxLength);
+      existingBriefInput.value = extractedDocumentText;
+      existingBriefInput.dispatchEvent(new Event("input", { bubbles: true }));
+      const wasTruncated = extracted.text.trim().length > maxLength;
+      existingFileDetails.textContent = `${extracted.details}. Текст добавлен в поле ниже${wasTruncated ? " (взяты первые 12 000 знаков)" : ""}.`;
+      trackGoal("mvp_existing_brief_file_added", { extension: file.name.split(".").pop()?.toLowerCase() || "unknown" });
+    } catch (error) {
+      existingBriefFile.value = "";
+      existingFileStatus.classList.add("is-error");
+      existingFileDetails.textContent = error instanceof Error ? error.message : "Не удалось прочитать документ";
+    } finally {
+      existingFileStatus.classList.remove("is-loading");
+      existingFileRemove.disabled = false;
+    }
+  });
+
+  existingFileRemove.addEventListener("click", () => {
+    if (existingBriefInput.value === extractedDocumentText) {
+      existingBriefInput.value = "";
+      existingBriefInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    extractedDocumentText = "";
+    existingBriefFile.value = "";
+    existingFileStatus.hidden = true;
+    existingFileStatus.classList.remove("is-error", "is-loading");
+  });
 
   screenshotInput.addEventListener("change", async () => {
     const file = screenshotInput.files?.[0];

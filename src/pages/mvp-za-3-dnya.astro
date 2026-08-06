@@ -183,6 +183,23 @@ const structuredData = [
           </fieldset>
 
           <div class="brief-path-panel" data-brief-path-panel="existing" hidden>
+            <div class="brief-document-upload">
+              <div>
+                <span>Загрузить готовое ТЗ</span>
+                <small>TXT, Markdown, DOCX или PDF до 8 МБ. Текст извлекается прямо в вашем браузере.</small>
+              </div>
+              <label class="brief-document-picker">
+                <input type="file" name="existingBriefFile" accept=".txt,.md,.markdown,.json,.csv,.docx,.pdf,text/plain,text/markdown,application/json,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" data-existing-brief-file />
+                <span>＋ Выбрать документ</span>
+              </label>
+              <div class="brief-document-status" data-existing-file-status hidden aria-live="polite">
+                <div><strong data-existing-file-name></strong><small data-existing-file-details></small></div>
+                <button type="button" data-existing-file-remove>Убрать</button>
+              </div>
+            </div>
+
+            <div class="brief-input-divider"><span>или вставьте текст</span></div>
+
             <label class="brief-field">
               <span>Вставьте ТЗ или описание <b>*</b></span>
               <small>Подойдёт черновик, заметка, переписка или структурированный документ. Не добавляйте секреты и персональные данные.</small>
@@ -212,6 +229,7 @@ const structuredData = [
             <label class="brief-field">
               <span>Какая проблема есть сейчас? <b>*</b></span>
               <textarea name="problem" rows="3" required minlength="10" data-guided-required placeholder="Сейчас приходится вручную..."></textarea>
+              <button type="button" class="speech-button" data-speech-target="problem" aria-label="Продиктовать описание проблемы">◉ Сказать</button>
             </label>
 
             <div class="ai-helper">
