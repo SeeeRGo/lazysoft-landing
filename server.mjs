@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
-import { request as createHttpsRequest } from "node:https";
+import { Agent as HttpsAgent, request as createHttpsRequest } from "node:https";
+import { randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
@@ -14,6 +15,7 @@ const routerAiModel = process.env.ROUTERAI_MODEL || "openai/gpt-4o-mini";
 const routerAiKey = process.env.ROUTERAI_API_KEY || "";
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || "";
 const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
+const telegramAgent = new HttpsAgent({ keepAlive: true, keepAliveMsecs: 1_000, maxSockets: 8 });
 const maxBodyBytes = 3 * 1024 * 1024;
 const rateLimit = new Map();
 
@@ -263,7 +265,7 @@ function validateRequestContact(method, contact) {
   return "";
 }
 
-function formatMvpRequest({ idea, contactMethod, contact, source }) {
+function formatMvpRequest({ requestId, idea, contactMethod, contact, source }) {
   const methodNames = { telegram: "Telegram", email: "Почта", max: "MAX" };
   const sourceLines = [
     source.utmSource && `Источник: ${source.utmSource}`,
@@ -273,7 +275,7 @@ function formatMvpRequest({ idea, contactMethod, contact, source }) {
     source.referrer && `Переход: ${source.referrer}`,
   ].filter(Boolean);
   return [
-    "Новая заявка на разбор идеи",
+    `Новая заявка на разбор идеи · ${requestId}`,
     "",
     `Канал ответа: ${methodNames[contactMethod]}`,
     `Контакт: ${contact}`,
@@ -284,17 +286,12 @@ function formatMvpRequest({ idea, contactMethod, contact, source }) {
   ].join("\n").slice(0, 4000);
 }
 
-async function sendTelegramNotification(text) {
-  if (!telegramBotToken || !telegramChatId) {
-    const error = new Error("REQUEST_DELIVERY_NOT_CONFIGURED");
-    error.status = 503;
-    throw error;
-  }
-  const body = JSON.stringify({ chat_id: telegramChatId, text, disable_web_page_preview: true });
-  await new Promise((resolveRequest, rejectRequest) => {
+function sendTelegramAttempt(body) {
+  return new Promise((resolveRequest, rejectRequest) => {
     const telegramRequest = createHttpsRequest({
       hostname: "api.telegram.org",
       family: 4,
+      agent: telegramAgent,
       port: 443,
       path: `/bot${telegramBotToken}/sendMessage`,
       method: "POST",
@@ -302,7 +299,7 @@ async function sendTelegramNotification(text) {
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(body),
       },
-      timeout: 15_000,
+      timeout: 7_000,
     }, (telegramResponse) => {
       const chunks = [];
       telegramResponse.on("data", (chunk) => chunks.push(chunk));
@@ -331,6 +328,31 @@ async function sendTelegramNotification(text) {
     telegramRequest.on("error", rejectRequest);
     telegramRequest.end(body);
   });
+}
+
+async function sendTelegramNotification(text) {
+  if (!telegramBotToken || !telegramChatId) {
+    const error = new Error("REQUEST_DELIVERY_NOT_CONFIGURED");
+    error.status = 503;
+    throw error;
+  }
+  const body = JSON.stringify({ chat_id: telegramChatId, text, disable_web_page_preview: true });
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await sendTelegramAttempt(body);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (error?.message === "REQUEST_DELIVERY_FAILED" || attempt === 3) break;
+      console.warn("Telegram request delivery retry", attempt, error?.code || error?.message || "network error");
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, attempt * 250));
+    }
+  }
+  if (lastError?.message === "REQUEST_DELIVERY_FAILED") throw lastError;
+  const error = new Error("REQUEST_DELIVERY_TIMEOUT");
+  error.status = 504;
+  throw error;
 }
 
 async function handleMvpRequestApi(request, response) {
@@ -362,8 +384,9 @@ async function handleMvpRequestApi(request, response) {
       utmTerm: cleanText(rawSource.utmTerm, 180),
       referrer: cleanText(rawSource.referrer, 500),
     };
-    await sendTelegramNotification(formatMvpRequest({ idea, contactMethod, contact, source }));
-    return sendJson(response, 200, { ok: true });
+    const requestId = `#${randomUUID().slice(0, 8)}`;
+    await sendTelegramNotification(formatMvpRequest({ requestId, idea, contactMethod, contact, source }));
+    return sendJson(response, 200, { ok: true, requestId });
   } catch (error) {
     const status = Number(error?.status || 500);
     const messages = {
