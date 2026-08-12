@@ -11,6 +11,8 @@ const port = Number(process.env.PORT || 8080);
 const routerAiBaseUrl = (process.env.ROUTERAI_BASE_URL || "https://routerai.ru/api/v1").replace(/\/$/, "");
 const routerAiModel = process.env.ROUTERAI_MODEL || "openai/gpt-4o-mini";
 const routerAiKey = process.env.ROUTERAI_API_KEY || "";
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || "";
+const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
 const maxBodyBytes = 3 * 1024 * 1024;
 const rateLimit = new Map();
 
@@ -254,6 +256,112 @@ async function handleBriefApi(request, response) {
   }
 }
 
+function validateRequestContact(method, contact) {
+  if (!contact || contact.length < 3) return "Укажите контакт, на который можно прислать PDF.";
+  if (method === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return "Проверьте адрес электронной почты.";
+  return "";
+}
+
+function formatMvpRequest({ idea, contactMethod, contact, source }) {
+  const methodNames = { telegram: "Telegram", email: "Почта", max: "MAX" };
+  const sourceLines = [
+    source.utmSource && `Источник: ${source.utmSource}`,
+    source.utmCampaign && `Кампания: ${source.utmCampaign}`,
+    source.utmTerm && `Запрос: ${source.utmTerm}`,
+    source.utmContent && `Объявление: ${source.utmContent}`,
+    source.referrer && `Переход: ${source.referrer}`,
+  ].filter(Boolean);
+  return [
+    "Новая заявка на разбор идеи",
+    "",
+    `Канал ответа: ${methodNames[contactMethod]}`,
+    `Контакт: ${contact}`,
+    "",
+    "Идея:",
+    idea,
+    ...(sourceLines.length ? ["", ...sourceLines] : []),
+  ].join("\n").slice(0, 4000);
+}
+
+async function sendTelegramNotification(text) {
+  if (!telegramBotToken || !telegramChatId) {
+    const error = new Error("REQUEST_DELIVERY_NOT_CONFIGURED");
+    error.status = 503;
+    throw error;
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: telegramChatId, text, disable_web_page_preview: true }),
+      signal: controller.signal,
+    });
+    const result = await telegramResponse.json().catch(() => ({}));
+    if (!telegramResponse.ok || result.ok !== true) {
+      console.error("Telegram request delivery failed", telegramResponse.status, result?.description || "unknown");
+      const error = new Error("REQUEST_DELIVERY_FAILED");
+      error.status = 502;
+      throw error;
+    }
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error("REQUEST_DELIVERY_TIMEOUT");
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function handleMvpRequestApi(request, response) {
+  if (request.method !== "POST") {
+    response.setHeader("Allow", "POST");
+    return sendJson(response, 405, { error: "Метод не поддерживается" });
+  }
+  const origin = String(request.headers.origin || "");
+  const allowedOrigin = /^https:\/\/(www\.)?lazysoft\.ru$/.test(origin) || /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin);
+  if (origin && !allowedOrigin) return sendJson(response, 403, { error: "Запрос с другого сайта отклонён" });
+  if (!checkRateLimit(request)) return sendJson(response, 429, { error: "Слишком много заявок. Попробуйте немного позже." });
+  if (!String(request.headers["content-type"] || "").startsWith("application/json")) {
+    return sendJson(response, 415, { error: "Ожидается JSON" });
+  }
+  try {
+    const body = await readJsonBody(request);
+    if (cleanText(body.website, 200)) return sendJson(response, 200, { ok: true });
+    const idea = cleanText(body.idea, 3000);
+    const contactMethod = ["telegram", "email", "max"].includes(body.contactMethod) ? body.contactMethod : "telegram";
+    const contact = cleanText(body.contact, 200);
+    if (idea.length < 20) return sendJson(response, 400, { error: "Расскажите об идее хотя бы в нескольких предложениях." });
+    const contactError = validateRequestContact(contactMethod, contact);
+    if (contactError) return sendJson(response, 400, { error: contactError });
+    const rawSource = body.source && typeof body.source === "object" ? body.source : {};
+    const source = {
+      utmSource: cleanText(rawSource.utmSource, 120),
+      utmCampaign: cleanText(rawSource.utmCampaign, 180),
+      utmContent: cleanText(rawSource.utmContent, 180),
+      utmTerm: cleanText(rawSource.utmTerm, 180),
+      referrer: cleanText(rawSource.referrer, 500),
+    };
+    await sendTelegramNotification(formatMvpRequest({ idea, contactMethod, contact, source }));
+    return sendJson(response, 200, { ok: true });
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    const messages = {
+      REQUEST_DELIVERY_NOT_CONFIGURED: "Приём заявок пока не настроен",
+      REQUEST_DELIVERY_FAILED: "Сервис не принял заявку",
+      REQUEST_DELIVERY_TIMEOUT: "Сервис отправки не успел ответить",
+      PAYLOAD_TOO_LARGE: "Описание слишком большое",
+      INVALID_JSON: "Некорректный формат запроса",
+    };
+    if (status >= 500 && error?.message !== "REQUEST_DELIVERY_NOT_CONFIGURED") console.error("MVP request API error", error?.message || error);
+    return sendJson(response, status, { error: messages[error?.message] || "Не удалось отправить заявку" });
+  }
+}
+
 async function findStaticFile(pathname) {
   let decoded;
   try {
@@ -333,8 +441,9 @@ const server = createServer(async (request, response) => {
       response.writeHead(301, { Location: `https://lazysoft.ru${url.pathname}${url.search}` });
       return response.end();
     }
-    if (url.pathname === "/healthz") return sendJson(response, 200, { ok: true, aiConfigured: Boolean(routerAiKey) });
+    if (url.pathname === "/healthz") return sendJson(response, 200, { ok: true, aiConfigured: Boolean(routerAiKey), requestDeliveryConfigured: Boolean(telegramBotToken && telegramChatId) });
     if (url.pathname === "/api/mvp-brief") return handleBriefApi(request, response);
+    if (url.pathname === "/api/mvp-request") return handleMvpRequestApi(request, response);
     if (!['GET', 'HEAD'].includes(request.method || "")) {
       response.writeHead(405, { Allow: "GET, HEAD" });
       return response.end();
