@@ -16,6 +16,7 @@ const routerAiKey = process.env.ROUTERAI_API_KEY || "";
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || "";
 const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
 const telegramAgent = new HttpsAgent({ keepAlive: true, keepAliveMsecs: 1_000, maxSockets: 8 });
+const telegramApiAddresses = ["149.154.166.110", "149.154.167.220"];
 const maxBodyBytes = 3 * 1024 * 1024;
 const rateLimit = new Map();
 
@@ -286,16 +287,18 @@ function formatMvpRequest({ requestId, idea, contactMethod, contact, source }) {
   ].join("\n").slice(0, 4000);
 }
 
-function sendTelegramAttempt(body) {
+function sendTelegramAttempt(body, address) {
   return new Promise((resolveRequest, rejectRequest) => {
     const telegramRequest = createHttpsRequest({
-      hostname: "api.telegram.org",
+      hostname: address,
       family: 4,
       agent: telegramAgent,
+      servername: "api.telegram.org",
       port: 443,
       path: `/bot${telegramBotToken}/sendMessage`,
       method: "POST",
       headers: {
+        "Host": "api.telegram.org",
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(body),
       },
@@ -339,13 +342,14 @@ async function sendTelegramNotification(text) {
   const body = JSON.stringify({ chat_id: telegramChatId, text, disable_web_page_preview: true });
   let lastError;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const address = telegramApiAddresses[(attempt - 1) % telegramApiAddresses.length];
     try {
-      await sendTelegramAttempt(body);
+      await sendTelegramAttempt(body, address);
       return;
     } catch (error) {
       lastError = error;
       if (error?.message === "REQUEST_DELIVERY_FAILED" || attempt === 3) break;
-      console.warn("Telegram request delivery retry", attempt, error?.code || error?.message || "network error");
+      console.warn("Telegram request delivery retry", attempt, address, error?.code || error?.message || "network error");
       await new Promise((resolveDelay) => setTimeout(resolveDelay, attempt * 250));
     }
   }
