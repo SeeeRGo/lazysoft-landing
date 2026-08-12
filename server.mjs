@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { request as createHttpsRequest } from "node:https";
 import { readFile, stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
@@ -289,32 +290,47 @@ async function sendTelegramNotification(text) {
     error.status = 503;
     throw error;
   }
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
-  try {
-    const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+  const body = JSON.stringify({ chat_id: telegramChatId, text, disable_web_page_preview: true });
+  await new Promise((resolveRequest, rejectRequest) => {
+    const telegramRequest = createHttpsRequest({
+      hostname: "api.telegram.org",
+      family: 4,
+      port: 443,
+      path: `/bot${telegramBotToken}/sendMessage`,
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: telegramChatId, text, disable_web_page_preview: true }),
-      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(body),
+      },
+      timeout: 15_000,
+    }, (telegramResponse) => {
+      const chunks = [];
+      telegramResponse.on("data", (chunk) => chunks.push(chunk));
+      telegramResponse.on("end", () => {
+        let result = {};
+        try {
+          result = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+        } catch {
+          result = {};
+        }
+        if ((telegramResponse.statusCode || 500) >= 400 || result.ok !== true) {
+          console.error("Telegram request delivery failed", telegramResponse.statusCode, result?.description || "unknown");
+          const error = new Error("REQUEST_DELIVERY_FAILED");
+          error.status = 502;
+          rejectRequest(error);
+          return;
+        }
+        resolveRequest();
+      });
     });
-    const result = await telegramResponse.json().catch(() => ({}));
-    if (!telegramResponse.ok || result.ok !== true) {
-      console.error("Telegram request delivery failed", telegramResponse.status, result?.description || "unknown");
-      const error = new Error("REQUEST_DELIVERY_FAILED");
-      error.status = 502;
-      throw error;
-    }
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      const timeoutError = new Error("REQUEST_DELIVERY_TIMEOUT");
-      timeoutError.status = 504;
-      throw timeoutError;
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+    telegramRequest.on("timeout", () => {
+      const error = new Error("REQUEST_DELIVERY_TIMEOUT");
+      error.status = 504;
+      telegramRequest.destroy(error);
+    });
+    telegramRequest.on("error", rejectRequest);
+    telegramRequest.end(body);
+  });
 }
 
 async function handleMvpRequestApi(request, response) {
