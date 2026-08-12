@@ -71,6 +71,8 @@ jobs:
           revision-env: |
             ROUTERAI_API_KEY=${{ secrets.ROUTERAI_API_KEY }}
             ROUTERAI_MODEL=openai/gpt-4o-mini
+            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+            TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Verify deployment through API Gateway
         run: |
