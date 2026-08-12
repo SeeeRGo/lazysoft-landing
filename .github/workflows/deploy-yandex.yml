@@ -48,6 +48,8 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64
           push: true
+          provenance: false
+          sbom: false
           tags: cr.yandex/${{ env.REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           build-args: |
             PUBLIC_YANDEX_METRIKA_ID=${{ vars.YANDEX_METRIKA_ID }}
