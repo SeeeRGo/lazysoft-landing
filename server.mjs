@@ -15,6 +15,8 @@ const routerAiModel = process.env.ROUTERAI_MODEL || "openai/gpt-4o-mini";
 const routerAiKey = process.env.ROUTERAI_API_KEY || "";
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || "";
 const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
+const convexSiteUrl = (process.env.CONVEX_SITE_URL || "").replace(/\/$/, "");
+const convexIngestSecret = process.env.CONVEX_INGEST_SECRET || "";
 const telegramAgent = new HttpsAgent({ keepAlive: true, keepAliveMsecs: 1_000, maxSockets: 8 });
 const telegramApiAddresses = ["149.154.166.110", "149.154.167.220"];
 const maxBodyBytes = 3 * 1024 * 1024;
@@ -270,6 +272,7 @@ function formatMvpRequest({ requestId, idea, contactMethod, contact, source }) {
   const methodNames = { telegram: "Telegram", email: "Почта", max: "MAX" };
   const sourceLines = [
     source.utmSource && `Источник: ${source.utmSource}`,
+    source.utmMedium && `Канал: ${source.utmMedium}`,
     source.utmCampaign && `Кампания: ${source.utmCampaign}`,
     source.utmTerm && `Запрос: ${source.utmTerm}`,
     source.utmContent && `Объявление: ${source.utmContent}`,
@@ -359,6 +362,26 @@ async function sendTelegramNotification(text) {
   throw error;
 }
 
+async function storeRequestInConvex(payload) {
+  if (!convexSiteUrl || !convexIngestSecret) throw new Error("CONVEX_NOT_CONFIGURED");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const response = await fetch(`${convexSiteUrl}/mvp-request`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${convexIngestSecret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`CONVEX_REQUEST_FAILED_${response.status}`);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function handleMvpRequestApi(request, response) {
   if (request.method !== "POST") {
     response.setHeader("Allow", "POST");
@@ -383,13 +406,26 @@ async function handleMvpRequestApi(request, response) {
     const rawSource = body.source && typeof body.source === "object" ? body.source : {};
     const source = {
       utmSource: cleanText(rawSource.utmSource, 120),
+      utmMedium: cleanText(rawSource.utmMedium, 120),
       utmCampaign: cleanText(rawSource.utmCampaign, 180),
       utmContent: cleanText(rawSource.utmContent, 180),
       utmTerm: cleanText(rawSource.utmTerm, 180),
       referrer: cleanText(rawSource.referrer, 500),
     };
     const requestId = `#${randomUUID().slice(0, 8)}`;
-    await sendTelegramNotification(formatMvpRequest({ requestId, idea, contactMethod, contact, source }));
+    const receivedAt = Date.now();
+    const convexPromise = storeRequestInConvex({ requestId, idea, contactMethod, contact, source, receivedAt });
+    const telegramPromise = sendTelegramNotification(formatMvpRequest({ requestId, idea, contactMethod, contact, source }));
+    const [convexResult, telegramResult] = await Promise.allSettled([convexPromise, telegramPromise]);
+    const stored = convexResult.status === "fulfilled";
+    const notified = telegramResult.status === "fulfilled";
+    if (!stored) console.error("Convex request backup failed", convexResult.reason?.message || convexResult.reason);
+    if (!notified) console.error("Telegram request notification failed", telegramResult.reason?.message || telegramResult.reason);
+    if (!stored && !notified) {
+      const error = new Error("REQUEST_DELIVERY_FAILED");
+      error.status = 502;
+      throw error;
+    }
     return sendJson(response, 200, { ok: true, requestId });
   } catch (error) {
     const status = Number(error?.status || 500);
@@ -484,7 +520,12 @@ const server = createServer(async (request, response) => {
       response.writeHead(301, { Location: `https://lazysoft.ru${url.pathname}${url.search}` });
       return response.end();
     }
-    if (url.pathname === "/healthz") return sendJson(response, 200, { ok: true, aiConfigured: Boolean(routerAiKey), requestDeliveryConfigured: Boolean(telegramBotToken && telegramChatId) });
+    if (url.pathname === "/healthz") return sendJson(response, 200, {
+      ok: true,
+      aiConfigured: Boolean(routerAiKey),
+      requestDeliveryConfigured: Boolean((telegramBotToken && telegramChatId) || (convexSiteUrl && convexIngestSecret)),
+      requestBackupConfigured: Boolean(convexSiteUrl && convexIngestSecret),
+    });
     if (url.pathname === "/api/mvp-brief") return handleBriefApi(request, response);
     if (url.pathname === "/api/mvp-request") return handleMvpRequestApi(request, response);
     if (!['GET', 'HEAD'].includes(request.method || "")) {

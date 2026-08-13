@@ -16,7 +16,7 @@ if (form) {
   let formStarted = false;
   let speechRecognition: any;
 
-  const contactSettings: Record<ContactMethod, { label: string; placeholder: string; hint: string; type: "text" | "email"; autocomplete: string }> = {
+  const contactSettings: Record<ContactMethod, { label: string; placeholder: string; hint: string; type: "text" | "email"; autocomplete: AutoFill }> = {
     telegram: {
       label: "Ваш Telegram",
       placeholder: "@username",
@@ -41,7 +41,7 @@ if (form) {
   };
 
   function selectedMethod(): ContactMethod {
-    return (form.querySelector<HTMLInputElement>("[name='contactMethod']:checked")?.value || "telegram") as ContactMethod;
+    return (form!.querySelector<HTMLInputElement>("[name='contactMethod']:checked")?.value || "telegram") as ContactMethod;
   }
 
   function trackGoal(goal: string, params: Record<string, unknown> = {}) {
@@ -94,7 +94,7 @@ if (form) {
   }
 
   form.querySelectorAll<HTMLInputElement>("[name='contactMethod']").forEach((radio) => {
-    radio.addEventListener("change", setContactMode);
+    radio.addEventListener("change", () => setContactMode());
   });
   idea.addEventListener("focus", () => markStarted("idea"));
   idea.addEventListener("input", () => markStarted("idea"));
