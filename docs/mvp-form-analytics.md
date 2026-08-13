@@ -28,6 +28,12 @@
 В GitHub Actions → Settings → Secrets and variables → Actions → Repository secrets должны быть добавлены:
 
 - `TELEGRAM_BOT_TOKEN` — токен Telegram-бота;
-- `TELEGRAM_CHAT_ID` — идентификатор чата, куда бот присылает заявки.
+- `TELEGRAM_CHAT_ID` — идентификатор чата, куда бот присылает заявки;
+- `CONVEX_DEPLOY_KEY` — ключ production deployment для публикации функций;
+- `CONVEX_INGEST_SECRET` — секрет серверной записи заявок.
+
+В Repository variables должна быть задана `CONVEX_SITE_URL` — адрес HTTP Actions production deployment.
 
 После настройки отправьте тестовую идею с UTM-метками и проверьте одновременно сообщение в Telegram и достижение цели `mvp_brief_form_completed`.
+
+Каждая заявка также резервно записывается в таблицу `mvpRequests` в Convex. Публичных функций чтения у таблицы нет; данные доступны владельцу проекта через Convex Dashboard. Заявка считается принятой, если сработал хотя бы один из каналов — Convex или Telegram.
