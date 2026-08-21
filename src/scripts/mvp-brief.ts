@@ -27,7 +27,7 @@ if (form) {
     email: {
       label: "Ваша почта",
       placeholder: "name@example.ru",
-      hint: "На этот адрес придёт PDF с вариантами.",
+      hint: "На этот адрес придут ТЗ и ссылка на демо интерфейса.",
       type: "email",
       autocomplete: "email",
     },
@@ -96,6 +96,9 @@ if (form) {
   form.querySelectorAll<HTMLInputElement>("[name='contactMethod']").forEach((radio) => {
     radio.addEventListener("change", () => setContactMode());
   });
+  document.querySelectorAll<HTMLElement>("[data-direct-contact]").forEach((link) => {
+    link.addEventListener("click", () => trackGoal("mvp_direct_contact_clicked", { channel: link.dataset.directContact || "unknown" }));
+  });
   idea.addEventListener("focus", () => markStarted("idea"));
   idea.addEventListener("input", () => markStarted("idea"));
   contact.addEventListener("focus", () => markStarted("contact"));
@@ -141,7 +144,7 @@ if (form) {
     event.preventDefault();
     status.hidden = true;
     idea.setCustomValidity(idea.value.trim().length < 20 ? "Расскажите об идее чуть подробнее — хотя бы одним-двумя предложениями." : "");
-    contact.setCustomValidity(contact.value.trim().length < 3 ? "Укажите контакт, на который можно прислать PDF." : "");
+    contact.setCustomValidity(contact.value.trim().length < 3 ? "Укажите контакт, на который можно прислать ТЗ и демо." : "");
     if (!form.reportValidity()) {
       trackGoal("mvp_request_validation_error", { method: selectedMethod() });
       return;
@@ -173,7 +176,7 @@ if (form) {
       showStatus(`${error instanceof Error ? error.message : "Не удалось отправить заявку"}. Попробуйте ещё раз или напишите на hello@lazysoft.ru.`, true);
       trackGoal("mvp_request_submit_failed", { contactMethod: selectedMethod() });
       submit.disabled = false;
-      submit.querySelector("span")!.textContent = "Получить варианты реализации →";
+      submit.querySelector("span")!.textContent = "Получить ТЗ и демо →";
     }
   });
 

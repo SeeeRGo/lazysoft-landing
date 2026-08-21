@@ -263,7 +263,7 @@ async function handleBriefApi(request, response) {
 }
 
 function validateRequestContact(method, contact) {
-  if (!contact || contact.length < 3) return "Укажите контакт, на который можно прислать PDF.";
+  if (!contact || contact.length < 3) return "Укажите контакт, на который можно прислать ТЗ и демо.";
   if (method === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return "Проверьте адрес электронной почты.";
   return "";
 }

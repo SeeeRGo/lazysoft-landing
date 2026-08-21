@@ -18,6 +18,7 @@
 - `mvp_request_field_started` — начато заполнение `idea` или `contact`;
 - `mvp_request_contact_method` — выбран `telegram`, `email` или `max`;
 - `mvp_voice_input_used` — идея успешно продиктована;
+- `mvp_direct_contact_clicked` — переход к прямому контакту с параметром `channel`;
 - `mvp_request_validation_error` — идея или контакт не прошли проверку;
 - `mvp_request_submit_failed` — сервер не смог доставить заявку.
 

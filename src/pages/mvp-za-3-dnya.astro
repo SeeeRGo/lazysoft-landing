@@ -5,7 +5,7 @@ import "../styles/mvp.css";
 
 const title = "Оценка идеи приложения за 24 часа — варианты разработки | Lazysoft";
 const description =
-  "Опишите идею приложения текстом или голосом. В течение 24 часов получите PDF с несколькими вариантами реализации, сроками и стоимостью — от 3 дней и 10 000 рублей.";
+  "Опишите идею приложения текстом или голосом. В течение 24 часов получите ТЗ в PDF с вариантами реализации и демо ключевого интерфейса — от 3 дней и 10 000 рублей.";
 
 const structuredData = [
   {
@@ -23,10 +23,10 @@ const structuredData = [
     mainEntity: [
       {
         "@type": "Question",
-        name: "Что будет в PDF?",
+        name: "Что я получу?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Несколько вариантов реализации идеи: состав первой версии, подход, ориентировочные сроки, стоимость, риски и вопросы, которые нужно уточнить перед началом разработки.",
+          text: "ТЗ в PDF с несколькими вариантами реализации идеи, ориентировочными сроками, стоимостью и рисками, а также ссылку на демонстрационный макет ключевого интерфейса.",
         },
       },
       {
@@ -57,14 +57,14 @@ const structuredData = [
       <p class="mvp-lead-badge"><span></span> Бесплатный предварительный разбор</p>
       <h1 id="mvp-lead-title">Опишите идею.<br /><em>За 24 часа</em> получите варианты реализации.</h1>
       <p class="mvp-lead-lede">
-        Я изучу задачу и пришлю PDF с несколькими реалистичными вариантами: от небольшой первой версии
-        <strong>от 3 рабочих дней и 10 000 ₽</strong> до более полного решения.
+        Я изучу задачу и пришлю ТЗ в PDF с несколькими реалистичными вариантами и демо ключевого интерфейса:
+        от небольшой первой версии <strong>от 3 рабочих дней и 10 000 ₽</strong> до более полного решения.
       </p>
 
       <ul class="mvp-lead-value" aria-label="Что будет в результате">
-        <li><span>01</span><div><b>Несколько вариантов</b><small>разный объём и подход</small></div></li>
+        <li><span>01</span><div><b>ТЗ с вариантами</b><small>разный объём и подход</small></div></li>
         <li><span>02</span><div><b>Срок и стоимость</b><small>для каждого варианта</small></div></li>
-        <li><span>03</span><div><b>Риски и вопросы</b><small>до начала разработки</small></div></li>
+        <li><span>03</span><div><b>Демо интерфейса</b><small>макет ключевых экранов</small></div></li>
       </ul>
 
       <p class="mvp-lead-fineprint">Бесплатно и без обязательства заказывать разработку. Окончательный объём согласуем отдельно до начала работ.</p>
@@ -85,7 +85,7 @@ const structuredData = [
         </label>
 
         <fieldset class="mvp-contact-choice">
-          <legend>Куда прислать PDF? <b>*</b></legend>
+          <legend>Куда прислать ТЗ и демо? <b>*</b></legend>
           <div>
             <label><input type="radio" name="contactMethod" value="telegram" checked /><span>Telegram</span></label>
             <label><input type="radio" name="contactMethod" value="email" /><span>Почта</span></label>
@@ -104,8 +104,8 @@ const structuredData = [
         </label>
 
         <button class="mvp-request-submit" type="submit">
-          <span>Получить варианты реализации →</span>
-          <small>PDF придёт в течение 24 часов</small>
+          <span>Получить ТЗ и демо →</span>
+          <small>Результат придёт в течение 24 часов</small>
         </button>
 
         <p class="mvp-request-privacy">Описание и контакт сохраняются для подготовки и отправки ответа. Не добавляйте пароли и данные третьих лиц.</p>
@@ -115,7 +115,17 @@ const structuredData = [
       <div class="mvp-request-success" data-request-success hidden tabindex="-1">
         <span>Заявка отправлена ✓</span>
         <h2>Вернусь с вариантами в течение 24 часов</h2>
-        <p>Подготовлю PDF и пришлю его по указанному контакту. Если для оценки не хватит одной детали, сначала задам короткий вопрос.</p>
+        <p>Подготовлю ТЗ в PDF и демо ключевого интерфейса, затем пришлю их по указанному контакту. Если для оценки не хватит одной детали, сначала задам короткий вопрос.</p>
+      </div>
+
+      <div class="mvp-direct-contact" aria-label="Прямые контакты">
+        <p>Если вам не ответили в течение 24 часов, напишите напрямую.</p>
+        <a class="mvp-direct-button" href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer" data-direct-contact="telegram">Написать напрямую →</a>
+        <div>
+          <a href="mailto:hello@lazysoft.ru?subject=Идея для Lazysoft" data-direct-contact="email">hello@lazysoft.ru</a>
+          <a href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer" data-direct-contact="telegram">Telegram: @SeeeRGo88</a>
+          <a href="https://max.ru/" target="_blank" rel="noopener noreferrer" title="Откройте MAX и найдите контакт по номеру" data-direct-contact="max">MAX: +7 929 712-49-04</a>
+        </div>
       </div>
     </aside>
   </section>
@@ -136,7 +146,7 @@ const structuredData = [
   <section class="mvp-simple-faq section" id="faq" aria-labelledby="mvp-faq-title">
     <div class="section-head"><p class="kicker">Коротко об условиях</p><h2 id="mvp-faq-title">До отправки идеи</h2></div>
     <div class="faq-list">
-      <details><summary>Что именно будет в PDF?</summary><p>Варианты объёма, пользовательские сценарии, ориентировочные сроки и стоимость, возможные внешние расходы, риски и открытые вопросы.</p></details>
+      <details><summary>Что именно я получу?</summary><p>ТЗ в PDF: варианты объёма, пользовательские сценарии, ориентировочные сроки и стоимость, возможные внешние расходы, риски и открытые вопросы. Вместе с ним — ссылка на демонстрационный макет ключевого интерфейса.</p></details>
       <details><summary>Нужно ли потом что-то заказывать?</summary><p>Нет. Предварительный разбор бесплатный и ни к чему не обязывает.</p></details>
       <details><summary>Когда начинается разработка?</summary><p>Только после отдельного согласования итогового состава работ, критериев готовности, срока, цены и внешних расходов обеими сторонами.</p></details>
     </div>

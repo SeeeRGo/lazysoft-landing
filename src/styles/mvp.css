@@ -113,6 +113,13 @@
 .mvp-request-success > span { color: var(--mvp-accent-dark); font: 700 .7rem/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; }
 .mvp-request-success h2 { margin: 1rem auto .6rem; max-width: 15ch; font: 700 2rem/1.05 var(--font-display); }
 .mvp-request-success p { max-width: 46ch; margin: 0 auto; color: var(--ink-soft); font-size: .82rem; }
+.mvp-direct-contact { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .55rem .8rem; align-items: center; margin-top: .9rem; padding-top: .8rem; border-top: 1px solid rgba(23,61,57,.2); }
+.mvp-direct-contact > p { color: var(--ink-soft); font-size: .68rem; line-height: 1.4; }
+.mvp-direct-button { padding: .58rem .72rem; border: 1px solid var(--mvp-accent-dark); border-radius: 10px; background: var(--ink); color: white; font-size: .68rem; font-weight: 800; white-space: nowrap; }
+.mvp-direct-button:hover { background: var(--mvp-accent-dark); }
+.mvp-direct-contact > div { display: flex; grid-column: 1 / -1; flex-wrap: wrap; gap: .25rem .7rem; }
+.mvp-direct-contact > div a { color: var(--mvp-accent-dark); font-size: .61rem; font-weight: 750; text-decoration: underline; text-decoration-color: rgba(23,104,97,.32); text-underline-offset: 3px; }
+.mvp-direct-contact > div a:hover { color: var(--ink); text-decoration-color: currentColor; }
 
 .mvp-explanation,
 .mvp-simple-faq { padding-top: clamp(3rem, 7vw, 5rem); padding-bottom: clamp(3rem, 7vw, 5rem); }
@@ -148,6 +155,10 @@
   .mvp-request-field input { height: 42px; }
   .mvp-request-submit { margin-top: .7rem; padding-block: .65rem; }
   .mvp-request-privacy { margin-top: .45rem; font-size: .55rem; }
+  .mvp-direct-contact { gap: .4rem .65rem; margin-top: .6rem; padding-top: .6rem; }
+  .mvp-direct-contact > p { font-size: .62rem; }
+  .mvp-direct-button { padding: .48rem .62rem; font-size: .63rem; }
+  .mvp-direct-contact > div a { font-size: .57rem; }
 }
 
 @media (max-width: 640px) {
@@ -159,4 +170,6 @@
   .mvp-lead-value li { grid-template-columns: 24px 1fr; }
   .mvp-request-card { padding: 1.15rem; border-radius: 19px; }
   .mvp-contact-choice > div { gap: .35rem; }
+  .mvp-direct-contact { grid-template-columns: 1fr; }
+  .mvp-direct-button { width: 100%; text-align: center; }
 }
