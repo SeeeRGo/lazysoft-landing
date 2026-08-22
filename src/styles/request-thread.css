@@ -1,0 +1,123 @@
+.request-page {
+  --request-accent: #237f78;
+  --request-accent-dark: #173d39;
+  --request-soft: #e1efec;
+  min-height: 72vh;
+}
+
+.request-shell {
+  display: grid;
+  grid-template-columns: minmax(280px, .8fr) minmax(420px, 1.2fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  width: min(1160px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: clamp(3rem, 8vw, 7rem) 0 2rem;
+  align-items: start;
+}
+
+.request-intro { position: sticky; top: 7rem; }
+.request-kicker { color: var(--request-accent); font: 700 .72rem/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.request-intro h1 { margin: 1rem 0; color: var(--ink); font: 650 clamp(2.8rem, 5.6vw, 5rem)/.98 var(--font-display); letter-spacing: -.045em; }
+.request-intro h1 em { color: var(--request-accent); font-weight: 550; }
+.request-intro > p:not(.request-kicker) { max-width: 48ch; color: var(--ink-soft); font-size: 1rem; line-height: 1.7; }
+.request-actions { display: flex; flex-wrap: wrap; gap: .65rem 1rem; align-items: center; margin-top: 1.5rem; }
+.request-actions a { color: var(--request-accent-dark); font-weight: 750; }
+
+.request-secondary-button {
+  padding: .72rem .9rem;
+  border: 1px solid var(--request-accent-dark);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--request-accent-dark);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.request-panel {
+  min-height: 430px;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 2px solid var(--request-accent-dark);
+  border-radius: 24px;
+  background: rgba(251, 250, 245, .97);
+  box-shadow: 9px 10px 0 rgba(23, 61, 57, .13), 0 24px 60px -36px rgba(23, 61, 57, .5);
+}
+
+.request-loading { display: grid; min-height: 360px; place-items: center; align-content: center; gap: 1rem; color: var(--ink-soft); }
+.request-loading span { width: 32px; height: 32px; border: 3px solid var(--request-soft); border-top-color: var(--request-accent); border-radius: 50%; animation: request-spin .8s linear infinite; }
+@keyframes request-spin { to { transform: rotate(360deg); } }
+
+.request-panel-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.request-panel-head > div > span { color: var(--request-accent); font: 700 .68rem/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.request-panel-head h2 { margin: .45rem 0 0; font: 650 1.8rem/1.05 var(--font-display); }
+.request-status-badge { padding: .5rem .7rem; border: 1px solid rgba(23, 61, 57, .25); border-radius: 999px; background: var(--request-soft); color: var(--request-accent-dark); font-size: .7rem; font-weight: 800; white-space: nowrap; }
+.request-status-badge[data-status="ready"] { background: var(--request-accent); color: white; }
+.request-status-badge[data-status="closed"] { background: #e7e5df; color: #5d6764; }
+
+.request-idea { margin-top: 1.25rem; padding: .8rem 1rem; border: 1px solid rgba(23, 61, 57, .18); border-radius: 14px; background: #f5f7f3; }
+.request-idea summary { color: var(--request-accent-dark); font-size: .78rem; font-weight: 800; cursor: pointer; }
+.request-idea p { margin: .7rem 0 0; white-space: pre-wrap; color: var(--ink-soft); font-size: .82rem; line-height: 1.6; }
+
+.request-messages { display: grid; gap: .75rem; max-height: 480px; margin-top: 1.2rem; padding: .25rem .15rem .5rem; overflow-y: auto; }
+.request-message { max-width: 88%; padding: .85rem 1rem; border-radius: 16px 16px 16px 4px; background: var(--request-soft); color: var(--ink); }
+.request-message[data-sender="visitor"] { justify-self: end; border-radius: 16px 16px 4px 16px; background: var(--request-accent-dark); color: white; }
+.request-message[data-sender="system"] { max-width: 100%; border: 1px dashed rgba(23, 61, 57, .28); background: transparent; color: var(--ink-soft); }
+.request-message-head { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: .35rem; font-size: .63rem; opacity: .72; }
+.request-message p { margin: 0; white-space: pre-wrap; font-size: .82rem; line-height: 1.55; }
+.request-message-links { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .7rem; }
+.request-message-links a { padding: .5rem .65rem; border-radius: 9px; background: var(--request-accent); color: white; font-size: .7rem; font-weight: 800; }
+
+.request-composer { margin-top: 1.25rem; padding-top: 1.15rem; border-top: 1px solid rgba(23, 61, 57, .18); }
+.request-composer > label { display: block; margin-bottom: .4rem; color: var(--request-accent-dark); font-size: .76rem; font-weight: 800; }
+.request-composer textarea,
+.request-result-fields input,
+.request-result-fields select { width: 100%; border: 1px solid rgba(23, 61, 57, .25); border-radius: 12px; background: #f7f8f5; color: var(--ink); font: 500 .82rem/1.5 var(--font-body); }
+.request-composer textarea { min-height: 92px; padding: .75rem .85rem; resize: vertical; }
+.request-composer textarea:focus,
+.request-result-fields input:focus,
+.request-result-fields select:focus { outline: none; border-color: var(--request-accent); box-shadow: 0 0 0 4px rgba(35, 127, 120, .1); }
+.request-composer > div:last-of-type { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-top: .7rem; }
+.request-composer > div:last-of-type p { max-width: 42ch; color: var(--ink-soft); font-size: .64rem; line-height: 1.45; }
+.request-composer button { padding: .72rem 1rem; border: 1px solid var(--request-accent-dark); border-radius: 11px; background: var(--request-accent); color: white; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.request-composer button:disabled { opacity: .6; cursor: wait; }
+.request-form-status { margin: .65rem 0 0; padding: .6rem .7rem; border-radius: 9px; background: var(--request-soft); color: var(--request-accent-dark); font-size: .7rem; }
+.request-form-status.is-error { background: #f5dedb; color: #a23a32; }
+
+.request-error { min-height: 360px; display: grid; place-content: center; text-align: center; }
+.request-error span { color: #a23a32; font: 700 .68rem/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; }
+.request-error h2 { margin: .8rem 0 .5rem; font: 650 2rem/1 var(--font-display); }
+.request-error p { max-width: 42ch; color: var(--ink-soft); }
+.request-error a { margin-top: 1rem; color: var(--request-accent-dark); font-weight: 800; }
+.request-security-note { padding-top: 1rem; padding-bottom: 4rem; }
+.request-security-note p { max-width: 78ch; padding: 1rem 1.15rem; border-left: 3px solid var(--request-accent); background: rgba(225, 239, 236, .7); color: var(--ink-soft); font-size: .75rem; line-height: 1.55; }
+
+.request-admin-shell { grid-template-columns: minmax(250px, .62fr) minmax(520px, 1.38fr); }
+.request-admin-meta { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; margin-top: 1.1rem; }
+.request-admin-meta > div { padding: .75rem .85rem; border-radius: 12px; background: #f1f5f2; }
+.request-admin-meta span { display: block; margin-bottom: .25rem; color: var(--ink-soft); font-size: .62rem; text-transform: uppercase; letter-spacing: .07em; }
+.request-admin-meta strong,
+.request-admin-meta p { margin: 0; color: var(--ink); font-size: .78rem; line-height: 1.5; overflow-wrap: anywhere; }
+.request-admin-meta .request-admin-idea { grid-column: 1 / -1; }
+.request-result-fields { display: grid; grid-template-columns: 1fr 1fr .8fr; gap: .55rem; margin-top: .7rem; }
+.request-result-fields label { color: var(--request-accent-dark); font-size: .68rem; font-weight: 750; }
+.request-result-fields input,
+.request-result-fields select { height: 42px; margin-top: .3rem; padding: .55rem .65rem; }
+
+@media (max-width: 860px) {
+  .request-shell,
+  .request-admin-shell { grid-template-columns: 1fr; padding-top: 2.5rem; }
+  .request-intro { position: static; }
+  .request-intro h1 { max-width: 13ch; }
+}
+
+@media (max-width: 560px) {
+  .request-shell { width: min(100% - 1rem, 1160px); gap: 1.5rem; }
+  .request-panel { padding: 1rem; border-radius: 18px; }
+  .request-panel-head { align-items: center; }
+  .request-panel-head h2 { font-size: 1.45rem; }
+  .request-message { max-width: 95%; }
+  .request-composer > div:last-of-type { align-items: stretch; flex-direction: column; }
+  .request-composer button { width: 100%; }
+  .request-admin-meta,
+  .request-result-fields { grid-template-columns: 1fr; }
+  .request-admin-meta .request-admin-idea { grid-column: auto; }
+}

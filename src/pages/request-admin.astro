@@ -1,0 +1,65 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import "../styles/request-thread.css";
+
+const title = "Управление заявкой — Lazysoft";
+const description = "Закрытая страница ответа на заявку Lazysoft.";
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/request-admin/" noindex mainClass="request-page request-admin-page">
+  <section class="request-shell request-admin-shell" aria-labelledby="admin-request-title">
+    <header class="request-intro">
+      <p class="request-kicker">Управление заявкой</p>
+      <h1 id="admin-request-title">Ответ клиенту<br /><em>и результат.</em></h1>
+      <p>Эта ссылка даёт доступ только к одной заявке. Отправьте сообщение, PDF и демо, затем обновите статус.</p>
+    </header>
+
+    <div class="request-panel" data-admin-panel aria-live="polite">
+      <div class="request-loading" data-admin-loading><span></span><p>Загружаю заявку…</p></div>
+
+      <div data-admin-content hidden>
+        <div class="request-panel-head">
+          <div><span data-admin-request-id>Заявка</span><h2 data-admin-status-label>Получена</h2></div>
+          <span class="request-status-badge" data-admin-status>Получена</span>
+        </div>
+
+        <div class="request-admin-meta">
+          <div><span>Контакт</span><strong data-admin-contact></strong></div>
+          <div><span>Канал</span><strong data-admin-contact-method></strong></div>
+          <div class="request-admin-idea"><span>Идея</span><p data-admin-idea></p></div>
+        </div>
+
+        <div class="request-messages" data-admin-messages aria-label="Сообщения по заявке"></div>
+
+        <form class="request-composer request-admin-composer" data-admin-message-form>
+          <label for="admin-message">Сообщение клиенту</label>
+          <textarea id="admin-message" name="message" rows="4" maxlength="5000" placeholder="Например: подготовил три варианта. Напишите, какой ближе — 1, 2 или 3."></textarea>
+          <div class="request-result-fields">
+            <label>Ссылка на PDF<input type="url" name="pdfUrl" maxlength="1200" placeholder="https://…" /></label>
+            <label>Ссылка на демо<input type="url" name="demoUrl" maxlength="1200" placeholder="https://…" /></label>
+            <label>Статус
+              <select name="status">
+                <option value="in_progress">В работе</option>
+                <option value="ready">Результат готов</option>
+                <option value="closed">Закрыта</option>
+                <option value="received">Получена</option>
+              </select>
+            </label>
+          </div>
+          <div>
+            <p>Ссылки появятся отдельными кнопками в сообщении.</p>
+            <button type="submit">Отправить клиенту →</button>
+          </div>
+          <p class="request-form-status" data-admin-form-status hidden></p>
+        </form>
+      </div>
+
+      <div class="request-error" data-admin-error hidden>
+        <span>Нет доступа</span><h2>Ссылка управления недействительна</h2>
+        <p data-admin-error-text>Откройте ссылку из уведомления Telegram целиком.</p>
+      </div>
+    </div>
+  </section>
+
+  <script src="../scripts/request-admin.ts"></script>
+</SiteLayout>

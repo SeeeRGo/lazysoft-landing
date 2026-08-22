@@ -1,0 +1,68 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import "../styles/request-thread.css";
+
+const title = "Страница заявки — Lazysoft";
+const description = "Приватная страница заявки: статус, сообщения, ТЗ и демонстрация интерфейса.";
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/request/" noindex mainClass="request-page">
+  <section class="request-shell" aria-labelledby="request-title">
+    <header class="request-intro">
+      <p class="request-kicker">Приватная страница заявки</p>
+      <h1 id="request-title">Результат и сообщения<br /><em>в одном месте.</em></h1>
+      <p>Сохраните эту страницу. Здесь появятся ТЗ, демо интерфейса и вопросы по вашей идее.</p>
+      <div class="request-actions">
+        <button type="button" class="request-secondary-button" data-copy-request-link>Скопировать секретную ссылку</button>
+        <a href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer">Написать напрямую ↗</a>
+      </div>
+    </header>
+
+    <div class="request-panel" data-request-panel aria-live="polite">
+      <div class="request-loading" data-request-loading>
+        <span></span>
+        <p>Загружаю заявку…</p>
+      </div>
+
+      <div data-request-content hidden>
+        <div class="request-panel-head">
+          <div>
+            <span data-request-id>Заявка</span>
+            <h2 data-request-status-label>Получена</h2>
+          </div>
+          <span class="request-status-badge" data-request-status>Получена</span>
+        </div>
+
+        <details class="request-idea">
+          <summary>Описание идеи</summary>
+          <p data-request-idea></p>
+        </details>
+
+        <div class="request-messages" data-request-messages aria-label="Сообщения по заявке"></div>
+
+        <form class="request-composer" data-request-message-form>
+          <label for="request-message">Ответить или дополнить заявку</label>
+          <textarea id="request-message" name="message" rows="3" maxlength="2000" required placeholder="Напишите уточнение или ответ…"></textarea>
+          <div>
+            <p>Сообщение увидит разработчик на этой странице заявки.</p>
+            <button type="submit">Отправить →</button>
+          </div>
+          <p class="request-form-status" data-request-form-status hidden></p>
+        </form>
+      </div>
+
+      <div class="request-error" data-request-error hidden>
+        <span>Ссылка не открылась</span>
+        <h2>Не удалось найти заявку</h2>
+        <p data-request-error-text>Проверьте, что секретная ссылка скопирована полностью.</p>
+        <a href="/mvp-za-3-dnya/">Вернуться к форме →</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="request-security-note section">
+    <p><strong>Важно:</strong> любой человек с этой ссылкой сможет прочитать переписку и отправить сообщение. Не публикуйте её и не добавляйте пароли, платёжные данные или сведения третьих лиц.</p>
+  </section>
+
+  <script src="../scripts/request-thread.ts"></script>
+</SiteLayout>

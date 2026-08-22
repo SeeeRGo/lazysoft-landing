@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { Agent as HttpsAgent, request as createHttpsRequest } from "node:https";
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
@@ -17,6 +17,7 @@ const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || "";
 const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
 const convexSiteUrl = (process.env.CONVEX_SITE_URL || "").replace(/\/$/, "");
 const convexIngestSecret = process.env.CONVEX_INGEST_SECRET || "";
+const publicSiteUrl = (process.env.PUBLIC_SITE_URL || "https://lazysoft.ru").replace(/\/$/, "");
 const telegramAgent = new HttpsAgent({ keepAlive: true, keepAliveMsecs: 1_000, maxSockets: 8 });
 const telegramApiAddresses = ["149.154.166.110", "149.154.167.220"];
 const maxBodyBytes = 3 * 1024 * 1024;
@@ -91,6 +92,35 @@ async function readJsonBody(request) {
 
 function cleanText(value, maxLength = 5000) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function createSecretToken() {
+  return randomBytes(32).toString("base64url");
+}
+
+function tokenHash(token) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function cleanSecretToken(value) {
+  const token = cleanText(value, 80);
+  return /^[A-Za-z0-9_-]{43}$/.test(token) ? token : "";
+}
+
+function cleanWebUrl(value) {
+  const input = cleanText(value, 1200);
+  if (!input) return "";
+  try {
+    const url = new URL(input);
+    return ["http:", "https:"].includes(url.protocol) ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function allowedRequestOrigin(request) {
+  const origin = String(request.headers.origin || "");
+  return !origin || /^https:\/\/(www\.)?lazysoft\.ru$/.test(origin) || /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin);
 }
 
 function cleanStringArray(value, maxItems = 20) {
@@ -224,9 +254,7 @@ async function handleBriefApi(request, response) {
     response.setHeader("Allow", "POST");
     return sendJson(response, 405, { error: "Метод не поддерживается" });
   }
-  const origin = String(request.headers.origin || "");
-  const allowedOrigin = /^https:\/\/(www\.)?lazysoft\.ru$/.test(origin) || /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin);
-  if (origin && !allowedOrigin) return sendJson(response, 403, { error: "Запрос с другого сайта отклонён" });
+  if (!allowedRequestOrigin(request)) return sendJson(response, 403, { error: "Запрос с другого сайта отклонён" });
   if (!checkRateLimit(request)) return sendJson(response, 429, { error: "Слишком много AI-запросов. Попробуйте через час." });
   if (!String(request.headers["content-type"] || "").startsWith("application/json")) {
     return sendJson(response, 415, { error: "Ожидается JSON" });
@@ -268,7 +296,7 @@ function validateRequestContact(method, contact) {
   return "";
 }
 
-function formatMvpRequest({ requestId, idea, contactMethod, contact, source }) {
+function formatMvpRequest({ requestId, idea, contactMethod, contact, source, adminUrl }) {
   const methodNames = { telegram: "Telegram", email: "Почта", max: "MAX" };
   const sourceLines = [
     source.utmSource && `Источник: ${source.utmSource}`,
@@ -283,6 +311,7 @@ function formatMvpRequest({ requestId, idea, contactMethod, contact, source }) {
     "",
     `Канал ответа: ${methodNames[contactMethod]}`,
     `Контакт: ${contact}`,
+    `Ответить на странице заявки: ${adminUrl}`,
     "",
     "Идея:",
     idea,
@@ -362,12 +391,12 @@ async function sendTelegramNotification(text) {
   throw error;
 }
 
-async function storeRequestInConvex(payload) {
+async function postToConvex(path, payload) {
   if (!convexSiteUrl || !convexIngestSecret) throw new Error("CONVEX_NOT_CONFIGURED");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8_000);
   try {
-    const response = await fetch(`${convexSiteUrl}/mvp-request`, {
+    const response = await fetch(`${convexSiteUrl}${path}`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${convexIngestSecret}`,
@@ -376,10 +405,20 @@ async function storeRequestInConvex(payload) {
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
-    if (!response.ok) throw new Error(`CONVEX_REQUEST_FAILED_${response.status}`);
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(`CONVEX_REQUEST_FAILED_${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    return result;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function storeRequestInConvex(payload) {
+  return postToConvex("/mvp-request", payload);
 }
 
 async function handleMvpRequestApi(request, response) {
@@ -414,8 +453,20 @@ async function handleMvpRequestApi(request, response) {
     };
     const requestId = `#${randomUUID().slice(0, 8)}`;
     const receivedAt = Date.now();
-    const convexPromise = storeRequestInConvex({ requestId, idea, contactMethod, contact, source, receivedAt });
-    const telegramPromise = sendTelegramNotification(formatMvpRequest({ requestId, idea, contactMethod, contact, source }));
+    const accessToken = createSecretToken();
+    const adminToken = createSecretToken();
+    const adminUrl = `${publicSiteUrl}/request-admin/#${adminToken}`;
+    const convexPromise = storeRequestInConvex({
+      requestId,
+      idea,
+      contactMethod,
+      contact,
+      source,
+      receivedAt,
+      accessTokenHash: tokenHash(accessToken),
+      adminTokenHash: tokenHash(adminToken),
+    });
+    const telegramPromise = sendTelegramNotification(formatMvpRequest({ requestId, idea, contactMethod, contact, source, adminUrl }));
     const [convexResult, telegramResult] = await Promise.allSettled([convexPromise, telegramPromise]);
     const stored = convexResult.status === "fulfilled";
     const notified = telegramResult.status === "fulfilled";
@@ -426,7 +477,7 @@ async function handleMvpRequestApi(request, response) {
       error.status = 502;
       throw error;
     }
-    return sendJson(response, 200, { ok: true, requestId });
+    return sendJson(response, 200, { ok: true, requestId, ...(stored ? { accessToken } : {}) });
   } catch (error) {
     const status = Number(error?.status || 500);
     const messages = {
@@ -438,6 +489,135 @@ async function handleMvpRequestApi(request, response) {
     };
     if (status >= 500 && error?.message !== "REQUEST_DELIVERY_NOT_CONFIGURED") console.error("MVP request API error", error?.message || error);
     return sendJson(response, status, { error: messages[error?.message] || "Не удалось отправить заявку" });
+  }
+}
+
+async function handleRequestThreadApi(request, response) {
+  if (request.method !== "POST") {
+    response.setHeader("Allow", "POST");
+    return sendJson(response, 405, { error: "Метод не поддерживается" });
+  }
+  if (!allowedRequestOrigin(request)) return sendJson(response, 403, { error: "Запрос с другого сайта отклонён" });
+  if (!String(request.headers["content-type"] || "").startsWith("application/json")) {
+    return sendJson(response, 415, { error: "Ожидается JSON" });
+  }
+  try {
+    const body = await readJsonBody(request);
+    const accessToken = cleanSecretToken(body.accessToken);
+    if (!accessToken) return sendJson(response, 400, { error: "Некорректная ссылка на заявку" });
+    const result = await postToConvex("/request-thread", { accessTokenHash: tokenHash(accessToken) });
+    return sendJson(response, 200, result);
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    if (status >= 500) console.error("Request thread API error", error?.message || error);
+    return sendJson(response, status === 404 ? 404 : 500, {
+      error: status === 404 ? "Заявка не найдена или ссылка устарела" : "Не удалось загрузить заявку",
+    });
+  }
+}
+
+async function handleRequestThreadMessageApi(request, response) {
+  if (request.method !== "POST") {
+    response.setHeader("Allow", "POST");
+    return sendJson(response, 405, { error: "Метод не поддерживается" });
+  }
+  if (!allowedRequestOrigin(request)) return sendJson(response, 403, { error: "Запрос с другого сайта отклонён" });
+  if (!checkRateLimit(request)) return sendJson(response, 429, { error: "Слишком много сообщений. Попробуйте немного позже." });
+  if (!String(request.headers["content-type"] || "").startsWith("application/json")) {
+    return sendJson(response, 415, { error: "Ожидается JSON" });
+  }
+  try {
+    const body = await readJsonBody(request);
+    const accessToken = cleanSecretToken(body.accessToken);
+    const text = cleanText(body.text, 2000);
+    if (!accessToken) return sendJson(response, 400, { error: "Некорректная ссылка на заявку" });
+    if (!text) return sendJson(response, 400, { error: "Напишите сообщение" });
+    const result = await postToConvex("/request-thread/message", {
+      accessTokenHash: tokenHash(accessToken),
+      text,
+      createdAt: Date.now(),
+    });
+    if (telegramBotToken && telegramChatId) {
+      void sendTelegramNotification([
+        `Новое сообщение по заявке ${result.requestId || ""}`.trim(),
+        "",
+        text,
+        "",
+        "Откройте ссылку управления из первоначального уведомления.",
+      ].join("\n").slice(0, 4000)).catch((notificationError) => {
+        console.error("Visitor message notification failed", notificationError?.message || notificationError);
+      });
+    }
+    return sendJson(response, 200, { ok: true });
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    if (status >= 500) console.error("Request thread message API error", error?.message || error);
+    return sendJson(response, status === 404 ? 404 : 500, {
+      error: status === 404 ? "Заявка не найдена или ссылка устарела" : "Не удалось отправить сообщение",
+    });
+  }
+}
+
+async function handleRequestAdminThreadApi(request, response) {
+  if (request.method !== "POST") {
+    response.setHeader("Allow", "POST");
+    return sendJson(response, 405, { error: "Метод не поддерживается" });
+  }
+  if (!allowedRequestOrigin(request)) return sendJson(response, 403, { error: "Запрос с другого сайта отклонён" });
+  if (!String(request.headers["content-type"] || "").startsWith("application/json")) {
+    return sendJson(response, 415, { error: "Ожидается JSON" });
+  }
+  try {
+    const body = await readJsonBody(request);
+    const adminToken = cleanSecretToken(body.adminToken);
+    if (!adminToken) return sendJson(response, 400, { error: "Некорректная ссылка управления" });
+    const result = await postToConvex("/request-admin/thread", { adminTokenHash: tokenHash(adminToken) });
+    return sendJson(response, 200, result);
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    if (status >= 500) console.error("Admin request thread API error", error?.message || error);
+    return sendJson(response, status === 404 ? 404 : 500, {
+      error: status === 404 ? "Заявка не найдена или ссылка устарела" : "Не удалось загрузить заявку",
+    });
+  }
+}
+
+async function handleRequestAdminMessageApi(request, response) {
+  if (request.method !== "POST") {
+    response.setHeader("Allow", "POST");
+    return sendJson(response, 405, { error: "Метод не поддерживается" });
+  }
+  if (!allowedRequestOrigin(request)) return sendJson(response, 403, { error: "Запрос с другого сайта отклонён" });
+  if (!checkRateLimit(request)) return sendJson(response, 429, { error: "Слишком много сообщений. Попробуйте немного позже." });
+  if (!String(request.headers["content-type"] || "").startsWith("application/json")) {
+    return sendJson(response, 415, { error: "Ожидается JSON" });
+  }
+  try {
+    const body = await readJsonBody(request);
+    const adminToken = cleanSecretToken(body.adminToken);
+    const pdfUrl = cleanWebUrl(body.pdfUrl);
+    const demoUrl = cleanWebUrl(body.demoUrl);
+    const requestedStatus = ["received", "in_progress", "ready", "closed"].includes(body.status) ? body.status : "in_progress";
+    const text = cleanText(body.text, 5000) || (pdfUrl || demoUrl ? "Результат готов. Ссылки приложены к сообщению." : "");
+    if (!adminToken) return sendJson(response, 400, { error: "Некорректная ссылка управления" });
+    if (body.pdfUrl && !pdfUrl) return sendJson(response, 400, { error: "Проверьте ссылку на PDF" });
+    if (body.demoUrl && !demoUrl) return sendJson(response, 400, { error: "Проверьте ссылку на демо" });
+    if (!text) return sendJson(response, 400, { error: "Напишите сообщение или добавьте ссылку на результат" });
+    await postToConvex("/request-admin/message", {
+      adminTokenHash: tokenHash(adminToken),
+      text,
+      ...(pdfUrl ? { pdfUrl } : {}),
+      ...(demoUrl ? { demoUrl } : {}),
+      status: requestedStatus,
+      createdAt: Date.now(),
+    });
+    return sendJson(response, 200, { ok: true });
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    if (status >= 500) console.error("Admin request message API error", error?.message || error);
+    return sendJson(response, status === 404 ? 404 : 500, {
+      error: status === 404 ? "Заявка не найдена или ссылка устарела" : "Не удалось отправить сообщение",
+    });
   }
 }
 
@@ -528,6 +708,10 @@ const server = createServer(async (request, response) => {
     });
     if (url.pathname === "/api/mvp-brief") return handleBriefApi(request, response);
     if (url.pathname === "/api/mvp-request") return handleMvpRequestApi(request, response);
+    if (url.pathname === "/api/request-thread") return handleRequestThreadApi(request, response);
+    if (url.pathname === "/api/request-thread/message") return handleRequestThreadMessageApi(request, response);
+    if (url.pathname === "/api/request-admin/thread") return handleRequestAdminThreadApi(request, response);
+    if (url.pathname === "/api/request-admin/message") return handleRequestAdminMessageApi(request, response);
     if (!['GET', 'HEAD'].includes(request.method || "")) {
       response.writeHead(405, { Allow: "GET, HEAD" });
       return response.end();

@@ -169,6 +169,13 @@ if (form) {
       if (!response.ok) throw new Error(data.error || "Не удалось отправить заявку");
       trackGoal("mvp_brief_form_completed", { contactMethod: selectedMethod() });
       trackGoal("mvp_request_submitted", { contactMethod: selectedMethod() });
+      if (typeof data.accessToken === "string" && data.accessToken) {
+        try {
+          window.localStorage.setItem("lazysoft:request-token", data.accessToken);
+        } catch {}
+        window.location.assign(`/request/#${data.accessToken}`);
+        return;
+      }
       form.hidden = true;
       success.hidden = false;
       success.focus();
