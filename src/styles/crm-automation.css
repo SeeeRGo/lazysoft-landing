@@ -5,6 +5,7 @@
 }
 
 .crm-hero .mvp-lead-copy h1 { max-width: 13ch; }
+.crm-no-break { white-space: nowrap; }
 .crm-hero .mvp-lead-fineprint { max-width: 66ch; font-size: .76rem; line-height: 1.55; }
 .crm-hero .mvp-lead-fineprint strong { color: var(--ink); }
 .crm-request-card { border-color: var(--mvp-accent-dark); }
