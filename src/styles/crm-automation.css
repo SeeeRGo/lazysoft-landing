@@ -1,0 +1,67 @@
+.crm-page {
+  --mvp-accent: #216f77;
+  --mvp-accent-dark: #16545a;
+  --mvp-soft: #dcebea;
+}
+
+.crm-hero .mvp-lead-copy h1 { max-width: 13ch; }
+.crm-hero .mvp-lead-fineprint { max-width: 66ch; font-size: .76rem; line-height: 1.55; }
+.crm-hero .mvp-lead-fineprint strong { color: var(--ink); }
+.crm-request-card { border-color: var(--mvp-accent-dark); }
+
+.crm-capabilities,
+.crm-result,
+.crm-process { padding-top: clamp(3rem, 7vw, 5.5rem); padding-bottom: clamp(3rem, 7vw, 5.5rem); }
+
+.crm-capability-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.crm-capability-grid article {
+  min-height: 190px;
+  padding: 1.35rem;
+  border: 1px solid rgba(22, 84, 90, .32);
+  border-radius: 18px;
+  background: rgba(251, 250, 245, .82);
+  box-shadow: 5px 6px 0 rgba(22, 84, 90, .09);
+}
+
+.crm-capability-grid span {
+  color: var(--mvp-accent);
+  font: 700 .68rem/1 var(--font-mono);
+}
+
+.crm-capability-grid h3 {
+  margin: 2rem 0 .5rem;
+  font: 650 1.35rem/1.08 var(--font-display);
+}
+
+.crm-capability-grid p { color: var(--ink-soft); font-size: .82rem; line-height: 1.55; }
+.crm-result { border-block: 1px solid rgba(22, 84, 90, .14); background: rgba(220, 235, 234, .28); }
+.crm-result-grid article { background: var(--mvp-surface); }
+
+.crm-process-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  list-style: none;
+}
+
+.crm-process-list li { padding-top: 1rem; border-top: 2px solid var(--mvp-accent-dark); }
+.crm-process-list li > span { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: var(--mvp-soft); color: var(--mvp-accent-dark); font: 700 .7rem/1 var(--font-mono); }
+.crm-process-list h3 { margin: 1.2rem 0 .45rem; font: 650 1.2rem/1.1 var(--font-display); }
+.crm-process-list p { color: var(--ink-soft); font-size: .78rem; line-height: 1.55; }
+
+@media (max-width: 900px) {
+  .crm-capability-grid { grid-template-columns: repeat(2, 1fr); }
+  .crm-process-list { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .crm-capability-grid,
+  .crm-process-list { grid-template-columns: 1fr; }
+  .crm-capability-grid article { min-height: 0; }
+  .crm-capability-grid h3 { margin-top: 1.25rem; }
+}

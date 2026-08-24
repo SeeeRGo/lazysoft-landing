@@ -1,0 +1,188 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import "../styles/mvp.css";
+import "../styles/crm-automation.css";
+
+const title = "CRM под ваш процесс — автоматизация заявок | Lazysoft";
+const description =
+  "Разработка небольшой CRM под ваш процесс: заявки из сайта, Telegram и почты, статусы, ответственные, задачи и уведомления. Схема, демо и оценка за 6 часов.";
+
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Разработка CRM и автоматизация обработки заявок",
+    description,
+    url: "https://lazysoft.ru/crm-automation/",
+    provider: { "@type": "Organization", name: "Lazysoft", url: "https://lazysoft.ru" },
+    areaServed: "RU",
+    offers: { "@type": "Offer", priceCurrency: "RUB", price: "10000", description: "Небольшая первая версия от 3 рабочих дней" },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Чем такая CRM отличается от Битрикс24 или amoCRM?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Это небольшой инструмент под конкретный рабочий процесс без лишних разделов и обязательной оплаты большой коробочной системы. Если готовая CRM подходит лучше, я прямо укажу это в разборе.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Что можно сделать за 3 рабочих дня?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Небольшой законченный сценарий: например, единый список заявок, карточка клиента, статусы и назначение ответственного. Точный объём зависит от интеграций и согласуется до начала работ.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Нужно ли сразу заказывать разработку?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Нет. Предварительная схема автоматизации, варианты реализации и демо интерфейса бесплатны и ни к чему не обязывают.",
+        },
+      },
+    ],
+  },
+];
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/crm-automation/" structuredData={structuredData} mainClass="mvp-page crm-page">
+  <section class="mvp-lead-hero crm-hero" aria-labelledby="crm-title">
+    <div class="mvp-lead-copy">
+      <Breadcrumbs items={[{ label: "Услуги", href: "/services/" }, { label: "CRM и автоматизация" }]} />
+      <p class="mvp-lead-badge"><span></span> CRM под рабочий процесс</p>
+      <h1 id="crm-title">Заявки не теряются.<br /><em>Рутина не копится.</em></h1>
+      <p class="mvp-lead-lede">
+        Соберу небольшую CRM под ваш процесс: заявки из сайта, Telegram и почты, единые статусы,
+        ответственные, задачи и уведомления — <strong>без лишних разделов большой коробочной системы.</strong>
+      </p>
+
+      <ul class="mvp-lead-value" aria-label="Что изменится после автоматизации">
+        <li><span>01</span><div><b>Все заявки вместе</b><small>сайт, почта и мессенджеры</small></div></li>
+        <li><span>02</span><div><b>Понятный следующий шаг</b><small>статус, ответственный и задача</small></div></li>
+        <li><span>03</span><div><b>Меньше ручной работы</b><small>уведомления и отчёты автоматически</small></div></li>
+      </ul>
+
+      <p class="mvp-lead-fineprint">
+        За 6 часов пришлю схему автоматизации, демо ключевого интерфейса и варианты реализации.
+        Небольшая первая версия — <strong>от 3 рабочих дней и 10 000 ₽.</strong>
+      </p>
+    </div>
+
+    <aside class="mvp-request-card crm-request-card">
+      <div class="mvp-request-heading">
+        <p>Бесплатный предварительный разбор</p>
+        <h2>Где сейчас теряются заявки?</h2>
+        <span>Опишите процесс обычными словами или наговорите ответ.</span>
+      </div>
+
+      <form data-crm-request-form data-default-campaign="crm_automation" novalidate>
+        <label class="mvp-request-field mvp-request-idea">
+          <span>Как заявки приходят и что приходится делать вручную? <b>*</b></span>
+          <textarea name="idea" rows="4" minlength="20" maxlength="3000" required placeholder="Например: заявки приходят в Telegram и на почту, менеджер переносит их в Excel, иногда забывает ответить и непонятно, на каком этапе клиент..."></textarea>
+          <button type="button" class="mvp-voice-button" data-voice-button aria-label="Наговорить описание процесса">● Наговорить</button>
+        </label>
+
+        <fieldset class="mvp-contact-choice">
+          <legend>Куда прислать схему и демо? <b>*</b></legend>
+          <div>
+            <label><input type="radio" name="contactMethod" value="telegram" checked /><span>Telegram</span></label>
+            <label><input type="radio" name="contactMethod" value="email" /><span>Почта</span></label>
+            <label><input type="radio" name="contactMethod" value="max" /><span>MAX</span></label>
+          </div>
+        </fieldset>
+
+        <label class="mvp-request-field mvp-contact-field">
+          <span data-contact-label>Ваш Telegram <b>*</b></span>
+          <input type="text" name="contact" required minlength="3" maxlength="200" autocomplete="off" placeholder="@username" data-contact-input />
+          <small data-contact-hint>Укажите @username или ссылку на профиль.</small>
+        </label>
+
+        <label class="mvp-honeypot" aria-hidden="true">
+          <span>Сайт</span><input type="text" name="website" tabindex="-1" autocomplete="off" />
+        </label>
+
+        <button class="mvp-request-submit" type="submit">
+          <span>Получить схему автоматизации →</span>
+          <small>Разбор и демо в течение 6 часов</small>
+        </button>
+
+        <p class="mvp-request-privacy">Описание и контакт нужны только для подготовки ответа. Не добавляйте пароли, клиентские базы и данные третьих лиц.</p>
+        <p class="mvp-request-status" data-request-status hidden aria-live="polite"></p>
+      </form>
+
+      <div class="mvp-request-success" data-request-success hidden tabindex="-1">
+        <span>Процесс отправлен ✓</span>
+        <h2>Вернусь со схемой в течение 6 часов</h2>
+        <p>Покажу, что стоит автоматизировать в первую очередь, как может выглядеть интерфейс и сколько займут разные варианты.</p>
+      </div>
+
+      <div class="mvp-direct-contact" aria-label="Прямые контакты">
+        <p>Если не ответил в течение 6 часов, напишите напрямую.</p>
+        <a class="mvp-direct-button" href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer" data-direct-contact="telegram">Написать напрямую →</a>
+        <div>
+          <a href="mailto:hello@lazysoft.ru?subject=Автоматизация заявок" data-direct-contact="email">hello@lazysoft.ru</a>
+          <a href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer" data-direct-contact="telegram">Telegram: @SeeeRGo88</a>
+          <a href="https://max.ru/" target="_blank" rel="noopener noreferrer" title="Откройте MAX и найдите контакт по номеру" data-direct-contact="max">MAX: +7 929 712-49-04</a>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="section crm-capabilities" id="capabilities" aria-labelledby="crm-capabilities-title">
+    <div class="section-head">
+      <p class="kicker">Что можно автоматизировать</p>
+      <h2 id="crm-capabilities-title">От первого сообщения до выполненной заявки</h2>
+      <p class="lede">Не обязательно внедрять всё сразу. Первая версия закрывает самый дорогой ручной участок процесса.</p>
+    </div>
+    <div class="crm-capability-grid">
+      <article><span>01</span><h3>Сбор заявок</h3><p>Сайт, формы, Telegram и почта складываются в одну очередь без ручного копирования.</p></article>
+      <article><span>02</span><h3>Карточка клиента</h3><p>Контакты, история сообщений, документы и договорённости доступны в одном месте.</p></article>
+      <article><span>03</span><h3>Статусы и ответственные</h3><p>Видно, кто ведёт заявку, что уже сделано и какой следующий шаг нужен.</p></article>
+      <article><span>04</span><h3>Задачи и напоминания</h3><p>Система напоминает ответить, позвонить, подготовить документ или проверить оплату.</p></article>
+      <article><span>05</span><h3>Документы и уведомления</h3><p>Шаблонные письма, уведомления и документы формируются по данным заявки.</p></article>
+      <article><span>06</span><h3>Рабочий отчёт</h3><p>Понятно, сколько заявок пришло, где они остановились и что требует внимания.</p></article>
+    </div>
+  </section>
+
+  <section class="section crm-result" id="result" aria-labelledby="crm-result-title">
+    <div class="section-head">
+      <p class="kicker">Результат бесплатного разбора</p>
+      <h2 id="crm-result-title">Сначала схема и демо. Потом решение о разработке</h2>
+    </div>
+    <div class="mvp-variants crm-result-grid">
+      <article><span>Процесс</span><h3>Что убрать из ручной работы</h3><p>Коротко разложу текущий путь заявки и отмечу место, где автоматизация даст наибольший эффект.</p></article>
+      <article><span>Интерфейс</span><h3>Как будет выглядеть CRM</h3><p>Подготовлю демонстрацию ключевого экрана под ваш сценарий, а не абстрактный шаблон.</p></article>
+      <article><span>Варианты</span><h3>Сроки, цена и границы</h3><p>Предложу несколько объёмов: от небольшой первой версии до дальнейшего развития и интеграций.</p></article>
+    </div>
+    <p class="mvp-boundary-note"><strong>Без обязательств:</strong> разработка начинается только после отдельного согласования функций, срока, стоимости и внешних расходов.</p>
+  </section>
+
+  <section class="section crm-process" id="process" aria-labelledby="crm-process-title">
+    <div class="section-head"><p class="kicker">Как проходит работа</p><h2 id="crm-process-title">Один процесс — одна понятная первая версия</h2></div>
+    <ol class="crm-process-list">
+      <li><span>1</span><div><h3>Вы описываете рутину</h3><p>Откуда приходят заявки, кто с ними работает и где сейчас возникают ошибки или задержки.</p></div></li>
+      <li><span>2</span><div><h3>Я показываю решение</h3><p>В течение 6 часов присылаю схему, демо интерфейса, варианты объёма и предварительную оценку.</p></div></li>
+      <li><span>3</span><div><h3>Согласуем первую версию</h3><p>Фиксируем наиболее ценный сценарий и критерии готовности. До согласия обеих сторон работа не начинается.</p></div></li>
+      <li><span>4</span><div><h3>Запускаем и проверяем</h3><p>Вы получаете работающий веб-инструмент, исходный код и инструкцию запуска.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="mvp-simple-faq section" id="faq" aria-labelledby="crm-faq-title">
+    <div class="section-head"><p class="kicker">До отправки процесса</p><h2 id="crm-faq-title">Короткие ответы</h2></div>
+    <div class="faq-list">
+      <details><summary>Это замена Битрикс24 или amoCRM?</summary><p>Не обязательно. Если готовая CRM уже закрывает задачу дешевле и быстрее, я предложу использовать её. Разработка имеет смысл, когда процесс специфичный, коробка перегружена или нужна своя интеграция.</p></details>
+      <details><summary>Что реально сделать от 3 дней и 10 000 ₽?</summary><p>Небольшой законченный сценарий: например, единая очередь заявок, карточка клиента, статусы и назначение ответственного. Интеграции, сложные права доступа и аналитика оцениваются отдельно.</p></details>
+      <details><summary>Можно подключить Telegram, почту, сайт или 1С?</summary><p>Да, если сервис предоставляет подходящий API или другой надёжный способ интеграции. Возможности, стоимость внешних сервисов и ограничения перечислю до начала разработки.</p></details>
+      <details><summary>Нужно ли после разбора заказывать разработку?</summary><p>Нет. Схема, предварительные варианты и демо бесплатны и ни к чему не обязывают.</p></details>
+    </div>
+  </section>
+
+  <script src="../scripts/mvp-brief.ts"></script>
+</SiteLayout>

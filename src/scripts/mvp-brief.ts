@@ -1,8 +1,9 @@
 type ContactMethod = "telegram" | "email" | "max";
 
-const form = document.querySelector<HTMLFormElement>("[data-mvp-request-form]");
+const form = document.querySelector<HTMLFormElement>("[data-mvp-request-form], [data-crm-request-form]");
 
 if (form) {
+  const isCrm = form.hasAttribute("data-crm-request-form");
   const idea = form.elements.namedItem("idea") as HTMLTextAreaElement;
   const contact = form.elements.namedItem("contact") as HTMLInputElement;
   const website = form.elements.namedItem("website") as HTMLInputElement;
@@ -45,12 +46,13 @@ if (form) {
   }
 
   function trackGoal(goal: string, params: Record<string, unknown> = {}) {
-    window.dispatchEvent(new CustomEvent("lazysoft:goal", { detail: { goal, ...params } }));
+    const actualGoal = isCrm ? goal.replace(/^mvp_/, "crm_") : goal;
+    window.dispatchEvent(new CustomEvent("lazysoft:goal", { detail: { goal: actualGoal, ...params } }));
     const dataLayer = (window as typeof window & { dataLayer?: unknown[] }).dataLayer;
-    dataLayer?.push({ event: goal, ...params });
+    dataLayer?.push({ event: actualGoal, ...params });
     const globalWindow = window as typeof window & { ym?: (...args: unknown[]) => void; __YANDEX_METRIKA_ID__?: number };
     if (globalWindow.ym && globalWindow.__YANDEX_METRIKA_ID__) {
-      globalWindow.ym(globalWindow.__YANDEX_METRIKA_ID__, "reachGoal", goal, params);
+      globalWindow.ym(globalWindow.__YANDEX_METRIKA_ID__, "reachGoal", actualGoal, params);
     }
   }
 
@@ -86,7 +88,7 @@ if (form) {
     return {
       utmSource: params.get("utm_source") || "",
       utmMedium: params.get("utm_medium") || "",
-      utmCampaign: params.get("utm_campaign") || "",
+      utmCampaign: params.get("utm_campaign") || form!.dataset.defaultCampaign || "",
       utmContent: params.get("utm_content") || "",
       utmTerm: params.get("utm_term") || "",
       referrer: document.referrer,
