@@ -160,6 +160,7 @@ if (form) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          requestType: isCrm ? "crm" : "mvp",
           idea: idea.value.trim(),
           contactMethod: selectedMethod(),
           contact: contact.value.trim(),
@@ -169,6 +170,13 @@ if (form) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Не удалось отправить заявку");
+      if (data.notified === false) {
+        trackGoal("mvp_request_submit_failed", { contactMethod: selectedMethod(), reason: "telegram_notification" });
+        showStatus("Заявка сохранена, но уведомление в Telegram не доставлено. Пожалуйста, напишите напрямую: @SeeeRGo88 или hello@lazysoft.ru.", true);
+        submit.disabled = false;
+        submit.querySelector("span")!.textContent = isCrm ? "Повторить отправку →" : "Получить ТЗ и демо →";
+        return;
+      }
       trackGoal("mvp_brief_form_completed", { contactMethod: selectedMethod() });
       trackGoal("mvp_request_submitted", { contactMethod: selectedMethod() });
       if (typeof data.accessToken === "string" && data.accessToken) {

@@ -296,8 +296,9 @@ function validateRequestContact(method, contact) {
   return "";
 }
 
-function formatMvpRequest({ requestId, idea, contactMethod, contact, source, adminUrl }) {
+function formatMvpRequest({ requestId, requestType, idea, contactMethod, contact, source, adminUrl }) {
   const methodNames = { telegram: "Telegram", email: "Почта", max: "MAX" };
+  const isCrm = requestType === "crm";
   const sourceLines = [
     source.utmSource && `Источник: ${source.utmSource}`,
     source.utmMedium && `Канал: ${source.utmMedium}`,
@@ -307,16 +308,38 @@ function formatMvpRequest({ requestId, idea, contactMethod, contact, source, adm
     source.referrer && `Переход: ${source.referrer}`,
   ].filter(Boolean);
   return [
-    `Новая заявка на разбор идеи · ${requestId}`,
+    `${isCrm ? "Новая заявка на доработку CRM" : "Новая заявка на разбор идеи"} · ${requestId}`,
     "",
     `Канал ответа: ${methodNames[contactMethod]}`,
     `Контакт: ${contact}`,
     `Ответить на странице заявки: ${adminUrl}`,
     "",
-    "Идея:",
+    isCrm ? "Задача по CRM:" : "Идея:",
     idea,
     ...(sourceLines.length ? ["", ...sourceLines] : []),
   ].join("\n").slice(0, 4000);
+}
+
+async function sendTelegramFetchAttempt(body) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7_000);
+  try {
+    const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      signal: controller.signal,
+    });
+    const result = await telegramResponse.json().catch(() => ({}));
+    if (!telegramResponse.ok || result.ok !== true) {
+      console.error("Telegram request delivery failed", telegramResponse.status, result?.description || "unknown");
+      const error = new Error("REQUEST_DELIVERY_FAILED");
+      error.status = 502;
+      throw error;
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function sendTelegramAttempt(body, address) {
@@ -373,6 +396,14 @@ async function sendTelegramNotification(text) {
   }
   const body = JSON.stringify({ chat_id: telegramChatId, text, disable_web_page_preview: true });
   let lastError;
+  try {
+    await sendTelegramFetchAttempt(body);
+    return;
+  } catch (error) {
+    lastError = error;
+    if (error?.message === "REQUEST_DELIVERY_FAILED") throw error;
+    console.warn("Telegram DNS delivery failed, trying direct IP", error?.code || error?.message || "network error");
+  }
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     const address = telegramApiAddresses[(attempt - 1) % telegramApiAddresses.length];
     try {
@@ -437,6 +468,7 @@ async function handleMvpRequestApi(request, response) {
     const body = await readJsonBody(request);
     if (cleanText(body.website, 200)) return sendJson(response, 200, { ok: true });
     const idea = cleanText(body.idea, 3000);
+    const requestType = body.requestType === "crm" ? "crm" : "mvp";
     const contactMethod = ["telegram", "email", "max"].includes(body.contactMethod) ? body.contactMethod : "telegram";
     const contact = cleanText(body.contact, 200);
     if (idea.length < 20) return sendJson(response, 400, { error: "Расскажите об идее хотя бы в нескольких предложениях." });
@@ -466,7 +498,7 @@ async function handleMvpRequestApi(request, response) {
       accessTokenHash: tokenHash(accessToken),
       adminTokenHash: tokenHash(adminToken),
     });
-    const telegramPromise = sendTelegramNotification(formatMvpRequest({ requestId, idea, contactMethod, contact, source, adminUrl }));
+    const telegramPromise = sendTelegramNotification(formatMvpRequest({ requestId, requestType, idea, contactMethod, contact, source, adminUrl }));
     const [convexResult, telegramResult] = await Promise.allSettled([convexPromise, telegramPromise]);
     const stored = convexResult.status === "fulfilled";
     const notified = telegramResult.status === "fulfilled";
@@ -477,7 +509,13 @@ async function handleMvpRequestApi(request, response) {
       error.status = 502;
       throw error;
     }
-    return sendJson(response, 200, { ok: true, requestId, ...(stored ? { accessToken } : {}) });
+    return sendJson(response, notified ? 200 : 202, {
+      ok: notified,
+      requestId,
+      stored,
+      notified,
+      ...(stored ? { accessToken } : {}),
+    });
   } catch (error) {
     const status = Number(error?.status || 500);
     const messages = {
