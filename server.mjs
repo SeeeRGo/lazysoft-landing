@@ -298,7 +298,16 @@ function validateRequestContact(method, contact) {
 
 function formatMvpRequest({ requestId, requestType, idea, contactMethod, contact, source, adminUrl }) {
   const methodNames = { telegram: "Telegram", email: "Почта", max: "MAX" };
-  const isCrm = requestType === "crm";
+  const requestHeadings = {
+    crm: "Новая заявка на доработку CRM",
+    mobile: "Новая заявка на мобильное приложение",
+    mvp: "Новая заявка на разбор идеи",
+  };
+  const ideaHeadings = {
+    crm: "Задача по CRM:",
+    mobile: "Идея мобильного приложения:",
+    mvp: "Идея:",
+  };
   const sourceLines = [
     source.utmSource && `Источник: ${source.utmSource}`,
     source.utmMedium && `Канал: ${source.utmMedium}`,
@@ -308,13 +317,13 @@ function formatMvpRequest({ requestId, requestType, idea, contactMethod, contact
     source.referrer && `Переход: ${source.referrer}`,
   ].filter(Boolean);
   return [
-    `${isCrm ? "Новая заявка на доработку CRM" : "Новая заявка на разбор идеи"} · ${requestId}`,
+    `${requestHeadings[requestType] || requestHeadings.mvp} · ${requestId}`,
     "",
     `Канал ответа: ${methodNames[contactMethod]}`,
     `Контакт: ${contact}`,
     `Ответить на странице заявки: ${adminUrl}`,
     "",
-    isCrm ? "Задача по CRM:" : "Идея:",
+    ideaHeadings[requestType] || ideaHeadings.mvp,
     idea,
     ...(sourceLines.length ? ["", ...sourceLines] : []),
   ].join("\n").slice(0, 4000);
@@ -468,7 +477,7 @@ async function handleMvpRequestApi(request, response) {
     const body = await readJsonBody(request);
     if (cleanText(body.website, 200)) return sendJson(response, 200, { ok: true });
     const idea = cleanText(body.idea, 3000);
-    const requestType = body.requestType === "crm" ? "crm" : "mvp";
+    const requestType = ["crm", "mobile"].includes(body.requestType) ? body.requestType : "mvp";
     const contactMethod = ["telegram", "email", "max"].includes(body.contactMethod) ? body.contactMethod : "telegram";
     const contact = cleanText(body.contact, 200);
     if (idea.length < 20) return sendJson(response, 400, { error: "Расскажите об идее хотя бы в нескольких предложениях." });

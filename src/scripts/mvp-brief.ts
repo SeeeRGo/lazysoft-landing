@@ -1,9 +1,13 @@
 type ContactMethod = "telegram" | "email" | "max";
 
-const form = document.querySelector<HTMLFormElement>("[data-mvp-request-form], [data-crm-request-form]");
+const form = document.querySelector<HTMLFormElement>("[data-mvp-request-form], [data-crm-request-form], [data-mobile-request-form]");
 
 if (form) {
-  const isCrm = form.hasAttribute("data-crm-request-form");
+  const requestType = form.hasAttribute("data-crm-request-form")
+    ? "crm"
+    : form.hasAttribute("data-mobile-request-form")
+      ? "mobile"
+      : "mvp";
   const idea = form.elements.namedItem("idea") as HTMLTextAreaElement;
   const contact = form.elements.namedItem("contact") as HTMLInputElement;
   const website = form.elements.namedItem("website") as HTMLInputElement;
@@ -13,6 +17,7 @@ if (form) {
   const contactHint = form.querySelector<HTMLElement>("[data-contact-hint]")!;
   const status = form.querySelector<HTMLElement>("[data-request-status]")!;
   const success = document.querySelector<HTMLElement>("[data-request-success]")!;
+  const defaultSubmitLabel = submit.querySelector("span")!.textContent || "Отправить заявку →";
   const startedFields = new Set<string>();
   let formStarted = false;
   let speechRecognition: any;
@@ -46,7 +51,7 @@ if (form) {
   }
 
   function trackGoal(goal: string, params: Record<string, unknown> = {}) {
-    const actualGoal = isCrm ? goal.replace(/^mvp_/, "crm_") : goal;
+    const actualGoal = requestType === "mvp" ? goal : goal.replace(/^mvp_/, `${requestType}_`);
     window.dispatchEvent(new CustomEvent("lazysoft:goal", { detail: { goal: actualGoal, ...params } }));
     const dataLayer = (window as typeof window & { dataLayer?: unknown[] }).dataLayer;
     dataLayer?.push({ event: actualGoal, ...params });
@@ -160,7 +165,7 @@ if (form) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          requestType: isCrm ? "crm" : "mvp",
+          requestType,
           idea: idea.value.trim(),
           contactMethod: selectedMethod(),
           contact: contact.value.trim(),
@@ -174,7 +179,7 @@ if (form) {
         trackGoal("mvp_request_submit_failed", { contactMethod: selectedMethod(), reason: "telegram_notification" });
         showStatus("Заявка сохранена, но уведомление в Telegram не доставлено. Пожалуйста, напишите напрямую: @SeeeRGo88 или hello@lazysoft.ru.", true);
         submit.disabled = false;
-        submit.querySelector("span")!.textContent = isCrm ? "Повторить отправку →" : "Получить ТЗ и демо →";
+        submit.querySelector("span")!.textContent = defaultSubmitLabel;
         return;
       }
       trackGoal("mvp_brief_form_completed", { contactMethod: selectedMethod() });
@@ -193,7 +198,7 @@ if (form) {
       showStatus(`${error instanceof Error ? error.message : "Не удалось отправить заявку"}. Попробуйте ещё раз или напишите на hello@lazysoft.ru.`, true);
       trackGoal("mvp_request_submit_failed", { contactMethod: selectedMethod() });
       submit.disabled = false;
-      submit.querySelector("span")!.textContent = "Получить ТЗ и демо →";
+      submit.querySelector("span")!.textContent = defaultSubmitLabel;
     }
   });
 

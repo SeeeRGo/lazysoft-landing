@@ -1,0 +1,165 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import "../styles/mvp.css";
+import "../styles/mobile-app.css";
+
+const title = "Разработка мобильных приложений от 50 000 ₽ | Lazysoft";
+const description =
+  "Разработка мобильного приложения от 1 недели и 50 000 рублей. Опишите идею текстом или голосом — в течение 24 часов получите демо интерфейса и ТЗ с вариантами функций, сроков и стоимости.";
+
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Разработка мобильных приложений",
+    description,
+    url: "https://lazysoft.ru/mobile-app-development/",
+    provider: { "@type": "Organization", name: "Lazysoft", url: "https://lazysoft.ru" },
+    areaServed: "RU",
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "RUB",
+      price: "50000",
+      description: "Первая версия мобильного приложения от одной недели",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Что я получу в течение 24 часов?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Демонстрацию ключевого интерфейса и ТЗ с несколькими вариантами состава функций, ориентировочными сроками, стоимостью, рисками и этапами развития.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Любое ли мобильное приложение стоит 50 000 рублей?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Нет. 50 000 рублей и одна неделя — стартовая граница для небольшой согласованной первой версии. Точная оценка зависит от функций, платформ, интеграций и требований к публикации.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Нужно ли заказывать разработку после получения ТЗ?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Нет. Предварительные варианты и демонстрация бесплатны. Разработка начинается только после отдельного согласования объёма, срока и стоимости.",
+        },
+      },
+    ],
+  },
+];
+---
+
+<SiteLayout title={title} description={description} canonicalPath="/mobile-app-development/" structuredData={structuredData} mainClass="mvp-page mobile-app-page">
+  <section class="mvp-lead-hero mobile-app-hero" aria-labelledby="mobile-app-title">
+    <div class="mvp-lead-copy">
+      <Breadcrumbs items={[{ label: "Услуги", href: "/services/" }, { label: "Мобильные приложения" }]} />
+      <p class="mvp-lead-badge"><span></span> Разработка мобильных приложений</p>
+      <h1 id="mobile-app-title">Мобильное приложение.<br /><em>От 1 недели</em><br /><strong>и 50 000 ₽.</strong></h1>
+      <p class="mvp-lead-lede">
+        Опишите идею обычными словами. В течение <strong>24 часов</strong> я пришлю демо ключевого интерфейса
+        и ТЗ с несколькими вариантами по функциям, срокам и стоимости.
+      </p>
+
+      <ul class="mvp-lead-value" aria-label="Что будет в результате">
+        <li><span>01</span><div><b>Демо интерфейса</b><small>ключевые экраны и сценарий</small></div></li>
+        <li><span>02</span><div><b>ТЗ по функциям</b><small>от первой версии до полной</small></div></li>
+        <li><span>03</span><div><b>Срок и стоимость</b><small>отдельно для каждого варианта</small></div></li>
+      </ul>
+
+      <p class="mobile-app-price-note">Предварительный разбор бесплатный и не обязывает заказывать разработку.</p>
+      <p class="mvp-lead-fineprint">1 неделя и 50 000 ₽ — стартовая граница для небольшой согласованной версии, а не фиксированная цена любого приложения.</p>
+    </div>
+
+    <aside class="mvp-request-card mobile-app-request-card">
+      <div class="mvp-request-heading">
+        <p>Заявка на разбор приложения</p>
+        <h2>Достаточно 2–3 предложений</h2>
+        <span>Можно написать или наговорить. Платформу и технический стек определим после разбора.</span>
+      </div>
+
+      <form data-mobile-request-form data-default-campaign="mobile_app_development" novalidate>
+        <label class="mvp-request-field mvp-request-idea">
+          <span>Какое приложение хотите сделать? <b>*</b></span>
+          <textarea name="idea" rows="4" minlength="20" maxlength="3000" required placeholder="Например: приложение для записи клиентов, где пользователь выбирает услугу и время, а администратор управляет расписанием..."></textarea>
+          <button type="button" class="mvp-voice-button" data-voice-button aria-label="Наговорить идею мобильного приложения">● Наговорить</button>
+        </label>
+
+        <fieldset class="mvp-contact-choice">
+          <legend>Куда прислать демо и ТЗ? <b>*</b></legend>
+          <div>
+            <label><input type="radio" name="contactMethod" value="telegram" checked /><span>Telegram</span></label>
+            <label><input type="radio" name="contactMethod" value="email" /><span>Почта</span></label>
+            <label><input type="radio" name="contactMethod" value="max" /><span>MAX</span></label>
+          </div>
+        </fieldset>
+
+        <label class="mvp-request-field mvp-contact-field">
+          <span data-contact-label>Ваш Telegram <b>*</b></span>
+          <input type="text" name="contact" required minlength="3" maxlength="200" autocomplete="off" placeholder="@username" data-contact-input />
+          <small data-contact-hint>Укажите @username или ссылку на профиль.</small>
+        </label>
+
+        <label class="mvp-honeypot" aria-hidden="true">
+          <span>Сайт</span><input type="text" name="website" tabindex="-1" autocomplete="off" />
+        </label>
+
+        <button class="mvp-request-submit" type="submit">
+          <span>Получить варианты приложения →</span>
+          <small>Демо и ТЗ придут в течение 24 часов</small>
+        </button>
+
+        <p class="mvp-request-privacy">Описание и контакт нужны только для подготовки ответа. Не добавляйте пароли, платёжные данные и данные третьих лиц.</p>
+        <p class="mvp-request-status" data-request-status hidden aria-live="polite"></p>
+      </form>
+
+      <div class="mvp-request-success" data-request-success hidden tabindex="-1">
+        <span>Идея отправлена ✓</span>
+        <h2>Вернусь с вариантами в течение 24 часов</h2>
+        <p>Подготовлю демонстрацию ключевого интерфейса и ТЗ с вариантами функций, сроков и стоимости. Если для оценки не хватит одной детали, сначала задам короткий вопрос.</p>
+      </div>
+
+      <div class="mvp-direct-contact" aria-label="Прямые контакты">
+        <p>Если вам не ответили в течение 24 часов, напишите напрямую.</p>
+        <a class="mvp-direct-button" href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer" data-direct-contact="telegram">Написать напрямую →</a>
+        <div>
+          <a href="mailto:hello@lazysoft.ru?subject=Идея мобильного приложения" data-direct-contact="email">hello@lazysoft.ru</a>
+          <a href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer" data-direct-contact="telegram">Telegram: @SeeeRGo88</a>
+          <a href="https://max.ru/" target="_blank" rel="noopener noreferrer" title="Откройте MAX и найдите контакт по номеру" data-direct-contact="max">MAX: +7 929 712-49-04</a>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="mvp-explanation section" id="result" aria-labelledby="mobile-result-title">
+    <div class="section-head">
+      <p class="kicker">Что будет через 24 часа</p>
+      <h2 id="mobile-result-title">Не одна цифра, а варианты первого релиза</h2>
+    </div>
+    <div class="mvp-variants">
+      <article><span>Быстрый старт</span><h3>Проверить ключевой сценарий</h3><p>Самая небольшая полезная версия: только функции, без которых нельзя проверить приложение на реальных пользователях.</p></article>
+      <article><span>Рабочая версия</span><h3>Подготовить к использованию</h3><p>Аккаунты, данные, уведомления и необходимые интеграции — если они нужны для ежедневной работы.</p></article>
+      <article><span>Развитие</span><h3>Планировать следующие этапы</h3><p>Дополнительные функции, публикация, аналитика и развитие продукта с отдельной оценкой каждого этапа.</p></article>
+    </div>
+    <p class="mvp-boundary-note"><strong>До начала разработки:</strong> отдельно согласуем платформы, функции, критерии готовности, срок, стоимость и возможные расходы на магазины и внешние сервисы.</p>
+  </section>
+
+  <section class="mvp-simple-faq section" id="faq" aria-labelledby="mobile-faq-title">
+    <div class="section-head"><p class="kicker">Коротко об условиях</p><h2 id="mobile-faq-title">До отправки идеи</h2></div>
+    <div class="faq-list">
+      <details><summary>Что именно я получу?</summary><p>Ссылку на демонстрацию ключевого интерфейса и ТЗ в PDF: варианты состава функций, пользовательские сценарии, ориентировочные сроки, стоимость, риски и открытые вопросы.</p></details>
+      <details><summary>Что можно сделать от 50 000 ₽?</summary><p>Небольшую согласованную первую версию с одним ключевым сценарием. Авторизация, сложная серверная логика, платежи, карты, чаты и внешние интеграции могут увеличить объём и оцениваются отдельно.</p></details>
+      <details><summary>Будет версия для iOS и Android?</summary><p>Подход зависит от задачи. В вариантах сравню кроссплатформенную разработку, мобильное веб-приложение и отдельные нативные версии, если они действительно нужны.</p></details>
+      <details><summary>Нужно ли после разбора заказывать разработку?</summary><p>Нет. Предварительный разбор бесплатный. Работа начинается только после отдельного согласования итогового состава, срока и стоимости обеими сторонами.</p></details>
+    </div>
+  </section>
+
+  <script src="../scripts/mvp-brief.ts"></script>
+</SiteLayout>
