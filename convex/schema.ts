@@ -1,8 +1,11 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { automationPhase, jobStatus, jobKind, clientEvent } from "./automationModel";
+import { portfolioContent } from './portfolioModel';
 
 export default defineSchema({
+  portfolios: defineTable({ slug: v.string(), content: portfolioContent, version: v.number() }).index('by_slug', ['slug']),
+  portfolioAssets: defineTable({ slug: v.string(), storageId: v.id('_storage'), type: v.string(), size: v.number() }).index('by_slug', ['slug']).index('by_storage', ['storageId']),
   mvpRequests: defineTable({
     requestId: v.string(),
     idea: v.string(),

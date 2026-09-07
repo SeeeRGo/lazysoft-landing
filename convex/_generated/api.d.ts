@@ -15,6 +15,9 @@ import type * as clientDelivery from "../clientDelivery.js";
 import type * as deliveries from "../deliveries.js";
 import type * as http from "../http.js";
 import type * as payments from "../payments.js";
+import type * as portfolio from "../portfolio.js";
+import type * as portfolioHttp from "../portfolioHttp.js";
+import type * as portfolioModel from "../portfolioModel.js";
 import type * as requests from "../requests.js";
 
 import type {
@@ -31,6 +34,9 @@ declare const fullApi: ApiFromModules<{
   deliveries: typeof deliveries;
   http: typeof http;
   payments: typeof payments;
+  portfolio: typeof portfolio;
+  portfolioHttp: typeof portfolioHttp;
+  portfolioModel: typeof portfolioModel;
   requests: typeof requests;
 }>;
 

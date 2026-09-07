@@ -1,8 +1,10 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { endpoint as portfolioEndpoint } from './portfolioHttp';
 
 const http = httpRouter();
+for (const method of ['GET','POST','OPTIONS'] as const) http.route({path:'/portfolio-03212396',method,handler:portfolioEndpoint});
 
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
