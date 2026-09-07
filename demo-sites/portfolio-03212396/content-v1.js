@@ -16,7 +16,7 @@
   if(c.telegram){const a=n('a','Telegram '+c.telegram);a.href='https://t.me/'+c.telegram.replace(/^@/,'');a.target='_blank';a.rel='noopener noreferrer';a.className='button dark';contact.append(a)}
   if(!c.email&&!c.telegram)contact.append(n('p','Контакты пока не добавлены.'));
   document.querySelector('.footer>span').textContent='© '+new Date().getFullYear()+' '+c.name;
-  for(const card of document.querySelectorAll('.category-card')){const category=card.getAttribute('href').replace('.html','');const first=d.works.find(w=>w.category===category);if(first){const img=n('img');img.src=first.imageUrl;img.alt=first.title;img.loading='lazy';card.querySelector('.category-art').replaceChildren(img)}}
+  for(const card of document.querySelectorAll('.category-card')){const category=card.getAttribute('href').replace('.html','');const first=d.works.find(w=>w.category===category);if(first){const img=n('img');img.src=first.imageUrl;img.alt=first.title;img.loading='lazy';card.querySelector('.category-art').replaceChildren(img)}else{card.querySelector('.category-art').replaceChildren(n('span','Работы скоро появятся'))}}
   const grid=document.querySelector('.gallery-grid');if(!grid)return;
   const category=location.pathname.split('/').pop().replace('.html','');const works=d.works.filter(w=>w.category===category);grid.replaceChildren();
   document.querySelector('.collection .work-note').textContent='Нажмите на работу, чтобы рассмотреть её крупнее.';
