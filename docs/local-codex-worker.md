@@ -2,6 +2,11 @@
 
 Выбран запуск на этом компьютере, не GitHub Actions. API-ключ не нужен.
 
+Обновление 7 сентября: production использует отдельный файл
+`.env.automation.production` и постоянный профиль `automation/isolation.mjs`.
+Актуальная эксплуатационная инструкция — [production-automation.md](production-automation.md).
+Описание проверок и выключенного timer ниже относится к первоначальной dev-настройке.
+
 ## Авторизация
 
 `node automation/setup-local-auth.mjs` однократно переносит сохранённый вход из `CODEX_HOME/auth.json` (по умолчанию пользовательский `.codex/auth.json`) в `.local/request-worker/auth/auth.json`. Существующую копию не перезаписывает. Права: каталог 700, файл 600. `.local/` и `.env.automation` исключены из git.
