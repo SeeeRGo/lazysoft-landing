@@ -18,6 +18,8 @@ import type * as payments from "../payments.js";
 import type * as portfolio from "../portfolio.js";
 import type * as portfolioHttp from "../portfolioHttp.js";
 import type * as portfolioModel from "../portfolioModel.js";
+import type * as portfolioSecurity from "../portfolioSecurity.js";
+import type * as portfolioSession from "../portfolioSession.js";
 import type * as requests from "../requests.js";
 
 import type {
@@ -37,6 +39,8 @@ declare const fullApi: ApiFromModules<{
   portfolio: typeof portfolio;
   portfolioHttp: typeof portfolioHttp;
   portfolioModel: typeof portfolioModel;
+  portfolioSecurity: typeof portfolioSecurity;
+  portfolioSession: typeof portfolioSession;
   requests: typeof requests;
 }>;
 
@@ -66,4 +70,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+};

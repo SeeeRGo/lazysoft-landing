@@ -4,6 +4,8 @@ import { automationPhase, jobStatus, jobKind, clientEvent } from "./automationMo
 import { portfolioContent } from './portfolioModel';
 
 export default defineSchema({
+  portfolioAccess: defineTable({slug:v.string(),epoch:v.number(),keyHash:v.string()}).index('by_slug',['slug']),
+  portfolioHistory: defineTable({slug:v.string(),event:v.string(),createdAt:v.number(),version:v.optional(v.number()),content:v.optional(portfolioContent)}).index('by_slug',['slug']).index('by_slug_version',['slug','version']),
   portfolios: defineTable({ slug: v.string(), content: portfolioContent, version: v.number() }).index('by_slug', ['slug']),
   portfolioAssets: defineTable({ slug: v.string(), storageId: v.id('_storage'), type: v.string(), size: v.number() }).index('by_slug', ['slug']).index('by_storage', ['storageId']),
   mvpRequests: defineTable({

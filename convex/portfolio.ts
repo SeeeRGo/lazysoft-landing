@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { internalMutation, internalQuery } from './_generated/server';
 import { portfolioContent, portfolioWork } from './portfolioModel';
+import { requireEpoch } from './portfolioSecurity';
 const slug='03212396';
 export const read = internalQuery({args:{},returns:v.union(v.null(),v.object({ content:portfolioContent, version:v.number(), works:v.array(v.object({...portfolioWork.fields,imageUrl:v.string(),documentUrl:v.union(v.string(),v.null())})) })),handler:async ctx=>{
  const row=await ctx.db.query('portfolios').withIndex('by_slug',q=>q.eq('slug',slug)).unique();
@@ -8,12 +9,14 @@ export const read = internalQuery({args:{},returns:v.union(v.null(),v.object({ c
  const works=await Promise.all(row.content.works.map(async w=>({...w,imageUrl:(await ctx.storage.getUrl(w.image))??'',documentUrl:w.document?await ctx.storage.getUrl(w.document):null})));
  return {content:row.content,version:row.version,works};
 }});
-export const registerAsset=internalMutation({args:{storageId:v.id('_storage'),type:v.string(),size:v.number()},returns:v.null(),handler:async(ctx,args)=>{
+export const registerAsset=internalMutation({args:{storageId:v.id('_storage'),type:v.string(),size:v.number(),epoch:v.number(),expiresAt:v.number()},returns:v.null(),handler:async(ctx,args)=>{
+ await requireEpoch(ctx,args.epoch,args.expiresAt);
  const assets=await ctx.db.query('portfolioAssets').withIndex('by_slug',q=>q.eq('slug',slug)).take(101);
  if(assets.length>=100||assets.reduce((n,a)=>n+a.size,0)+args.size>100*1024*1024)throw new Error('Лимит хранилища: 100 файлов / 100 МБ');
- await ctx.db.insert('portfolioAssets',{slug,...args});return null;
+ await ctx.db.insert('portfolioAssets',{slug,storageId:args.storageId,type:args.type,size:args.size});return null;
 }});
-export const save=internalMutation({args:{content:portfolioContent,version:v.number()},returns:v.number(),handler:async(ctx,{content,version})=>{
+export const save=internalMutation({args:{content:portfolioContent,version:v.number(),epoch:v.number(),expiresAt:v.number()},returns:v.number(),handler:async(ctx,{content,version,epoch,expiresAt})=>{
+ await requireEpoch(ctx,epoch,expiresAt);
  if(!content.name.trim()||content.name.length>100||!content.headline.trim()||content.headline.length>160||content.about.length>3000||content.prices.length>3000||content.email.length>254||content.telegram.length>64||content.works.length>40)throw new Error('Проверьте длину полей (максимум 40 работ)');
  if(content.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(content.email))throw new Error('Проверьте почту');
  if(content.telegram&&!/^@?[a-zA-Z0-9_]{5,32}$/.test(content.telegram))throw new Error('Укажите Telegram в виде @username');
@@ -28,6 +31,9 @@ export const save=internalMutation({args:{content:portfolioContent,version:v.num
  }
  const row=await ctx.db.query('portfolios').withIndex('by_slug',q=>q.eq('slug',slug)).unique();
  if((row?.version??0)!==version)throw new Error('Данные изменились в другой вкладке. Перезагрузите страницу');
+ if(row && !(await ctx.db.query('portfolioHistory').withIndex('by_slug_version',q=>q.eq('slug',slug).eq('version',row.version)).unique()))await ctx.db.insert('portfolioHistory',{slug,event:'Версия до включения истории',createdAt:Date.now(),version:row.version,content:row.content});
+ const fields=Object.keys(content).filter(key=>JSON.stringify(content[key as keyof typeof content])!==JSON.stringify(row?.content[key as keyof typeof content]));
+ await ctx.db.insert('portfolioHistory',{slug,event:'Публикация: '+fields.join(', '),createdAt:Date.now(),version:version+1,content});
  if(row)await ctx.db.patch(row._id,{content,version:version+1});else await ctx.db.insert('portfolios',{slug,content,version:1});
  return version+1;
 }});
