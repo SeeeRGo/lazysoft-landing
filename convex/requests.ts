@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { enqueueInitial } from "./automation";
 
 const contactMethod = v.union(v.literal("telegram"), v.literal("email"), v.literal("max"));
 const requestStatus = v.union(
@@ -76,6 +77,8 @@ export const store = internalMutation({
     receivedAt: v.number(),
     accessTokenHash: v.optional(v.string()),
     adminTokenHash: v.optional(v.string()),
+    deliveryTokenCiphertext: v.optional(v.string()),
+    requestType: v.optional(v.union(v.literal("mvp"), v.literal("crm"), v.literal("mobile"))),
   },
   returns: v.object({ created: v.boolean() }),
   handler: async (ctx, args) => {
@@ -96,6 +99,9 @@ export const store = internalMutation({
         text: "Заявка получена. Здесь появятся ТЗ, демо интерфейса и уточняющие вопросы.",
         createdAt: args.receivedAt,
       });
+    }
+    if (process.env.REQUEST_AUTOMATION_ENABLED === "true" && args.requestType === "mvp" && args.accessTokenHash && args.adminTokenHash) {
+      await enqueueInitial(ctx, args.requestId);
     }
     return { created: true };
   },
@@ -121,7 +127,7 @@ export const getVisitorThread = internalQuery({
       status: request.status ?? "received",
       receivedAt: request.receivedAt,
       updatedAt: request.updatedAt ?? request.receivedAt,
-      messages: messages.map(publicMessage),
+      messages: await Promise.all(messages.map(async row => ({ ...publicMessage(row), ...(row.pdfStorageId ? { pdfUrl: (await ctx.storage.getUrl(row.pdfStorageId)) ?? undefined } : {}) }))),
     };
   },
 });
@@ -169,7 +175,7 @@ export const getAdminThread = internalQuery({
       status: request.status ?? "received",
       receivedAt: request.receivedAt,
       updatedAt: request.updatedAt ?? request.receivedAt,
-      messages: messages.map(publicMessage),
+      messages: await Promise.all(messages.map(async row => ({ ...publicMessage(row), ...(row.pdfStorageId ? { pdfUrl: (await ctx.storage.getUrl(row.pdfStorageId)) ?? undefined } : {}) }))),
     };
   },
 });

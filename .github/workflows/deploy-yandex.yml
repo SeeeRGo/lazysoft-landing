@@ -91,6 +91,7 @@ jobs:
             TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
             CONVEX_SITE_URL=${{ vars.CONVEX_SITE_URL }}
             CONVEX_INGEST_SECRET=${{ secrets.CONVEX_INGEST_SECRET }}
+            DELIVERY_ENCRYPTION_KEY=${{ secrets.DELIVERY_ENCRYPTION_KEY }}
 
       - name: Verify deployment through API Gateway
         run: |

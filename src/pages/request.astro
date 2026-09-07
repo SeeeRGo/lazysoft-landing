@@ -40,6 +40,44 @@ const description = "Приватная страница заявки: стат�
 
         <div class="request-messages" data-request-messages aria-label="Сообщения по заявке"></div>
 
+        <section class="request-next-steps" data-automation hidden aria-label="Что дальше">
+          <h2>Что дальше</h2>
+          <p data-automation-status></p>
+          <div data-messenger-connect hidden>
+            <p>Чтобы получить уведомление о результате, откройте бота и нажмите «Начать».</p>
+            <div class="request-actions">
+              <a data-connect-telegram hidden target="_blank" rel="noopener noreferrer">Получить результат в Telegram ↗</a>
+              <a data-connect-max hidden target="_blank" rel="noopener noreferrer">Получить результат в MAX ↗</a>
+            </div>
+          </div>
+          <div data-automation-review hidden>
+            <p>Посмотрите демо и ТЗ. Можно один раз отправить общий список правок или принять результат сразу.</p>
+            <form data-revision-form>
+              <label for="revision-text">Что изменить в демо и ТЗ?</label>
+              <textarea id="revision-text" name="revision" minlength="10" maxlength="3000" rows="3" required placeholder="Соберите все пожелания в одно сообщение"></textarea>
+              <button type="submit">Отправить правки · 1 раз бесплатно</button>
+            </form>
+            <button type="button" data-accept-result>Всё подходит — принять результат</button>
+          </div>
+          <div data-automation-purchase hidden>
+            <h3>Забрать исходники — 5 000 ₽</h3>
+            <p>Архив демоверсии с ТЗ и инструкцией запуска. Дальнейшая разработка и внешние сервисы оплачиваются отдельно.</p>
+            <form data-checkout-form>
+              <label for="receipt-email">Почта для чека</label>
+              <input id="receipt-email" name="receiptEmail" type="email" autocomplete="email" required maxlength="254" />
+              <button type="submit">Оплатить 5 000 ₽ через ЮKassa</button>
+            </form>
+            <button type="button" data-refresh-payment>Уже оплатили? Проверить оплату</button>
+          </div>
+          <button type="button" data-download-source hidden>Скачать оплаченные исходники</button>
+          <div data-development-choice hidden>
+            <h3>Довести до рабочего продукта</h3>
+            <p>Доработка от 10 000 ₽ с постоплатой. Сначала согласуем объём, стоимость и критерии готовности.</p>
+            <button type="button" data-request-development>Обсудить доработку</button>
+          </div>
+          <p class="request-form-status" data-automation-feedback hidden role="status"></p>
+        </section>
+
         <form class="request-composer" data-request-message-form>
           <label for="request-message">Ответить или дополнить заявку</label>
           <textarea id="request-message" name="message" rows="3" maxlength="2000" required placeholder="Напишите уточнение или ответ…"></textarea>
@@ -65,4 +103,5 @@ const description = "Приватная страница заявки: стат�
   </section>
 
   <script src="../scripts/request-thread.ts"></script>
+  <script src="../scripts/request-automation.ts"></script>
 </SiteLayout>

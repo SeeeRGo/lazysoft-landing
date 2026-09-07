@@ -97,4 +97,97 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/request-automation", method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!isAuthorized(request)) return json({ error: "Unauthorized" }, 401);
+    try {
+      const payload = await request.json();
+      const { operation, ...args } = payload;
+      if (operation === "summary") return json({ ok: true, automation: await ctx.runQuery(internal.automation.summary, args) });
+      if (operation === "action") return json(await ctx.runMutation(internal.automation.clientAction, args));
+      if (operation === "checkout") return json({ ok: true, ...await ctx.runAction(internal.payments.checkout, args) });
+      if (operation === "refresh-payment") { await ctx.runAction(internal.payments.refresh, args); return json({ ok: true }); }
+      if (operation === "download") return json({ ok: true, url: await ctx.runMutation(internal.payments.download, args) });
+      return json({ error: "Unknown operation" }, 400);
+    } catch {
+      return json({ error: "Не удалось выполнить действие. Проверьте состояние заявки или повторите позже." }, 400);
+    }
+  }),
+});
+
+http.route({
+  path: "/automation-worker", method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.AUTOMATION_WORKER_SECRET;
+    if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return json({ error: "Unauthorized" }, 401);
+    try {
+      const { operation, ...args } = await request.json();
+      if (operation === "claim") return json({ job: await ctx.runMutation(internal.automation.claim, args) });
+      if (operation === "heartbeat") return json({ ok: await ctx.runMutation(internal.automation.heartbeat, args) });
+      if (operation === "complete") return json({ ok: await ctx.runMutation(internal.automation.complete, args) });
+      if (operation === "fail") return json({ ok: await ctx.runMutation(internal.automation.fail, args) });
+      if (operation === "upload" || operation === "source") {
+        // Validate active lease before releasing an upload URL or the previous source archive.
+        const active = await ctx.runMutation(internal.automation.heartbeat, { jobId: args.jobId, leaseToken: args.leaseToken });
+        if (!active) return json({ error: "Expired lease" }, 409);
+        if (operation === "upload") return json({ url: await ctx.storage.generateUploadUrl() });
+        const sourceId = await ctx.runQuery(internal.automation.previousSource, { jobId: args.jobId, leaseToken: args.leaseToken });
+        return json({ url: sourceId ? await ctx.storage.getUrl(sourceId) : null });
+      }
+      return json({ error: "Unknown operation" }, 400);
+    } catch {
+      return json({ error: "Invalid worker request" }, 400);
+    }
+  }),
+});
+
+http.route({
+  path: "/yookassa-webhook", method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const payload = await request.json();
+      if (!["payment.succeeded", "payment.canceled"].includes(payload.event)) return json({ ok: true });
+      if (typeof payload.object?.id !== "string") return json({ error: "Invalid payment" }, 400);
+      // The payload is a hint only. The action fetches the payment using shop credentials.
+      await ctx.runAction(internal.payments.reconcile, { paymentId: payload.object.id });
+      return json({ ok: true });
+    } catch {
+      return json({ error: "Verification pending" }, 503);
+    }
+  }),
+});
+
+for (const channel of ["telegram", "max"] as const) {
+  http.route({
+    path: `/${channel}-request-webhook`, method: "POST",
+    handler: httpAction(async (ctx, request) => {
+      const secret = channel === "telegram" ? process.env.TELEGRAM_WEBHOOK_SECRET : process.env.MAX_WEBHOOK_SECRET;
+      const header = channel === "telegram" ? "x-telegram-bot-api-secret-token" : "x-max-bot-api-secret";
+      if (!secret || request.headers.get(header) !== secret) return json({ error: "Unauthorized" }, 401);
+      try {
+        const payload = await request.json();
+        let token: string | undefined;
+        let recipientId: string | undefined;
+        if (channel === "telegram") {
+          if (payload.message?.chat?.type !== "private") return json({ ok: true });
+          token = typeof payload.message?.text === "string" ? payload.message.text.match(/^\/start ([A-Za-z0-9_-]{43})$/)?.[1] : undefined;
+          recipientId = String(payload.message?.chat?.id ?? "");
+        } else {
+          if (payload.update_type !== "bot_started") return json({ ok: true });
+          token = typeof payload.payload === "string" ? payload.payload : undefined;
+          recipientId = String(payload.user?.user_id ?? "");
+        }
+        if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token) || !/^[0-9]{1,20}$/.test(recipientId)) return json({ ok: true });
+        const hashBytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+        const accessTokenHash = Array.from(new Uint8Array(hashBytes), byte => byte.toString(16).padStart(2, "0")).join("");
+        await ctx.runMutation(internal.deliveries.bindMessenger, { channel, recipientId, accessTokenHash });
+        return json({ ok: true });
+      } catch {
+        return json({ error: "Could not connect messenger" }, 503);
+      }
+    }),
+  });
+}
+
 export default http;

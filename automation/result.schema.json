@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "summary", "assumptions", "options", "acceptanceCriteria", "externalCosts", "clientMessage"],
+  "properties": {
+    "title": { "type": "string" },
+    "summary": { "type": "string" },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "options": {
+      "type": "array", "minItems": 2, "maxItems": 3,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["title", "features", "days", "priceRubles", "limitations"],
+        "properties": {
+          "title": { "type": "string" },
+          "features": { "type": "array", "items": { "type": "string" } },
+          "days": { "type": "integer", "minimum": 3 },
+          "priceRubles": { "type": "integer", "minimum": 10000 },
+          "limitations": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "acceptanceCriteria": { "type": "array", "items": { "type": "string" } },
+    "externalCosts": { "type": "array", "items": { "type": "string" } },
+    "clientMessage": { "type": "string" }
+  }
+}

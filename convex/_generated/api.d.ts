@@ -8,7 +8,13 @@
  * @module
  */
 
+import type * as automation from "../automation.js";
+import type * as automationModel from "../automationModel.js";
+import type * as automationNotifications from "../automationNotifications.js";
+import type * as clientDelivery from "../clientDelivery.js";
+import type * as deliveries from "../deliveries.js";
 import type * as http from "../http.js";
+import type * as payments from "../payments.js";
 import type * as requests from "../requests.js";
 
 import type {
@@ -18,7 +24,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  automation: typeof automation;
+  automationModel: typeof automationModel;
+  automationNotifications: typeof automationNotifications;
+  clientDelivery: typeof clientDelivery;
+  deliveries: typeof deliveries;
   http: typeof http;
+  payments: typeof payments;
   requests: typeof requests;
 }>;
 

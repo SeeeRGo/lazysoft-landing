@@ -1,0 +1,40 @@
+name: Process MVP request
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mvp-request-worker
+  cancel-in-progress: false
+
+jobs:
+  process:
+    if: vars.REQUEST_AUTOMATION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build isolated Codex image
+        run: docker build -t lazysoft-codex-worker:0.153.4 automation
+      - name: Process one request
+        run: node automation/worker.mjs
+        env:
+          CONVEX_SITE_URL: ${{ vars.CONVEX_SITE_URL }}
+          AUTOMATION_WORKER_SECRET: ${{ secrets.AUTOMATION_WORKER_SECRET }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          REQUEST_DEMO_BUCKET: ${{ vars.REQUEST_DEMO_BUCKET }}
+          REQUEST_DEMO_ORIGIN: ${{ vars.REQUEST_DEMO_ORIGIN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_STORAGE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_STORAGE_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ru-central1

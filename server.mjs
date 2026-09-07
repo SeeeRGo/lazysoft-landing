@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { Agent as HttpsAgent, request as createHttpsRequest } from "node:https";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, createCipheriv, randomBytes, randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
@@ -499,6 +499,7 @@ async function handleMvpRequestApi(request, response) {
     const adminUrl = `${publicSiteUrl}/request-admin/#${adminToken}`;
     const convexPromise = storeRequestInConvex({
       requestId,
+      requestType,
       idea,
       contactMethod,
       contact,
@@ -506,6 +507,7 @@ async function handleMvpRequestApi(request, response) {
       receivedAt,
       accessTokenHash: tokenHash(accessToken),
       adminTokenHash: tokenHash(adminToken),
+      ...(process.env.DELIVERY_ENCRYPTION_KEY ? { deliveryTokenCiphertext: encryptDeliveryToken(accessToken) } : {}),
     });
     const telegramPromise = sendTelegramNotification(formatMvpRequest({ requestId, requestType, idea, contactMethod, contact, source, adminUrl }));
     const [convexResult, telegramResult] = await Promise.allSettled([convexPromise, telegramPromise]);
@@ -739,6 +741,37 @@ async function serveStatic(request, response, url) {
   createReadStream(match.file).pipe(response);
 }
 
+function encryptDeliveryToken(token) {
+  const hex = process.env.DELIVERY_ENCRYPTION_KEY || "";
+  if (!/^[a-fA-F0-9]{64}$/.test(hex)) throw new Error("Invalid delivery encryption key");
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", Buffer.from(hex, "hex"), iv);
+  const encrypted = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString("base64");
+}
+
+async function handleRequestAutomation(request, response) {
+  if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });
+  if (!allowedRequestOrigin(request)) return sendJson(response, 403, { error: "Запрос с другого сайта отклонён" });
+  try {
+    const body = await readJsonBody(request);
+    const accessToken = cleanText(body.accessToken, 100);
+    if (!/^[A-Za-z0-9_-]{43}$/.test(accessToken)) return sendJson(response, 400, { error: "Неверная ссылка заявки" });
+    const operation = body.operation;
+    if (!["summary", "action", "checkout", "download", "refresh-payment"].includes(operation)) return sendJson(response, 400, { error: "Неизвестное действие" });
+    if (operation !== "summary" && !checkRateLimit(request)) return sendJson(response, 429, { error: "Слишком много запросов. Повторите позже." });
+    const payload = { operation, accessTokenHash: tokenHash(accessToken) };
+    if (operation === "action") {
+      payload.kind = cleanText(body.kind, 50);
+      payload.text = cleanText(body.text, 3000);
+    }
+    if (operation === "checkout") payload.receiptEmail = cleanText(body.receiptEmail, 254);
+    return sendJson(response, 200, await postToConvex("/request-automation", payload));
+  } catch {
+    return sendJson(response, 400, { error: "Действие недоступно. Обновите страницу или повторите позже." });
+  }
+}
+
 const server = createServer(async (request, response) => {
   try {
     const forwardedHost = String(request.headers["x-forwarded-host"] || request.headers.host || "lazysoft.ru").split(",")[0].trim();
@@ -756,6 +789,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/mvp-brief") return handleBriefApi(request, response);
     if (url.pathname === "/api/mvp-request") return handleMvpRequestApi(request, response);
     if (url.pathname === "/api/request-thread") return handleRequestThreadApi(request, response);
+    if (url.pathname === "/api/request-automation") return handleRequestAutomation(request, response);
     if (url.pathname === "/api/request-thread/message") return handleRequestThreadMessageApi(request, response);
     if (url.pathname === "/api/request-admin/thread") return handleRequestAdminThreadApi(request, response);
     if (url.pathname === "/api/request-admin/message") return handleRequestAdminMessageApi(request, response);
