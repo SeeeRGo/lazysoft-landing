@@ -106,7 +106,7 @@ http.route({
       const { operation, ...args } = payload;
       if (operation === "summary") return json({ ok: true, automation: await ctx.runQuery(internal.automation.summary, args) });
       if (operation === "action") return json(await ctx.runMutation(internal.automation.clientAction, args));
-      if (operation === "checkout") return json({ ok: true, ...await ctx.runAction(internal.payments.checkout, args) });
+      if (operation === "checkout") return json({ ok: false, error: "Оплата и передача исходников обсуждаются в чате заявки." }, 400);
       if (operation === "refresh-payment") { await ctx.runAction(internal.payments.refresh, args); return json({ ok: true }); }
       if (operation === "download") return json({ ok: true, url: await ctx.runMutation(internal.payments.download, args) });
       return json({ error: "Unknown operation" }, 400);

@@ -62,12 +62,9 @@ const description = "Приватная страница заявки: стат�
           <div data-automation-purchase hidden>
             <h3>Забрать исходники — 5 000 ₽</h3>
             <p>Архив демоверсии с ТЗ и инструкцией запуска. Дальнейшая разработка и внешние сервисы оплачиваются отдельно.</p>
-            <form data-checkout-form>
-              <label for="receipt-email">Почта для чека</label>
-              <input id="receipt-email" name="receiptEmail" type="email" autocomplete="email" required maxlength="254" />
-              <button type="submit">Оплатить 5 000 ₽ через ЮKassa</button>
-            </form>
-            <button type="button" data-refresh-payment>Уже оплатили? Проверить оплату</button>
+            <p>Нажмите кнопку — я получу уведомление. Оплату и передачу исходников обсудим здесь, в чате заявки.</p>
+            <button type="button" data-request-source>Хочу купить исходники за 5 000 ₽</button>
+            <p data-source-requested hidden role="status">Запрос отправлен. Напишу вам в этом чате, чтобы согласовать оплату и передачу исходников.</p>
           </div>
           <button type="button" data-download-source hidden>Скачать оплаченные исходники</button>
           <div data-development-choice hidden>

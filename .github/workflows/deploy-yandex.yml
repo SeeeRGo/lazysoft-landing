@@ -42,6 +42,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test production code
+        run: npm test && npx tsc --noEmit -p convex/tsconfig.json
+
       - name: Deploy Convex functions
         run: npx convex deploy --yes
         env:
@@ -92,6 +95,7 @@ jobs:
             CONVEX_SITE_URL=${{ vars.CONVEX_SITE_URL }}
             CONVEX_INGEST_SECRET=${{ secrets.CONVEX_INGEST_SECRET }}
             DELIVERY_ENCRYPTION_KEY=${{ secrets.DELIVERY_ENCRYPTION_KEY }}
+            PUBLIC_SITE_URL=https://lazysoft.ru
 
       - name: Verify deployment through API Gateway
         run: |

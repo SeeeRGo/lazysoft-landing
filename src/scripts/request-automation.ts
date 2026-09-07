@@ -6,6 +6,7 @@ interface AutomationState {
   accepted: boolean;
   paid: boolean;
   developmentRequested: boolean;
+  sourcePurchaseRequested: boolean;
   telegramBotUsername?: string;
   maxBotUsername?: string;
   messengerConnected?: boolean;
@@ -15,7 +16,6 @@ const feedback = document.querySelector<HTMLElement>("[data-automation-feedback]
 let state: AutomationState | null = null;
 let busy = false;
 let viewed = false;
-let checkedReturn = false;
 
 function token() {
   const value = window.location.hash.slice(1);
@@ -56,6 +56,12 @@ function render() {
   visible("[data-automation-review]", state.phase === "review" && !state.revisionUsed && !state.accepted);
   visible("[data-automation-purchase]", state.phase === "complete" && !state.paid);
   visible("[data-download-source]", state.paid);
+  visible("[data-source-requested]", state.sourcePurchaseRequested);
+  const purchase = section.querySelector<HTMLButtonElement>("[data-request-source]");
+  if (purchase) {
+    purchase.disabled = state.sourcePurchaseRequested;
+    purchase.textContent = state.sourcePurchaseRequested ? "Запрос на покупку отправлен" : "Хочу купить исходники за 5 000 ₽";
+  }
   visible("[data-development-choice]", state.phase === "complete");
   const development = section.querySelector<HTMLButtonElement>("[data-request-development]");
   if (development) {
@@ -66,12 +72,6 @@ function render() {
 async function refresh() {
   if (!token()) return;
   try {
-    if (!checkedReturn && new URLSearchParams(location.search).get("payment") === "return") {
-      checkedReturn = true;
-      await call("refresh-payment").catch(() => {
-        if (feedback) { feedback.textContent = "Не удалось уточнить оплату. Нажмите «Проверить оплату» позже."; feedback.hidden = false; }
-      });
-    }
     const result = await call("summary");
     state = result.automation;
     render();
@@ -101,19 +101,13 @@ document.querySelector<HTMLFormElement>("[data-revision-form]")?.addEventListene
 });
 document.querySelector("[data-accept-result]")?.addEventListener("click", () => { void action(async () => { await call("action", { kind: "accepted" }); }); });
 document.querySelector("[data-request-development]")?.addEventListener("click", () => { void action(async () => { await call("action", { kind: "development_requested" }); }); });
-document.querySelector<HTMLFormElement>("[data-checkout-form]")?.addEventListener("submit", event => {
-  event.preventDefault();
-  const form = event.currentTarget as HTMLFormElement;
-  void action(async () => {
-    const result = await call("checkout", { receiptEmail: String(new FormData(form).get("receiptEmail") ?? "") });
-    if (result.confirmationUrl && new URL(result.confirmationUrl).protocol === "https:") window.location.assign(result.confirmationUrl);
-  });
+document.querySelector("[data-request-source]")?.addEventListener("click", () => {
+  void action(async () => { await call("action", { kind: "source_purchase_requested" }); });
 });
 document.querySelector("[data-download-source]")?.addEventListener("click", () => { void action(async () => {
   const result = await call("download");
   if (result.url && new URL(result.url).protocol === "https:") window.location.assign(result.url);
 }); });
-document.querySelector("[data-refresh-payment]")?.addEventListener("click", () => { void action(async () => { await call("refresh-payment"); }); });
 document.querySelector("[data-request-messages]")?.addEventListener("click", event => {
   if (!state) return;
   const link = (event.target as HTMLElement).closest<HTMLAnchorElement>("a");

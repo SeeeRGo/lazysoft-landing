@@ -35,6 +35,36 @@ beforeEach(() => {
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("request lifecycle", () => {
+  it("records a manual source purchase once without charging or granting downloads", async () => {
+    const t = await setup();
+    const args = { accessTokenHash: token, kind: "source_purchase_requested" as const };
+    expect((await t.mutation(internal.automation.clientAction, args)).ok).toBe(false);
+    await ready(t, true);
+    expect((await t.mutation(internal.automation.clientAction, { ...args, accessTokenHash: "wrong" })).ok).toBe(false);
+    const results = await Promise.all([t.mutation(internal.automation.clientAction, args), t.mutation(internal.automation.clientAction, args)]);
+    expect(results.every(result => result.ok)).toBe(true);
+    const state = await t.query(internal.automation.summary, { accessTokenHash: token });
+    expect(state?.sourcePurchaseRequested).toBe(true);
+    expect(state?.paid).toBe(false);
+    const events = await t.run(ctx => ctx.db.query("requestEvents").take(10));
+    expect(events).toHaveLength(1);
+    expect(events[0].kind).toBe("source_purchase_requested");
+    expect(events[0].text).toContain("test@example.com");
+    vi.stubEnv("TELEGRAM_BOT_TOKEN", "test-bot-token");
+    vi.stubEnv("TELEGRAM_CHAT_ID", "test-owner-chat");
+    const telegram = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true })));
+    vi.stubGlobal("fetch", telegram);
+    await t.action(internal.automationNotifications.deliver, { eventId: events[0]._id });
+    const notification = JSON.parse(telegram.mock.calls[0][1].body);
+    expect(notification.chat_id).toBe("test-owner-chat");
+    expect(notification.text).toContain("Клиент хочет купить исходники за 5 000 ₽");
+    expect(notification.text).toContain("#test0001");
+    expect((await t.run(ctx => ctx.db.get(events[0]._id)))?.notifiedAt).toBeTruthy();
+    const messages = await t.run(ctx => ctx.db.query("mvpRequestMessages").take(10));
+    expect(messages.filter(message => message.text.includes("Хочу купить исходники"))).toHaveLength(1);
+    expect(await t.run(ctx => ctx.db.query("sourcePayments").take(10))).toHaveLength(0);
+    await expect(t.mutation(internal.payments.download, { accessTokenHash: token })).rejects.toThrow("после оплаты");
+  });
   it("stores exactly one initial job for a duplicate ingest", async () => {
     const t = await setup();
     await t.mutation(internal.requests.store, { requestId: "#test0001", idea: "duplicate", contact: "test@example.com", contactMethod: "email", requestType: "mvp", receivedAt: Date.now(), source: { utmSource: "", utmCampaign: "", utmContent: "", utmTerm: "", referrer: "" } });
@@ -78,6 +108,15 @@ describe("request lifecycle", () => {
 });
 
 describe("worker leases", () => {
+  it("isolates a targeted test request and respects the server allowlist", async () => {
+    const t = await setup();
+    const leaseToken = "x".repeat(40);
+    expect(await t.mutation(internal.automation.claim, { leaseToken, requestId: "not-this-request" })).toBeNull();
+    vi.stubEnv("REQUEST_AUTOMATION_ALLOWED_REQUEST_ID", "#test0001");
+    expect(await t.mutation(internal.automation.claim, { leaseToken })).toBeNull();
+    expect((await t.mutation(internal.automation.claim, { leaseToken, requestId: "#test0001" }))?.requestId).toBe("#test0001");
+    expect(await t.mutation(internal.automation.claim, { leaseToken, requestId: "#test0001" })).toBeNull();
+  });
   it("claims a job once and refuses stale completion after another worker reclaims it", async () => {
     const t = await setup();
     const artifacts = await ready(t);

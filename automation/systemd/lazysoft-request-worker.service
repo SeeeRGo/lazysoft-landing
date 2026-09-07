@@ -1,0 +1,14 @@
+[Unit]
+Description=Lazysoft local request worker (saved Codex ChatGPT authorization)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/cosysoft/projects/lazysoft-landing
+Environment=PATH=/home/cosysoft/.nvm/versions/node/v24.12.0/bin:/usr/local/bin:/usr/bin:/bin
+Environment=REQUEST_WORKER_ENV_FILE=.env.automation.production
+ExecStart=/home/cosysoft/.nvm/versions/node/v24.12.0/bin/node automation/run-local.mjs
+TimeoutStartSec=45min
+TimeoutStopSec=30s
+UMask=0077

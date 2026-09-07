@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { automationSummary, canRequestRevision, clientEvent, jobKind } from "./automationModel";
+import { automationSummary, canPurchase, canRequestRevision, clientEvent, jobKind } from "./automationModel";
 
 export async function getAutomation(ctx: QueryCtx, requestId: string) {
   return ctx.db.query("requestAutomations").withIndex("by_request_id", q => q.eq("requestId", requestId)).unique();
@@ -36,6 +36,7 @@ export const summary = internalQuery({
     const state = await getAutomation(ctx, request.requestId);
     if (!state) return null;
     return { phase: state.phase, revisionUsed: state.revisionUsed, accepted: state.accepted, paid: state.paid, developmentRequested: state.developmentRequested,
+      sourcePurchaseRequested: state.sourcePurchaseRequested ?? false,
       messengerConnected: Boolean(request.telegramChatId || request.maxUserId),
       ...(process.env.TELEGRAM_BOT_USERNAME ? { telegramBotUsername: process.env.TELEGRAM_BOT_USERNAME } : {}),
       ...(process.env.MAX_BOT_USERNAME ? { maxBotUsername: process.env.MAX_BOT_USERNAME } : {}),
@@ -46,7 +47,7 @@ export const summary = internalQuery({
 export const clientAction = internalMutation({
   args: {
     accessTokenHash: v.string(),
-    kind: v.union(v.literal("viewed"), v.literal("opened_pdf"), v.literal("opened_demo"), v.literal("revision_requested"), v.literal("accepted"), v.literal("development_requested")),
+    kind: v.union(v.literal("viewed"), v.literal("opened_pdf"), v.literal("opened_demo"), v.literal("revision_requested"), v.literal("accepted"), v.literal("development_requested"), v.literal("source_purchase_requested")),
     text: v.optional(v.string()),
   },
   returns: v.object({ ok: v.boolean(), error: v.optional(v.string()) }),
@@ -67,6 +68,13 @@ export const clientAction = internalMutation({
     } else if (args.kind === "accepted") {
       if (!["review", "complete"].includes(state.phase)) return { ok: false, error: "Дождитесь результата" };
       await ctx.db.patch(state._id, { accepted: true, phase: "complete", updatedAt: now });
+    } else if (args.kind === "source_purchase_requested") {
+      if (!canPurchase(state) || state.paid) return { ok: false, error: "Сначала посмотрите и примите результат" };
+      if (state.sourcePurchaseRequested) return { ok: true };
+      await ctx.db.patch(state._id, { sourcePurchaseRequested: true, updatedAt: now });
+      await ctx.db.insert("mvpRequestMessages", {
+        requestId: request.requestId, sender: "visitor", text: "Хочу купить исходники за 5 000 ₽. Давайте обсудим оплату и передачу в этом чате.", createdAt: now,
+      });
     } else if (args.kind === "development_requested") {
       if (state.phase !== "complete") return { ok: false, error: "Сначала посмотрите и примите результат" };
       if (text.length > 3000) return { ok: false, error: "Слишком длинное описание" };
@@ -79,7 +87,8 @@ export const clientAction = internalMutation({
     }
     // Clicks are deduplicated per artifact version; business actions occur once per request.
     const key = ["viewed", "opened_pdf", "opened_demo"].includes(args.kind) ? (state.pdfStorageId ?? "initial") : "once";
-    await event(ctx, request.requestId, args.kind, key, text);
+    await event(ctx, request.requestId, args.kind, key, args.kind === "source_purchase_requested"
+      ? `Контакт (${request.contactMethod}): ${request.contact}\nИдея: ${request.idea}\nОбсудите оплату и передачу исходников в чате заявки. Оплата не подтверждена.` : text);
     await ctx.db.patch(request._id, { updatedAt: now });
     return { ok: true };
   },
@@ -100,14 +109,23 @@ export const previousSource = internalQuery({
   },
 });
 export const claim = internalMutation({
-  args: { leaseToken: v.string() }, returns: v.union(v.null(), claimResult),
-  handler: async (ctx, { leaseToken }) => {
+  args: { leaseToken: v.string(), requestId: v.optional(v.string()) }, returns: v.union(v.null(), claimResult),
+  handler: async (ctx, { leaseToken, requestId }) => {
     if (process.env.REQUEST_AUTOMATION_ENABLED !== "true") return null;
+    if (process.env.REQUEST_AUTOMATION_ALLOWED_REQUEST_ID && requestId !== process.env.REQUEST_AUTOMATION_ALLOWED_REQUEST_ID) return null;
     if (leaseToken.length < 32 || leaseToken.length > 100) throw new Error("Invalid lease token");
     const now = Date.now();
     // Reclaim only expired leases, preserving the revision budget and previous artifact.
-    let job = await ctx.db.query("requestJobs").withIndex("by_status_and_lease_until", q => q.eq("status", "running").lt("leaseUntil", now)).first();
-    if (!job) job = await ctx.db.query("requestJobs").withIndex("by_status_and_available_at", q => q.eq("status", "queued").lte("availableAt", now)).first();
+    let job;
+    if (requestId) {
+      // A request has at most the initial job and one revision; never fall back to another request.
+      const jobs = await ctx.db.query("requestJobs").withIndex("by_request_id", q => q.eq("requestId", requestId)).take(3);
+      job = jobs.find(row => row.status === "running" && (row.leaseUntil ?? Infinity) < now)
+        ?? jobs.find(row => row.status === "queued" && row.availableAt <= now) ?? null;
+    } else {
+      job = await ctx.db.query("requestJobs").withIndex("by_status_and_lease_until", q => q.eq("status", "running").lt("leaseUntil", now)).first();
+      if (!job) job = await ctx.db.query("requestJobs").withIndex("by_status_and_available_at", q => q.eq("status", "queued").lte("availableAt", now)).first();
+    }
     if (!job) return null;
     const state = await getAutomation(ctx, job.requestId);
     const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", job.requestId)).unique();
@@ -155,7 +173,7 @@ export const complete = internalMutation({
     if (!state || !request) throw new Error("Missing request");
     const now = Date.now();
     await ctx.db.patch(state._id, { phase: job.kind === "initial" ? "review" : "complete", pdfStorageId: args.pdfStorageId, sourceStorageId: args.sourceStorageId, demoUrl: url.href, updatedAt: now });
-    await ctx.db.patch(job._id, { status: "succeeded", completedAt: now });
+    await ctx.db.patch(job._id, { status: "succeeded", completedAt: now, error: undefined, leaseUntil: undefined });
     await ctx.db.patch(request._id, { status: "ready", updatedAt: now });
     await ctx.db.insert("mvpRequestMessages", { requestId: job.requestId, sender: "owner", text: args.text, demoUrl: url.href, pdfStorageId: args.pdfStorageId, createdAt: now });
     await event(ctx, job.requestId, "result_ready", job._id, `${job.kind === "initial" ? "Первый результат" : "Правки готовы"}\n${url.href}`);

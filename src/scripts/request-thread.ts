@@ -161,11 +161,12 @@ function renderThread(thread: RequestThread) {
   }
   if (messages) {
     messages.replaceChildren(...thread.messages.map(renderMessage));
-    messages.scrollTop = messages.scrollHeight;
   }
   loading?.setAttribute("hidden", "");
   errorBlock?.setAttribute("hidden", "");
   content?.removeAttribute("hidden");
+  // A hidden ancestor has zero layout dimensions: reveal before scrolling.
+  if (messages) messages.scrollTop = messages.scrollHeight;
 }
 
 function showError(message: string) {

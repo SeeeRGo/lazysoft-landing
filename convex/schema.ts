@@ -44,6 +44,7 @@ export default defineSchema({
     accepted: v.boolean(),
     paid: v.boolean(),
     developmentRequested: v.boolean(),
+    sourcePurchaseRequested: v.optional(v.boolean()),
     sourceStorageId: v.optional(v.id("_storage")),
     pdfStorageId: v.optional(v.id("_storage")),
     demoUrl: v.optional(v.string()),

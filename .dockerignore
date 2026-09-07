@@ -4,6 +4,7 @@
 !.env.example
 .git
 .kilocode
+.local
 dist
 node_modules
 *.docx

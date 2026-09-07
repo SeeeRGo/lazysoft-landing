@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Lazysoft request queue every five minutes
+
+[Timer]
+OnStartupSec=2min
+OnUnitInactiveSec=5min
+Unit=lazysoft-request-worker.service
+
+[Install]
+WantedBy=timers.target

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pdf, validateDemo, validateResult } from '../automation/worker.mjs';
+import { pdf, validateDemo, validateResult, completionMessage } from '../automation/worker.mjs';
 
 const brief = {
   title: 'Сайт мастерской', summary: 'Запись на ремонт велосипеда', clientMessage: 'ТЗ и демо готовы.',
@@ -13,6 +13,12 @@ const brief = {
   ],
 };
 describe('worker artifacts', () => {
+  it('describes regenerated artifacts without forwarding stale generator delivery claims', () => {
+    const message = completionMessage({ ...brief, clientMessage: 'PDF устарел, откройте /workspace/demo/index.html' }, 'revision');
+    expect(message).toContain('PDF с ТЗ обновлены');
+    expect(message).not.toContain('устарел');
+    expect(message).not.toContain('/workspace');
+  });
   it('validates the brief and creates an actual PDF with Russian text', async () => {
     validateResult(brief);
     const directory = await mkdtemp(join(tmpdir(), 'lazysoft-pdf-test-'));
@@ -28,6 +34,8 @@ describe('worker artifacts', () => {
     const demo = join(directory, 'demo');
     await mkdir(demo);
     await writeFile(join(demo, 'index.html'), '<html><head><title>Демо</title></head><body>Запись</body></html>');
+    await validateDemo(demo);
+    await writeFile(join(demo, 'TECHNICAL_SPEC.md'), '# Демонстрационная документация');
     await validateDemo(demo);
     await writeFile(join(directory, 'outside.js'), 'private');
     await symlink(join(directory, 'outside.js'), join(demo, 'escape.js'));

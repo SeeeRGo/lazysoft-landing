@@ -7,6 +7,7 @@ export const automationPhase = v.union(
 export const jobStatus = v.union(v.literal("queued"), v.literal("running"), v.literal("succeeded"), v.literal("failed"));
 export const jobKind = v.union(v.literal("initial"), v.literal("revision"));
 export const clientEvent = v.union(
+  v.literal("source_purchase_requested"),
   v.literal("viewed"), v.literal("opened_pdf"), v.literal("opened_demo"),
   v.literal("revision_requested"), v.literal("accepted"), v.literal("development_requested"),
   v.literal("checkout_started"), v.literal("payment_succeeded"), v.literal("source_downloaded"),
@@ -19,6 +20,7 @@ export const automationSummary = v.object({
   accepted: v.boolean(),
   paid: v.boolean(),
   developmentRequested: v.boolean(),
+  sourcePurchaseRequested: v.boolean(),
   telegramBotUsername: v.optional(v.string()),
   maxBotUsername: v.optional(v.string()),
   messengerConnected: v.optional(v.boolean()),

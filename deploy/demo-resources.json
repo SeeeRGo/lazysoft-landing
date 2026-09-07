@@ -1,0 +1,12 @@
+{
+  "folderId": "b1gd8r24c2unlb3s6bcc",
+  "bucket": "lazysoft-request-demos-20260907",
+  "bucketResourceId": "e3e40k9tt80223n55k2d",
+  "maxBytes": 1073741824,
+  "publicOrigin": "https://lazysoft-request-demos-20260907.storage.yandexcloud.net",
+  "uploaderServiceAccountId": "ajecsp78qsi44s7me9tv",
+  "uploaderServiceAccountName": "lazysoft-demo-uploader",
+  "bucketRole": "storage.uploader",
+  "convexDevelopmentHttpUrl": "https://notable-buffalo-804.eu-west-1.convex.site",
+  "automationEnabled": false
+}

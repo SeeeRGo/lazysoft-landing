@@ -6,6 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "worker:once": "node --env-file-if-exists=.env.automation automation/worker.mjs",
+    "worker:local": "node automation/run-local.mjs",
     "dev": "astro dev",
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
     "preview": "astro preview",

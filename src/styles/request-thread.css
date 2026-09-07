@@ -92,9 +92,9 @@
 .request-security-note { padding-top: 1rem; padding-bottom: 4rem; }
 .request-security-note p { max-width: 78ch; padding: 1rem 1.15rem; border-left: 3px solid var(--request-accent); background: rgba(225, 239, 236, .7); color: var(--ink-soft); font-size: .75rem; line-height: 1.55; }
 
-.request-admin-shell { grid-template-columns: minmax(390px, .8fr) minmax(600px, 1.2fr); }
+.request-admin-shell { grid-template-columns: minmax(0, .7fr) minmax(0, 1.3fr); gap: clamp(2rem, 4vw, 3.5rem); }
 .request-admin-shell > * { min-width: 0; }
-.request-admin-page .request-intro h1 { max-width: 100%; font-size: clamp(2.7rem, 4.2vw, 3.75rem); line-height: .94; text-wrap: balance; }
+.request-admin-page .request-intro h1 { max-width: 100%; font-size: clamp(2rem, 3.2vw, 2.8rem); line-height: 1.12; text-wrap: balance; overflow-wrap: break-word; }
 .request-admin-page .request-intro h1 span,
 .request-admin-page .request-intro h1 em { display: block; }
 .request-admin-page .request-intro h1 em { margin-top: .14em; }

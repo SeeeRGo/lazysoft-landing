@@ -19,6 +19,7 @@ export const markDelivered = internalMutation({
 });
 
 const labels: Record<string, string> = {
+  source_purchase_requested: "Клиент хочет купить исходники за 5 000 ₽",
   viewed: "Открыта страница заявки", opened_pdf: "Открыто ТЗ", opened_demo: "Открыто демо",
   revision_requested: "Запрошен единственный раунд правок", accepted: "Результат принят",
   development_requested: "Заказ доработки от 10 000 ₽ с постоплатой",
