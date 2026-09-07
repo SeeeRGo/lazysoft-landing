@@ -3,7 +3,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 import "../styles/request-thread.css";
 
 const title = "Страница заявки — Lazysoft";
-const description = "Приватная страница заявки: статус, сообщения, ТЗ и демонстрация интерфейса.";
+const description = "Приватная страница заявки: статус, сообщения, демонстрация интерфейса.";
 ---
 
 <SiteLayout title={title} description={description} canonicalPath="/request/" noindex mainClass="request-page">
@@ -11,7 +11,7 @@ const description = "Приватная страница заявки: стат�
     <header class="request-intro">
       <p class="request-kicker">Приватная страница заявки</p>
       <h1 id="request-title">Результат и сообщения<br /><em>в одном месте.</em></h1>
-      <p>Сохраните эту страницу. Здесь появятся ТЗ, демо интерфейса и вопросы по вашей идее.</p>
+      <p>Сохраните эту страницу. Здесь появятся демо интерфейса и вопросы по вашей идее.</p>
       <div class="request-actions">
         <button type="button" class="request-secondary-button" data-copy-request-link>Скопировать секретную ссылку</button>
         <a href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer">Написать напрямую ↗</a>
@@ -51,9 +51,9 @@ const description = "Приватная страница заявки: стат�
             </div>
           </div>
           <div data-automation-review hidden>
-            <p>Посмотрите демо и ТЗ. Можно один раз отправить общий список правок или принять результат сразу.</p>
+            <p>Посмотрите демо. Можно один раз отправить общий список правок или принять результат сразу.</p>
             <form data-revision-form>
-              <label for="revision-text">Что изменить в демо и ТЗ?</label>
+              <label for="revision-text">Что изменить в демо?</label>
               <textarea id="revision-text" name="revision" minlength="10" maxlength="3000" rows="3" required placeholder="Соберите все пожелания в одно сообщение"></textarea>
               <button type="submit">Отправить правки · 1 раз бесплатно</button>
             </form>
@@ -61,7 +61,7 @@ const description = "Приватная страница заявки: стат�
           </div>
           <div data-automation-purchase hidden>
             <h3>Забрать исходники — 5 000 ₽</h3>
-            <p>Архив демоверсии с ТЗ и инструкцией запуска. Дальнейшая разработка и внешние сервисы оплачиваются отдельно.</p>
+            <p>Архив демоверсии с инструкцией запуска. Дальнейшая разработка и внешние сервисы оплачиваются отдельно.</p>
             <p>Нажмите кнопку — я получу уведомление. Оплату и передачу исходников обсудим здесь, в чате заявки.</p>
             <button type="button" data-request-source>Хочу купить исходники за 5 000 ₽</button>
             <p data-source-requested hidden role="status">Запрос отправлен. Напишу вам в этом чате, чтобы согласовать оплату и передачу исходников.</p>

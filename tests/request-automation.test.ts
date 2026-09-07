@@ -136,6 +136,20 @@ describe("worker leases", () => {
 });
 
 describe("payments", () => {
+  it("completes without PDF and clears the previous PDF from current delivery state", async () => {
+    const t = await setup();
+    const { sourceStorageId } = await ready(t);
+    const job = await t.mutation(internal.automation.claim, { leaseToken: "9".repeat(40) });
+    expect(await t.mutation(internal.automation.complete, {
+      jobId: job!.jobId, leaseToken: job!.leaseToken, sourceStorageId,
+      demoUrl: "https://demo.example.org/new/", text: "Демо готово.",
+    })).toBe(true);
+    const state = await t.run(ctx => ctx.db.query("requestAutomations").first());
+    expect(state?.pdfStorageId).toBeUndefined();
+    expect(state?.sourceStorageId).toBe(sourceStorageId);
+    const messages = await t.run(ctx => ctx.db.query("mvpRequestMessages").take(10));
+    expect(messages.find(message => message.sender === "owner")).toMatchObject({ text: "Демо готово.", demoUrl: "https://demo.example.org/new/" });
+  });
   it("refreshes a paid order without returning its old checkout URL", async () => {
     const t = await setup();
     await ready(t, true);

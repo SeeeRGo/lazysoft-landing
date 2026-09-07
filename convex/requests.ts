@@ -96,7 +96,7 @@ export const store = internalMutation({
       await ctx.db.insert("mvpRequestMessages", {
         requestId: args.requestId,
         sender: "system",
-        text: "Заявка получена. Здесь появятся ТЗ, демо интерфейса и уточняющие вопросы.",
+        text: "Заявка получена. Здесь появятся результат и уточняющие вопросы по вашей идее.",
         createdAt: args.receivedAt,
       });
     }

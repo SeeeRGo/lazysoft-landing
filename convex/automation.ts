@@ -86,7 +86,7 @@ export const clientAction = internalMutation({
       return { ok: false, error: "Результат ещё готовится" };
     }
     // Clicks are deduplicated per artifact version; business actions occur once per request.
-    const key = ["viewed", "opened_pdf", "opened_demo"].includes(args.kind) ? (state.pdfStorageId ?? "initial") : "once";
+    const key = ["viewed", "opened_pdf", "opened_demo"].includes(args.kind) ? (state.sourceStorageId ?? state.pdfStorageId ?? "initial") : "once";
     await event(ctx, request.requestId, args.kind, key, args.kind === "source_purchase_requested"
       ? `Контакт (${request.contactMethod}): ${request.contact}\nИдея: ${request.idea}\nОбсудите оплату и передачу исходников в чате заявки. Оплата не подтверждена.` : text);
     await ctx.db.patch(request._id, { updatedAt: now });
@@ -154,7 +154,7 @@ export const heartbeat = internalMutation({
 });
 
 export const complete = internalMutation({
-  args: { jobId: v.id("requestJobs"), leaseToken: v.string(), pdfStorageId: v.id("_storage"), sourceStorageId: v.id("_storage"), demoUrl: v.string(), text: v.string() },
+  args: { jobId: v.id("requestJobs"), leaseToken: v.string(), pdfStorageId: v.optional(v.id("_storage")), sourceStorageId: v.id("_storage"), demoUrl: v.string(), text: v.string() },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const job = await ctx.db.get(args.jobId);
@@ -165,9 +165,9 @@ export const complete = internalMutation({
     const allowedOrigin = process.env.REQUEST_DEMO_ORIGIN;
     if (!allowedOrigin || url.origin !== new URL(allowedOrigin).origin || url.protocol !== "https:" || url.username || url.password) throw new Error("Demo origin not configured or invalid");
     if (!args.text.trim() || args.text.length > 5000) throw new Error("Invalid result text");
-    const pdf = await ctx.db.system.get(args.pdfStorageId);
+    const pdf = args.pdfStorageId ? await ctx.db.system.get(args.pdfStorageId) : null;
     const archive = await ctx.db.system.get(args.sourceStorageId);
-    if (!pdf || pdf.contentType !== "application/pdf" || !archive || !["application/zip", "application/octet-stream"].includes(archive.contentType ?? "")) throw new Error("Missing artifacts");
+    if ((args.pdfStorageId && (!pdf || pdf.contentType !== "application/pdf")) || !archive || !["application/zip", "application/octet-stream"].includes(archive.contentType ?? "")) throw new Error("Missing artifacts");
     const state = await getAutomation(ctx, job.requestId);
     const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", job.requestId)).unique();
     if (!state || !request) throw new Error("Missing request");

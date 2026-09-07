@@ -291,7 +291,7 @@ async function handleBriefApi(request, response) {
 }
 
 function validateRequestContact(method, contact) {
-  if (!contact || contact.length < 3) return "Укажите контакт, на который можно прислать ТЗ и демо.";
+  if (!contact || contact.length < 3) return "Укажите контакт, на который можно прислать результат.";
   if (method === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return "Проверьте адрес электронной почты.";
   return "";
 }

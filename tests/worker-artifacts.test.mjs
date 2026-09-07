@@ -2,32 +2,26 @@ import { describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pdf, validateDemo, validateResult, completionMessage } from '../automation/worker.mjs';
+import { validateDemo, validateResult, completionMessage } from '../automation/worker.mjs';
 
-const brief = {
-  title: 'Сайт мастерской', summary: 'Запись на ремонт велосипеда', clientMessage: 'ТЗ и демо готовы.',
-  assumptions: ['Данные демонстрационные'], acceptanceCriteria: ['Форма позволяет выбрать дату'], externalCosts: ['Хостинг'],
-  options: [
-    { title: 'Первая версия', features: ['Форма записи'], limitations: ['Без интеграции'], days: 3, priceRubles: 10000 },
-    { title: 'Расширение', features: ['Личный кабинет'], limitations: ['Требуется согласование'], days: 7, priceRubles: 25000 },
-  ],
-};
+const brief = { title: "Сайт мастерской" };
 describe('worker artifacts', () => {
   it('describes regenerated artifacts without forwarding stale generator delivery claims', () => {
     const message = completionMessage({ ...brief, clientMessage: 'PDF устарел, откройте /workspace/demo/index.html' }, 'revision');
-    expect(message).toContain('PDF с ТЗ обновлены');
+    expect(message).toContain('Демо обновлено');
+    expect(message).not.toMatch(/PDF|ТЗ/);
     expect(message).not.toContain('устарел');
     expect(message).not.toContain('/workspace');
   });
-  it('validates the brief and creates an actual PDF with Russian text', async () => {
+  it('requires only a demo title, without a specification', () => {
     validateResult(brief);
-    const directory = await mkdtemp(join(tmpdir(), 'lazysoft-pdf-test-'));
-    const path = join(directory, 'brief.pdf');
-    await pdf(brief, path);
-    const bytes = await readFile(path);
-    expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
-    expect(bytes.byteLength).toBeGreaterThan(1000);
+    expect(() => validateResult({ title: '' })).toThrow();
     expect(() => validateResult({ ...brief, options: [] })).toThrow();
+  });
+  it('does not generate, upload or package specification files', async () => {
+    const source = await readFile(new URL('../automation/worker.mjs', import.meta.url), 'utf8');
+    expect(source).not.toMatch(/pdfmake|pdfStorageId|specification\\.(pdf|json|txt)/);
+    expect(source).toContain('"demo", "README.md"');
   });
   it('rejects symlinks before reading or publishing a demo', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'lazysoft-demo-test-'));

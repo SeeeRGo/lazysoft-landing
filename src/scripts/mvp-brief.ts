@@ -33,7 +33,7 @@ if (form) {
     email: {
       label: "Ваша почта",
       placeholder: "name@example.ru",
-      hint: "На этот адрес придут ТЗ и ссылка на демо интерфейса.",
+      hint: "На этот адрес придёт результат по вашей заявке.",
       type: "email",
       autocomplete: "email",
     },
@@ -151,7 +151,7 @@ if (form) {
     event.preventDefault();
     status.hidden = true;
     idea.setCustomValidity(idea.value.trim().length < 20 ? "Расскажите об идее чуть подробнее — хотя бы одним-двумя предложениями." : "");
-    contact.setCustomValidity(contact.value.trim().length < 3 ? "Укажите контакт, на который можно прислать ТЗ и демо." : "");
+    contact.setCustomValidity(contact.value.trim().length < 3 ? "Укажите контакт, на который можно прислать результат." : "");
     if (!form.reportValidity()) {
       trackGoal("mvp_request_validation_error", { method: selectedMethod() });
       return;
