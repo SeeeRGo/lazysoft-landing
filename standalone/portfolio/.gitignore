@@ -1,0 +1,5 @@
+data/
+hosting.json
+tmp/
+node_modules/
+*.zip

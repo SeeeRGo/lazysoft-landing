@@ -1,0 +1,15 @@
+[Unit]
+Description=Consistent private SQLite backup of standalone portfolio
+
+[Service]
+Type=oneshot
+User=portfolio
+Group=portfolio
+Environment=DATA_DIR=/srv/portfolio/data
+ExecStart=/opt/portfolio-node/bin/node /usr/local/lib/portfolio-backup.mjs
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/portfolio/data
+PrivateTmp=true

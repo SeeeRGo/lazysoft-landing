@@ -1,0 +1,11 @@
+# Place in the site's directory, beside public_html (per Beget's instructions).
+# Replace EVERY example path with the actual path from your hosting account.
+PassengerEnabled on
+PassengerNodejs /home/u/username/.local/bin/node
+PassengerAppRoot /home/u/username/portfolio-site/app
+PassengerAppType node
+PassengerStartupFile passenger.cjs
+PassengerAppEnv production
+
+# public_html must point to app/webroot, NOT app or app/data.
+# webroot is intentionally empty: Passenger serves all routes and security headers.

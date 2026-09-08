@@ -1,0 +1,6 @@
+data
+hosting.json
+tmp
+node_modules
+*.zip
+*.tar.gz
