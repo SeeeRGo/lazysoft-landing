@@ -1,7 +1,8 @@
 import {createServer} from 'node:http';
-import {DatabaseSync} from 'node:sqlite';
+import {DatabaseSync,backup} from './sqlite-compat.mjs';
 import {randomBytes,createHash,timingSafeEqual} from 'node:crypto';
-import {mkdirSync,chmodSync,writeFileSync,readFileSync,realpathSync} from 'node:fs';
+import {mkdirSync,chmodSync,writeFileSync,readFileSync,realpathSync,mkdtempSync,rmSync,createReadStream,statSync} from 'node:fs';
+import {pipeline} from 'node:stream/promises';
 import {resolve,join,extname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -16,7 +17,7 @@ export function openDatabase(directory){
  mkdirSync(directory,{recursive:true,mode:0o700});
  const db=new DatabaseSync(join(directory,'portfolio.sqlite'),{timeout:5000});
  chmodSync(join(directory,'portfolio.sqlite'),0o600);
- db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;
+ db.exec(`PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;
  CREATE TABLE IF NOT EXISTS settings(id INTEGER PRIMARY KEY CHECK(id=1),key_hash TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS content(id INTEGER PRIMARY KEY CHECK(id=1),version INTEGER NOT NULL,json TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS assets(id TEXT PRIMARY KEY,type TEXT NOT NULL,bytes BLOB NOT NULL);
@@ -111,7 +112,19 @@ export function createApp({dataDir=join(ROOT,'data'),publicDir=join(ROOT,'public
     return json(res,{token:session,expiresAt});
    }
    try{authorize(db,token)}catch(e){limit(db,'invalid',30);throw e}
-   limit(db,op==='upload'?'upload':'admin',op==='upload'?10:60);
+   limit(db,op==='backup'?'backup':op==='upload'?'upload':'admin',op==='backup'?2:op==='upload'?10:60);
+   if(op==='backup'){
+    const dir=mkdtempSync(join(dataDir,'download-'));
+    try{
+     chmodSync(dir,0o700);const file=join(dir,'portfolio.sqlite');
+     await backup(db,file);chmodSync(file,0o600);
+     const copy=new DatabaseSync(file);
+     try{copy.exec('DELETE FROM sessions; DELETE FROM limits; PRAGMA wal_checkpoint(TRUNCATE);')}finally{copy.close()}
+     transaction(db,()=>{authorize(db,token);event(db,'Скачана резервная копия')});
+     res.writeHead(200,{...headers,'Content-Type':'application/octet-stream','Content-Disposition':'attachment; filename="portfolio-backup-'+new Date().toISOString().slice(0,10)+'.sqlite"','Cache-Control':'no-store','Content-Length':statSync(file).size});
+     await pipeline(createReadStream(file),res);return;
+    }finally{rmSync(dir,{recursive:true,force:true})}
+   }
    if(op==='logout'||op==='revoke'){transaction(db,()=>{authorize(db,token);db.prepare('DELETE FROM sessions').run();event(db,'Все сессии отозваны')});return json(res,{ok:true})}
    if(op==='rotate'){
     const {newKey}=JSON.parse((await body(req,1000)).toString());if(typeof newKey!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(newKey))fail('Неверный формат ключа');

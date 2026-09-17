@@ -48,3 +48,12 @@ $('#hide-key').onclick=()=>{nextKey='';$('#new-key').value='';$('#rotation').hid
 $('#history-load').onclick=async()=>{try{const rows=await api('history');$('#history-list').replaceChildren();if(!rows.length)$('#history-list').append(node('p','История пока пуста'));for(const row of rows){const item=node('div',new Date(row.createdAt).toLocaleString('ru-RU')+' — '+row.event);item.className='history-row';if(row.version!==undefined){const b=node('button','Открыть версию '+row.version+' в форме');b.type='button';b.className='button';b.onclick=async()=>{if(dirty&&!confirm('Заменить несохранённые поля выбранной версией?'))return;try{const c=await api('revision',{version:row.version});if(!c)throw Error('Версия недоступна');fill(c);works=c.works;dirty=true;render();say('Версия загружена в форму. Для восстановления нажмите «Опубликовать изменения».')}catch(e){say(e.message)}};item.append(b)}$('#history-list').append(item)}}catch(e){say(e.message)}};
 
 addEventListener('beforeunload',e=>{if(dirty||busy){e.preventDefault();e.returnValue=''}});
+$('#backup-download').onclick=async()=>{
+ const button=$('#backup-download');button.disabled=true;say('Подготавливаю резервную копию…');
+ try{
+  const r=await fetch(API+'?op=backup',{method:'POST',headers:{Authorization:'Bearer '+key}});
+  if(!r.ok){const d=await r.json();if(r.status===401)expire();throw Error(d.error)}
+  const url=URL.createObjectURL(await r.blob()),a=node('a');a.href=url;a.download='portfolio-backup-'+new Date().toISOString().slice(0,10)+'.sqlite';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  say('Копия скачана. Сохраните её вне хостинга и не публикуйте.');
+ }catch(e){say(e.message)}finally{button.disabled=false}
+};

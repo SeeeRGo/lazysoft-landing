@@ -19,13 +19,17 @@ export const markDelivered = internalMutation({
 });
 
 const labels: Record<string, string> = {
+  request_received: "Новая заявка сохранена",
+  generation_started: "Началась генерация сайта",
   source_purchase_requested: "Клиент хочет купить исходники за 5 000 ₽",
-  viewed: "Открыта страница заявки", opened_pdf: "Открыто ТЗ", opened_demo: "Открыто демо",
-  revision_requested: "Запрошен единственный раунд правок", accepted: "Результат принят",
+  offer_purchase_requested: "Клиент выбрал версию и комплект сайта",
+  demo_selected: "Клиент выбрал версию сайта",
+  viewed: "Открыта страница заявки", opened_pdf: "Открыт старый PDF", opened_demo: "Открыто демо",
+  revision_requested: "Получено сообщение с доработками", accepted: "Результат принят",
   development_requested: "Заказ доработки от 10 000 ₽ с постоплатой",
   checkout_started: "Начата оплата исходников — 5 000 ₽",
   payment_succeeded: "Оплачены исходники — 5 000 ₽", source_downloaded: "Скачаны исходники",
-  result_ready: "ТЗ и демо готовы", generation_failed: "Ошибка подготовки заявки",
+  result_ready: "Новая версия сайта готова", generation_failed: "Ошибка подготовки заявки",
   delivery_failed: "Не удалось доставить результат клиенту", messenger_connected: "Подключён канал связи",
 };
 

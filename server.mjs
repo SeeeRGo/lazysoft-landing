@@ -29,6 +29,7 @@ const mimeTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".pdf": "application/pdf",
   ".xml": "application/xml; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
   ".webp": "image/webp",
@@ -297,7 +298,7 @@ function validateRequestContact(method, contact) {
 }
 
 function formatMvpRequest({ requestId, requestType, idea, contactMethod, contact, source, adminUrl }) {
-  const methodNames = { telegram: "Telegram", email: "Почта", max: "MAX" };
+  const methodNames = { telegram: "Telegram", email: "Почта", max: "MAX", none: "На странице заявки" };
   const requestHeadings = {
     crm: "Новая заявка на доработку CRM",
     mobile: "Новая заявка на мобильное приложение",
@@ -320,7 +321,7 @@ function formatMvpRequest({ requestId, requestType, idea, contactMethod, contact
     `${requestHeadings[requestType] || requestHeadings.mvp} · ${requestId}`,
     "",
     `Канал ответа: ${methodNames[contactMethod]}`,
-    `Контакт: ${contact}`,
+    `Контакт: ${contact || "Пока не запрошен — первая генерация без контактов"}`,
     `Ответить на странице заявки: ${adminUrl}`,
     "",
     ideaHeadings[requestType] || ideaHeadings.mvp,
@@ -478,10 +479,13 @@ async function handleMvpRequestApi(request, response) {
     if (cleanText(body.website, 200)) return sendJson(response, 200, { ok: true });
     const idea = cleanText(body.idea, 3000);
     const requestType = ["crm", "mobile"].includes(body.requestType) ? body.requestType : "mvp";
-    const contactMethod = ["telegram", "email", "max"].includes(body.contactMethod) ? body.contactMethod : "telegram";
+    const resumable = requestType === "mvp" && body.submissionToken !== undefined;
+    if (resumable && (typeof body.submissionToken !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(body.submissionToken))) return sendJson(response, 400, { error: "Некорректный ключ отправки" });
+    const anonymous = resumable && (!body.contactMethod || body.contactMethod === "none") && !cleanText(body.contact, 200);
+    const contactMethod = anonymous ? "none" : ["telegram", "email", "max"].includes(body.contactMethod) ? body.contactMethod : "telegram";
     const contact = cleanText(body.contact, 200);
-    if (idea.length < 20) return sendJson(response, 400, { error: "Расскажите об идее хотя бы в нескольких предложениях." });
-    const contactError = validateRequestContact(contactMethod, contact);
+    if (idea.length < (resumable ? 10 : 20)) return sendJson(response, 400, { error: "Опишите идею чуть подробнее." });
+    const contactError = anonymous ? "" : validateRequestContact(contactMethod, contact);
     if (contactError) return sendJson(response, 400, { error: contactError });
     const rawSource = body.source && typeof body.source === "object" ? body.source : {};
     const source = {
@@ -494,10 +498,10 @@ async function handleMvpRequestApi(request, response) {
     };
     const requestId = `#${randomUUID().slice(0, 8)}`;
     const receivedAt = Date.now();
-    const accessToken = createSecretToken();
+    const accessToken = resumable ? body.submissionToken : createSecretToken();
     const adminToken = createSecretToken();
     const adminUrl = `${publicSiteUrl}/request-admin/#${adminToken}`;
-    const convexPromise = storeRequestInConvex({
+    const payload = {
       requestId,
       requestType,
       idea,
@@ -508,7 +512,12 @@ async function handleMvpRequestApi(request, response) {
       accessTokenHash: tokenHash(accessToken),
       adminTokenHash: tokenHash(adminToken),
       ...(process.env.DELIVERY_ENCRYPTION_KEY ? { deliveryTokenCiphertext: encryptDeliveryToken(accessToken) } : {}),
-    });
+    };
+    if (resumable) {
+      const stored = await storeRequestInConvex({ ...payload, ownerNotificationText: formatMvpRequest({ requestId, requestType, idea, contactMethod, contact, source, adminUrl }) });
+      return sendJson(response, 200, { ok: true, stored: true, notificationQueued: true, requestId: stored.requestId, accessToken });
+    }
+    const convexPromise = storeRequestInConvex(payload);
     const telegramPromise = sendTelegramNotification(formatMvpRequest({ requestId, requestType, idea, contactMethod, contact, source, adminUrl }));
     const [convexResult, telegramResult] = await Promise.allSettled([convexPromise, telegramPromise]);
     const stored = convexResult.status === "fulfilled";
@@ -537,6 +546,7 @@ async function handleMvpRequestApi(request, response) {
       INVALID_JSON: "Некорректный формат запроса",
     };
     if (status >= 500 && error?.message !== "REQUEST_DELIVERY_NOT_CONFIGURED") console.error("MVP request API error", error?.message || error);
+    else if (String(error?.message || "").startsWith("CONVEX_")) console.error("MVP request Convex ingest error", error.message);
     return sendJson(response, status, { error: messages[error?.message] || "Не удалось отправить заявку" });
   }
 }
@@ -587,7 +597,7 @@ async function handleRequestThreadMessageApi(request, response) {
       createdAt: Date.now(),
     });
     if (telegramBotToken && telegramChatId) {
-      void sendTelegramNotification([
+      await sendTelegramNotification([
         `Новое сообщение по заявке ${result.requestId || ""}`.trim(),
         "",
         text,
@@ -697,6 +707,10 @@ async function findStaticFile(pathname) {
 }
 
 async function serveStatic(request, response, url) {
+  if (/^\/mvp-za-3-dnya(?:\/|\/index\.html)?$/.test(url.pathname)) {
+    response.writeHead(301, { Location: `/sayt-po-idee/${url.search}` });
+    return response.end();
+  }
   const match = await findStaticFile(url.pathname);
   if (!match) {
     const notFound = join(root, "404.html");
@@ -764,6 +778,16 @@ async function handleRequestAutomation(request, response) {
     if (operation === "action") {
       payload.kind = cleanText(body.kind, 50);
       payload.text = cleanText(body.text, 3000);
+      const demoId = cleanText(body.demoId, 10);
+      const hosting = cleanText(body.hosting, 20);
+      const purchase = cleanText(body.purchase, 30);
+      const offerVariant = cleanText(body.offerVariant, 20);
+      if (demoId) payload.demoId = demoId;
+      if (hosting) payload.hosting = hosting;
+      if (purchase) payload.purchase = purchase;
+      if (offerVariant) payload.offerVariant = offerVariant;
+      if (body.contactMethod !== undefined) payload.contactMethod = cleanText(body.contactMethod, 20);
+      if (body.contact !== undefined) payload.contact = cleanText(body.contact, 201);
     }
     if (operation === "checkout") payload.receiptEmail = cleanText(body.receiptEmail, 254);
     return sendJson(response, 200, await postToConvex("/request-automation", payload));

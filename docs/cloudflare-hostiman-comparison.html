@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Cloudflare или HostiMan — выбор хостинга простыми словами</title><link rel="stylesheet" href="shared-hosting-guide.css">
+<style>
+.hero{width:100%;margin-top:9mm}.hero strong{display:block;margin-bottom:3mm}h1,h2,h3{hyphens:none}a{color:#176f68;text-underline-offset:2px}.source{font-size:8pt;white-space:nowrap}.compare{width:100%;border-collapse:collapse;margin:6mm 0;font-size:10pt}.compare th,.compare td{text-align:left;vertical-align:top;padding:3mm;border:1px solid #c0cec9}.compare th{background:#173f3a;color:white}.compare td{background:white}.compare th:first-child{width:25%}.compare td:first-child{font-weight:bold}.sources{font-size:9pt}.sources p{margin-bottom:4mm}.sources a{overflow-wrap:anywhere}.flow{display:flex;gap:3mm;align-items:stretch;margin:7mm 0}.flow div{flex:1;background:white;border:1px solid #bac8c4;border-radius:3mm;padding:4mm;font-size:10pt}.flow b{display:block;margin-bottom:2mm}.cost{font-size:19pt;font-weight:bold;color:#176f68}.grid .card p:last-child{margin-bottom:0}
+</style></head><body>
+
+<section class="page cover">
+  <p class="eyebrow">Памятка для владельца сайта · без технических знаний</p>
+  <span class="pill">Cloudflare и HostiMan</span>
+  <h1 style="margin-top:12mm">Где разместить<br>свой сайт?</h1>
+  <p class="lead" style="margin-top:7mm">Что нужно для запуска, за что платить и какой вариант будет проще именно вам.</p>
+  <div class="hero"><strong>Если хочется меньше возиться с установкой</strong><p>Начните с HostiMan: действия выполняются через панель в браузере. Выберите собственный домен .ru или тариф с техническим адресом.</p><strong style="margin-top:5mm">Если важнее нулевые расходы в рамках квот</strong><p>Рассмотрите Cloudflare, если готовы пройти техническую установку и следить за использованием ресурсов. Подключение хранилища может потребовать платёжные данные.</p></div>
+  <div class="ok">В обоих вариантах можно получить один и тот же дизайн сайта и админку. Различаются место хранения, установка и оплата услуг.</div>
+  <p class="mini">Комплект Cloudflare обновлён на KV 15 сентября 2026 года. Памятка подходит для разных типов сайтов с подготовленными комплектами установки. Выбор здесь — практическая рекомендация; точные условия провайдеров приведены далее. Проверено 14 сентября 2026 года.</p>
+  <div class="footer"><span>Lazysoft · Как выбрать размещение</span><span>1 / 7</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">Разбираемся в словах</p><h2>Шесть вещей, которые легко перепутать</h2>
+  <div class="grid">
+    <div class="card"><h3>Сайт</h3><p>Страницы, тексты, изображения и функции, которые видит посетитель. Исходники — файлы, из которых сайт состоит.</p></div>
+    <div class="card"><h3>Хостинг</h3><p>Сервис, где сайт работает и хранится. Это как помещение для магазина. После публикации ваш компьютер может быть выключен.</p></div>
+    <div class="card"><h3>Домен</h3><p>Адрес сайта, например имя в зоне .ru. Это как адрес магазина. Покупка адреса сама по себе не создаёт сайт и не размещает файлы.</p></div>
+    <div class="card"><h3>HTTPS и сертификат</h3><p>Защищённое соединение браузера с сайтом. Сертификат помогает браузеру проверить, что соединение установлено с нужным адресом.</p></div>
+    <div class="card"><h3>Админка</h3><p>Закрытая страница для владельца: менять тексты, изображения и настройки. Она отличается от личного кабинета хостинга, где оплачивают услуги.</p></div>
+    <div class="card"><h3>База и хранилище</h3><p>Места для сохранения изменений. База хранит тексты и настройки, хранилище — файлы. Без них правки могут оставаться только в одном браузере.</p></div>
+  </div>
+  <div class="flow"><div><b>1. Посетитель вводит адрес</b>Домен указывает, куда обратиться.</div><div><b>2. Браузер соединяется</b>HTTPS защищает передачу.</div><div><b>3. Хостинг показывает сайт</b>Страницы получают сохранённый контент.</div></div>
+  <div class="ok"><b>Что такое DNS?</b> Это «указатель» от домена к хостингу. При смене хостинга указатель меняют, а собственный адрес можно сохранить. Обновление указателя занимает время.</div>
+  <div class="footer"><span>Сайт, адрес и место хранения</span><span>2 / 7</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">Домен и защита соединения</p><h2>Нужны ли свой адрес и платный сертификат?</h2>
+  <h3>Начать можно с технического адреса</h3>
+  <p>Его выдаёт площадка. В Cloudflare он выглядит по схеме:</p>
+  <div class="address">https://ИМЯ-САЙТА.АККАУНТ.workers.dev/</div>
+  <p>Это пример, не готовая ссылка. Свой адрес вы скопируете из результата установки. У HostiMan адрес зависит от услуги; его нужно взять из панели или письма об активации. <a class="source" href="https://developers.cloudflare.com/workers/configuration/routing/workers-dev/">[1]</a> <a class="source" href="https://hostiman.ru/free-hosting">[2]</a></p>
+  <h3>Собственный домен — отдельная регистрация</h3>
+  <p>Короткий адрес удобнее печатать на визитках и передавать клиентам. Его регистрируют на определённый срок и затем продлевают. Регистрируйте домен на свои данные и почту. При переносе сайта к другому провайдеру свой домен обычно можно оставить.</p>
+  <p class="mini">Cloudflare рекомендует собственный домен для рабочих проектов, важных для бизнеса; workers.dev предназначен прежде всего для личных и небольших проектов. <a href="https://developers.cloudflare.com/workers/configuration/routing/workers-dev/">[1]</a></p>
+  <h3>HTTPS может быть бесплатным</h3>
+  <p>На адресе workers.dev соединение HTTPS обслуживает Cloudflare. На HostiMan для рассматриваемых тарифов заявлен бесплатный SSL: его подключают в панели, а доступность для выданного адреса при необходимости уточняют у поддержки. Самостоятельно создавать файлы сертификата обычно не требуется. <a class="source" href="https://hostiman.ru/free-hosting">[2]</a> <a class="source" href="https://my.hostiman.ru/order/2">[3]</a></p>
+  <div class="ok"><b>SSL и TLS:</b> в панели вы можете увидеть оба названия. Для этой инструкции речь об одном результате — сайт открывается через https:// без предупреждения браузера.</div>
+  <div class="warn">Сертификат не защищает от слабого пароля и не делает админку закрытой сам по себе. Если браузер предупреждает о соединении, сначала исправьте HTTPS и только затем вводите ключ. Проверяйте, что сертификат продлевается.</div>
+  <div class="footer"><span>Адрес сайта и HTTPS</span><span>3 / 7</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">Сравнение без сложных терминов</p><h2>Что изменится для владельца</h2>
+  <table class="compare"><thead><tr><th>Вопрос</th><th>Cloudflare</th><th>HostiMan</th></tr></thead><tbody>
+    <tr><td>Как установить?</td><td>Поставить Node.js, открыть окно команд, войти через браузер и запустить установщик.</td><td>Загрузить и распаковать ZIP, создать базу в панели, заполнить страницу установки.</td></tr>
+    <tr><td>Что сложнее?</td><td>Первый вход, команды и подключение нескольких сервисов.</td><td>Найти нужные папки и без ошибок перенести данные базы из панели.</td></tr>
+    <tr><td>Свой домен обязателен?</td><td>Нет для старта на workers.dev. Для постоянного бизнес-сайта лучше собственный.</td><td>Нет, если услуга предоставляет технический адрес. Есть вариант .ru + Free.</td></tr>
+    <tr><td>Как хранится контент?</td><td>В сервисах базы D1 и файлов KV вашего аккаунта.</td><td>В базе MySQL и файловом хранилище вашего аккаунта хостинга.</td></tr>
+    <tr><td>Как менять сайт?</td><td colspan="2">После установки — через админку сайта. Для изменения функций или дизайна может понадобиться разработчик.</td></tr>
+    <tr><td>Нужно держать компьютер включённым?</td><td colspan="2">Нет. Компьютер нужен для установки и будущего обновления файлов, но не для работы опубликованного сайта.</td></tr>
+    <tr><td>За чем следить?</td><td>За квотами базы, запросов и файлов, а также начислениями.</td><td>За оплатой тарифа, продлением домена, местом и нагрузкой.</td></tr>
+  </tbody></table>
+  <p class="mini">Сравниваются подготовленные комплекты установки сайта. Условия доменов и тарифов: <a href="https://developers.cloudflare.com/workers/configuration/routing/workers-dev/">[1]</a>, <a href="https://my.hostiman.ru/order/2">[3]</a>. Квоты Cloudflare: <a href="https://developers.cloudflare.com/workers/platform/pricing/">[6]</a>, <a href="https://developers.cloudflare.com/d1/platform/pricing/">[7]</a>, <a href="https://developers.cloudflare.com/kv/platform/pricing/">[8]</a>.</p>
+  <div class="warn"><b>Если посетители в России:</b> Cloudflare сообщал об ограничениях доступа со стороны российских операторов в июне 2025 года. Перед выбором проверьте готовый сайт через домашний и мобильный интернет ваших посетителей. Это историческое сообщение, не проверка доступности вашего будущего сайта сегодня. <a href="https://blog.cloudflare.com/russian-internet-users-are-unable-to-access-the-open-internet/">[10]</a></div>
+  <div class="footer"><span>Практические различия</span><span>4 / 7</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">Бюджет · условия на 14 сентября 2026</p><h2>За что и когда платить</h2>
+  <div class="card"><h3>Cloudflare без своего домена</h3><p class="cost">0 ₽ в рамках бесплатных квот</p><p>Это условие по использованию, а не безлимит. Обновлённый комплект использует Workers Free, D1 и KV без подключения R2 и банковской карты. У сервисов есть квоты: KV включает 1 ГБ, 1000 записей и 100 000 чтений в сутки; новые файлы могут появляться с задержкой. <a href="https://developers.cloudflare.com/workers/platform/pricing/">[6]</a> <a href="https://developers.cloudflare.com/d1/platform/pricing/">[7]</a> <a href="https://developers.cloudflare.com/kv/platform/pricing/">[8]</a> <a href="https://www.cloudflare.com/products/workers/">[9]</a></p></div>
+  <div class="grid" style="margin-top:5mm">
+    <div class="card"><h3>HostiMan: .ru + Free</h3><p class="cost">200 ₽ за первый год</p><p>По текущим условиям регистрация .ru у HostiMan позволяет активировать Free без отдельной верификации для этого тарифа. Продление домена заявлено по 400 ₽ в год. <a href="https://my.hostiman.ru/order/2">[3]</a> <a href="https://hostiman.ru/domen-ru-rf">[5]</a></p></div>
+    <div class="card"><h3>HostiMan: Free+</h3><p class="cost">280 ₽ за 3 месяца</p><p>Либо 1 100 ₽ при оплате за год. Вариант без покупки собственного домена — с адресом от хостинга. Free+ платный, несмотря на слово Free в названии. <a href="https://my.hostiman.ru/order/2/297">[4]</a> <a href="https://hostiman.ru/free-hosting">[2]</a></p></div>
+  </div>
+  <div class="warn"><b>Free без домена тоже существует.</b> Он требует отдельной верификации. Free и Free+ указаны для физических лиц; для аккаунта организации уточните другой тариф. Перед оплатой проверьте сумму, срок и условия в корзине. <a href="https://my.hostiman.ru/order/2">[3]</a></div>
+  <h3>Стоимость сайта — отдельно от размещения</h3>
+  <p>Покупка исходников и помощь с установкой оплачиваются разработчику по выбранному предложению. Домен и хостинг — провайдеру. Разовая помощь с запуском не означает бессрочное обслуживание и оплату будущих продлений.</p>
+  <p class="mini">Пример расчёта только услуг провайдера: год Free+ одной оплатой — 1 100 ₽; четыре квартальных платежа — 1 120 ₽. Дополнительный домен, услуги и превышения квот в этот пример не включены.</p>
+  <div class="footer"><span>Разовые и регулярные расходы</span><span>5 / 7</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">После выбора</p><h2>Как перейти от демо к своему сайту</h2>
+  <ol class="plain">
+    <li><b>Выберите понравившуюся версию.</b> Ссылка на демо в Яндекс Облаке нужна для просмотра. Она не означает, что сайт уже установлен в вашем аккаунте.</li>
+    <li><b>Выберите Cloudflare или HostiMan.</b> Получите комплект именно для этой площадки. Архивы отличаются: нельзя просто поменять их местами.</li>
+    <li><b>Создайте свой аккаунт и сохраните доступ.</b> Используйте свою почту; домен, хостинг и файлы должны оставаться под вашим контролем.</li>
+    <li><b>Выполните отдельную инструкцию установки.</b> Эта памятка помогает выбрать вариант, а точные шаги находятся в PDF для вашего хостинга.</li>
+    <li><b>Проверьте результат.</b> Сайт открывается через HTTPS. Админка сохраняет текст и изображение, и изменения видны в другом браузере.</li>
+    <li><b>Сохраните адреса и резервную копию.</b> Запишите адрес сайта, админки и панели хостинга. Они нужны для разных действий.</li>
+  </ol>
+  <div class="grid" style="margin-top:5mm">
+    <div class="card"><h3>Для обычных изменений</h3><p>Откройте админку, измените контент и сохраните. Файлы сайта заново загружать не нужно, если меняются только предусмотренные поля.</p></div>
+    <div class="card"><h3>Для новых функций</h3><p>Передайте задачу разработчику. Покупка домена или сертификата не добавляет оплату, личный кабинет или другие функции сайту.</p></div>
+  </div>
+  <h3>Что делать время от времени</h3>
+  <ul class="checks"><li>проверять, что сайт открывается у посетителей;</li><li>сохранять копию контента и загруженных файлов;</li><li>следить за расходами и письмами провайдера;</li><li>продлевать домен и платные услуги вовремя.</li></ul>
+  <div class="footer"><span>Запуск и дальнейшая работа</span><span>6 / 7</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">Ссылки и следующий шаг</p><h2>Откройте инструкцию своего варианта</h2>
+  <div class="grid"><div class="card"><h3>Cloudflare</h3><p>PDF «Как бесплатно запустить сайт и админку в Cloudflare» из полученного комплекта.</p><p><a href="https://dash.cloudflare.com/sign-up">Создать аккаунт Cloudflare</a></p></div><div class="card"><h3>HostiMan</h3><p>PDF «Как разместить сайт на HostiMan» с вариантами с доменом .ru и без покупки домена.</p><p><a href="https://my.hostiman.ru/aff/292396">Ссылка для регистрации HostiMan</a></p></div></div>
+  <h3>Официальные условия для проверки</h3>
+  <div class="sources">
+    <p>[1] <a href="https://developers.cloudflare.com/workers/configuration/routing/workers-dev/">Cloudflare: технический адрес workers.dev</a><br>[2] <a href="https://hostiman.ru/free-hosting">HostiMan: бесплатный хостинг и технический адрес</a><br>[3] <a href="https://my.hostiman.ru/order/2">HostiMan: условия Free и Free+</a><br>[4] <a href="https://my.hostiman.ru/order/2/297">HostiMan: стоимость Free+ в форме заказа</a><br>[5] <a href="https://hostiman.ru/domen-ru-rf">HostiMan: регистрация и продление домена .ru</a></p>
+    <p>[6] <a href="https://developers.cloudflare.com/workers/platform/pricing/">Cloudflare Workers: тарифы</a><br>[7] <a href="https://developers.cloudflare.com/d1/platform/pricing/">Cloudflare D1: квоты базы данных</a><br>[8] <a href="https://developers.cloudflare.com/kv/platform/pricing/">Cloudflare KV: бесплатные квоты</a><br>[9] <a href="https://www.cloudflare.com/products/workers/">Cloudflare Workers: начало работы без карты</a><br>[10] <a href="https://blog.cloudflare.com/russian-internet-users-are-unable-to-access-the-open-internet/">Cloudflare: сообщение о доступности из России, 26 июня 2025</a></p>
+  </div>
+  <div class="ok"><b>Перед передачей архива достаточно сообщить:</b><br>«Выбираю версию № __. Размещение: Cloudflare / HostiMan. Домен: свой / технический. Установлю самостоятельно / нужна помощь».</div>
+  <p class="mini">Цены и условия проверены 14 сентября 2026 года. Форма заказа провайдера имеет приоритет перед этой памяткой. Инструкция не привязана к названию или тематике сайта; она предполагает подготовленный комплект с админкой под выбранную площадку.</p>
+  <div class="footer"><span>Сохраните памятку вместе с исходниками</span><span>7 / 7</span></div>
+</section>
+</body></html>

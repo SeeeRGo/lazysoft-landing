@@ -1,0 +1,48 @@
+import {createServer} from 'node:http';
+import {spawn} from 'node:child_process';
+import {mkdtemp,readFile,writeFile,rm,mkdir} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {resolve,join,extname,sep} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import assert from 'node:assert/strict';
+export async function checkCms(site,{screenshots}={}){
+ const directory=resolve(site),profile=await mkdtemp(join(tmpdir(),'lazysoft-cms-browser-'));
+ const schema=JSON.parse(await readFile(join(directory,'cms-schema.json'),'utf8'));
+ const png=join(profile,'upload.png');await writeFile(png,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZ5kAAAAASUVORK5CYII=','base64'));
+ const server=createServer(async(req,res)=>{try{const path=resolve(directory,'.'+decodeURIComponent(new URL(req.url,'http://local').pathname));if(!path.startsWith(directory+sep))throw Error();const data=await readFile(path);res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp'})[extname(path)]||'application/octet-stream');res.end(data)}catch{res.writeHead(404);res.end()}});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
+ const chrome=spawn('/usr/bin/chromium',['--headless','--no-sandbox','--disable-gpu','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],{stdio:'ignore',env:{PATH:process.env.PATH,LANG:'C.UTF-8'}});
+ let ws;
+ try{
+ let port;for(let i=0;i<100;i++){try{port=(await readFile(join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0];break}catch{}await new Promise(r=>setTimeout(r,100))}assert(port,'Chromium unavailable');
+ const pages=await fetch(`http://127.0.0.1:${port}/json`).then(r=>r.json());ws=new WebSocket(pages[0].webSocketDebuggerUrl);await new Promise(r=>ws.addEventListener('open',r,{once:true}));let id=0;const pending=new Map(),errors=[];
+ const send=(method,params={})=>new Promise((resolve,reject)=>{const call=++id;pending.set(call,{resolve,reject});ws.send(JSON.stringify({id:call,method,params}))});
+ ws.addEventListener('message',e=>{const m=JSON.parse(e.data);if(m.method==='Fetch.requestPaused'){const u=m.params.request.url;void send(u.startsWith(origin+'/')?'Fetch.continueRequest':'Fetch.failRequest',{requestId:m.params.requestId,...(u.startsWith(origin+'/')?{}:{errorReason:'BlockedByClient'})});if(!u.startsWith(origin+'/')&&!u.startsWith('data:'))errors.push('External request blocked');}if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.text);if(m.method==='Network.responseReceived'&&m.params.response.status>=400&&!m.params.response.url.endsWith('favicon.ico'))errors.push('HTTP '+m.params.response.status);if(!m.id)return;const p=pending.get(m.id);pending.delete(m.id);if(p)m.error?p.reject(m.error):p.resolve(m.result)});
+ const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error('CMS browser script failed');return r.result.value};
+ const until=async expression=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,100))}throw Error('CMS browser condition timed out: '+String(await evaluate("document.querySelector('#status')?.textContent||document.body.innerText.slice(0,160)")).slice(0,300))};
+ const navigate=async path=>{await send('Page.navigate',{url:origin+'/'+path});await until(`location.pathname===${JSON.stringify('/'+path)}&&document.readyState==='complete'`)};
+ await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBypassServiceWorker',{bypass:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
+ for(const c of schema.collections){
+  await navigate('admin.html');await until(`!!document.querySelector('[data-add-collection="${c.key}"]')`);
+  await evaluate(`document.querySelector('[data-add-collection="${c.key}"]').click()`);
+  const marker='CMS_CHECK_'+c.key;
+  const fields=c.fields;
+  for(const f of fields){
+   const selector=`[data-collection="${c.key}"] .item:last-child [data-field="${f.key}"]`;
+   if(f.type==='image'){
+    const root=await send('DOM.getDocument');const input=await send('DOM.querySelector',{nodeId:root.root.nodeId,selector:`[data-collection="${c.key}"] .item:last-child [data-upload="${f.key}"]`});
+    await send('DOM.setFileInputFiles',{nodeId:input.nodeId,files:[png]});await until(`document.querySelector(${JSON.stringify(selector)}).value.startsWith('data:image/')`);
+   }else await evaluate(`(()=>{const i=document.querySelector(${JSON.stringify(selector)});i.value=${JSON.stringify(f.type==='number'?'123':f.type==='url'?'https://example.org':marker)};i.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+  }
+  await evaluate(`document.querySelector('#editor').requestSubmit()`);await until(`document.querySelector('#status').textContent.startsWith('Сохранено')`);
+  await navigate(c.page||'index.html');await until(`document.body.innerText.includes(${JSON.stringify(marker)})`);
+  await evaluate(`Array.from(document.images).find(i=>i.src.startsWith('data:image/'))?.scrollIntoView({block:'center'})`);
+  await until(`Array.from(document.images).filter(i=>i.src.startsWith('data:image/')).some(i=>i.complete&&i.naturalWidth>0)`);
+ }
+ if(screenshots)await mkdir(screenshots,{recursive:true});
+ const screenshot=async(name)=>{if(!screenshots)return;const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(join(screenshots,name+'.png'),Buffer.from(shot.data,'base64'))};
+ for(const width of [390,1440]){await send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:width<500});await navigate('index.html');await until(`document.readyState==='complete'`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Public layout overflows');await new Promise(r=>setTimeout(r,500));await screenshot('site-'+width);await navigate('admin.html');await until(`!document.querySelector('#editor').hidden`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Admin layout overflows');await screenshot('admin-'+width)}
+ assert.deepEqual(errors,[]);return {collections:schema.collections.length,admin:true,images:true,widths:[390,1440]};
+ }finally{ws?.close();chrome.kill('SIGTERM');await new Promise(r=>server.close(r));await rm(profile,{recursive:true,force:true}).catch(()=>{})}
+}
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))console.log(JSON.stringify(await checkCms(process.argv[2])));

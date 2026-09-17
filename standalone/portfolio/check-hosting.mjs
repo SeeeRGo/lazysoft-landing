@@ -1,11 +1,11 @@
 // Run inside the hosting's runtime container, with the same Node binary as Passenger.
-import {DatabaseSync,backup} from 'node:sqlite';
+import {DatabaseSync,backup} from './sqlite-compat.mjs';
 import {mkdtempSync,rmSync,mkdirSync,statSync,readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 const root=fileURLToPath(new URL('.',import.meta.url));
 const [major,minor]=process.versions.node.split('.').map(Number);
-if(major!==24||minor<12)throw Error('Required: Node 24.12+ (24.x), not the hosting default Node 8/18/20');
+if(!((major===22&&minor>=5)||major===24))throw Error('Нужен Node 22.5+ или 24.x. На Sprinthost используйте node22 --experimental-sqlite.');
 const data=join(root,'data');mkdirSync(data,{recursive:true,mode:0o700});
 if((statSync(data).mode&0o077)!==0)throw Error('Private data directory must have mode 700');
 const tmp=mkdtempSync(join(data,'preflight-'));

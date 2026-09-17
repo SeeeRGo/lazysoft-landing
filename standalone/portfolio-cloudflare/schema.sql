@@ -1,0 +1,34 @@
+CREATE TABLE IF NOT EXISTS pf_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  key_hash TEXT NOT NULL,
+  asset_count INTEGER NOT NULL DEFAULT 0,
+  asset_bytes INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS pf_content (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  version INTEGER NOT NULL,
+  json TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS pf_assets (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  created INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS pf_sessions (
+  hash TEXT PRIMARY KEY,
+  expires INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS pf_sessions_expiry ON pf_sessions(expires);
+CREATE TABLE IF NOT EXISTS pf_limits (
+  name TEXT PRIMARY KEY,
+  count INTEGER NOT NULL,
+  reset_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS pf_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event TEXT NOT NULL,
+  created INTEGER NOT NULL,
+  version INTEGER UNIQUE,
+  json TEXT
+);

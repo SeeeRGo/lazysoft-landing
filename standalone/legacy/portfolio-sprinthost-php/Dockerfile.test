@@ -1,0 +1,4 @@
+FROM php:8.3-cli
+RUN docker-php-ext-install pdo_mysql
+WORKDIR /site
+CMD ["php", "-d", "post_max_size=16M", "-d", "memory_limit=256M", "-d", "display_errors=Off", "-S", "0.0.0.0:8080", "-t", "public_html"]

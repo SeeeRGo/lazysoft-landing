@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { automationPhase, jobStatus, jobKind, clientEvent } from "./automationModel";
+import { automationPhase, jobStatus, jobKind, clientEvent, demoOption, demoId, sourceVariant, workStage } from "./automationModel";
 import { portfolioContent } from './portfolioModel';
 
 export default defineSchema({
@@ -11,7 +11,7 @@ export default defineSchema({
   mvpRequests: defineTable({
     requestId: v.string(),
     idea: v.string(),
-    contactMethod: v.union(v.literal("telegram"), v.literal("email"), v.literal("max")),
+    contactMethod: v.union(v.literal("telegram"), v.literal("email"), v.literal("max"), v.literal("none")),
     contact: v.string(),
     source: v.object({
       utmSource: v.string(),
@@ -46,10 +46,15 @@ export default defineSchema({
     requestId: v.string(),
     phase: automationPhase,
     revisionUsed: v.boolean(),
+    revisionCount: v.optional(v.number()),
     accepted: v.boolean(),
     paid: v.boolean(),
     developmentRequested: v.boolean(),
     sourcePurchaseRequested: v.optional(v.boolean()),
+    offerRequestKeys: v.optional(v.array(v.string())),
+    demoOptions: v.optional(v.array(demoOption)),
+    sourceVariants: v.optional(v.array(sourceVariant)),
+    selectedDemoId: v.optional(demoId),
     sourceStorageId: v.optional(v.id("_storage")),
     pdfStorageId: v.optional(v.id("_storage")),
     demoUrl: v.optional(v.string()),
@@ -61,8 +66,13 @@ export default defineSchema({
     kind: jobKind,
     status: jobStatus,
     instructions: v.string(),
+    targetDemoId: v.optional(demoId),
+    baseDemoId: v.optional(demoId),
     attempts: v.number(),
     availableAt: v.number(),
+    startedAt: v.optional(v.number()),
+    heartbeatAt: v.optional(v.number()),
+    stage: v.optional(workStage),
     leaseToken: v.optional(v.string()),
     leaseUntil: v.optional(v.number()),
     error: v.optional(v.string()),
@@ -94,7 +104,8 @@ export default defineSchema({
   requestDeliveries: defineTable({
     requestId: v.string(),
     jobId: v.id("requestJobs"),
-    status: v.union(v.literal("pending"), v.literal("sending"), v.literal("sent"), v.literal("failed")),
+    kind: v.optional(v.union(v.literal("started"), v.literal("result"))),
+    status: v.union(v.literal("pending"), v.literal("sending"), v.literal("sent"), v.literal("failed"), v.literal("cancelled")),
     attempts: v.number(),
     leaseUntil: v.optional(v.number()),
     sentAt: v.optional(v.number()),

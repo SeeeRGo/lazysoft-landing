@@ -14,7 +14,9 @@ function json(payload: unknown, status = 200) {
 }
 
 function isAuthorized(request: Request) {
-  const expectedSecret = process.env.REQUEST_INGEST_SECRET;
+  // CONVEX_INGEST_SECRET is accepted as an alias: the landing container uses that
+  // name, and a single shared value must match on both sides.
+  const expectedSecret = process.env.REQUEST_INGEST_SECRET || process.env.CONVEX_INGEST_SECRET;
   const providedSecret = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   return Boolean(expectedSecret && providedSecret === expectedSecret);
 }

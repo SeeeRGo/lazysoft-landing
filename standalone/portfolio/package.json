@@ -1,8 +1,8 @@
 {
   "name": "portable-portfolio",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24.12.0 <25" },
-  "scripts": { "start": "node server.mjs", "test": "node --test test.mjs", "backup": "node manage.mjs backup", "reset-key": "node manage.mjs reset-key" }
+  "engines": { "node": ">=22.5.0 <23 || >=24.0.0 <25" },
+  "scripts": { "start": "node --experimental-sqlite server.mjs", "test": "node --experimental-sqlite --test test.mjs", "backup": "node --experimental-sqlite manage.mjs backup", "reset-key": "node --experimental-sqlite manage.mjs reset-key" }
 }

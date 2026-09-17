@@ -1,0 +1,30 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import "../styles/mvp.css";
+import "../styles/waiting.css";
+import "../styles/site-generator.css";
+const title = "Сайт по вашей идее — попробуйте бесплатно | Lazysoft";
+const description = "Опишите идею и посмотрите первую версию сайта. Без регистрации и контактов. Обычно готово в течение 15 минут.";
+---
+<BaseLayout title={title} description={description} canonicalPath="/sayt-po-idee/">
+  <header class="generator-header">
+    <a class="brand" href="/" aria-label="Lazysoft — на главную"><img src="/lazysoft-logo.webp" alt="" width="38" height="38" /><span class="brand-name">lazy<em>soft</em></span></a>
+  </header>
+  <main class="generator-page">
+    <section class="generator-card" aria-labelledby="generator-title">
+      <h1 id="generator-title">Какой сайт вам нужен?</h1>
+      <p class="generator-intro">Опишите идею — посмотрите, что получится.</p>
+      <form id="site-idea-form" data-mvp-request-form novalidate>
+        <label class="mvp-request-field mvp-request-idea">
+          <span class="visually-hidden">Идея сайта</span>
+          <textarea name="idea" rows="4" minlength="10" maxlength="3000" required placeholder="Хочу сайт для продажи инструментов с каталогом и корзиной"></textarea>
+        </label>
+        <label class="mvp-honeypot" aria-hidden="true"><span>Сайт</span><input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+        <button class="mvp-request-submit" type="submit"><span>Создать сайт →</span></button>
+        <p class="generator-note">Бесплатно попробовать · обычно до 15 минут</p>
+        <p class="mvp-request-status" data-request-status hidden aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+  <script src="../scripts/mvp-brief.ts"></script>
+</BaseLayout>

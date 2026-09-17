@@ -21,23 +21,8 @@ export const send = internalAction({
       const token = Buffer.concat([decipher.update(encrypted.subarray(28)), decipher.final()]).toString("utf8");
       if (!/^[A-Za-z0-9_-]{43}$/.test(token)) throw new Error("Invalid page token");
       const pageUrl = `${process.env.PUBLIC_SITE_URL || "https://lazysoft.ru"}/request/#${token}`;
-      const pdfUrl = delivery.pdfStorageId ? await ctx.storage.getUrl(delivery.pdfStorageId) : null;
-      const text = `Демоверсия по вашей заявке ${delivery.requestId} готовы.\n\nСтраница результата и правок: ${pageUrl}\n${pdfUrl ? `ТЗ (PDF): ${pdfUrl}\n` : ""}${delivery.demoUrl ? `Демо: ${delivery.demoUrl}\n` : ""}\nПосмотрите результат. На странице заявки можно один раз попросить правки, забрать исходники за 5 000 ₽ или обсудить доработку от 10 000 ₽ с постоплатой.\n\nСергей · Lazysoft`;
-      if (delivery.telegramChatId) {
-        const bot = process.env.TELEGRAM_BOT_TOKEN;
-        if (!bot) throw new Error("Telegram unavailable");
-        const response = await fetch(`https://api.telegram.org/bot${bot}/sendMessage`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: delivery.telegramChatId, text, disable_web_page_preview: true }), signal: AbortSignal.timeout(15_000),
-        });
-        sent = response.ok && (await response.json()).ok === true;
-      } else if (delivery.maxUserId) {
-        if (!process.env.MAX_BOT_TOKEN) throw new Error("MAX unavailable");
-        const response = await fetch(`https://platform-api2.max.ru/messages?user_id=${encodeURIComponent(delivery.maxUserId)}`, {
-          method: "POST", headers: { Authorization: process.env.MAX_BOT_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal: AbortSignal.timeout(15_000),
-        });
-        sent = response.ok;
-      } else if (delivery.contactMethod === "email") {
+      const text = delivery.kind === "started" ? `Работа над сайтом по заявке ${delivery.requestId} началась. Обычно подготовка занимает до 15 минут.\n\nСтатус и результат: ${pageUrl}\nМожно закрыть страницу: работа продолжится.` : `Новая версия сайта по заявке ${delivery.requestId} готова.\n\nОткройте приватную страницу результата: ${pageUrl}\n${delivery.demoUrl ? `Посмотреть результат: ${delivery.demoUrl}\n` : ""}\nНа странице доступны готовые версии и оставшиеся сообщения с доработками. Исходники любой доступной версии с админкой можно заказать для Cloudflare или HostiMan.\n\nСергей · Lazysoft`;
+      if (delivery.contactMethod === "email") {
         if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD || !process.env.SMTP_FROM) throw new Error("SMTP unavailable");
         const transport = nodemailer.createTransport({
           host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 465), secure: process.env.SMTP_SECURE !== "false",

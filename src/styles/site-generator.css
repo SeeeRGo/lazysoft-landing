@@ -1,0 +1,13 @@
+.generator-header { padding: 28px clamp(20px, 5vw, 72px); }
+.generator-header .brand img { width: 38px; height: 38px; }
+.generator-page { min-height: calc(100svh - 110px); display: grid; place-items: center; padding: 24px 20px 16vh; }
+.generator-card { width: min(100%, 700px); }
+.generator-card h1 { font-family: var(--font-display, Georgia, serif); font-size: clamp(32px, 5vw, 52px); line-height: 1.14; letter-spacing: -.03em; margin: 0 0 16px; text-align: center; }
+.generator-intro { text-align: center; margin: 0 0 32px; color: #516e69; }
+.generator-card textarea { min-height: 170px; padding: 22px; font-size: 17px; line-height: 1.65; background: #fffefa; border: 1px solid #8aa7a1; border-radius: 18px; box-shadow: 0 6px 24px #173d3908; }
+.generator-card textarea:focus { outline: 2px solid #217f78; outline-offset: 3px; }
+.generator-card .mvp-request-submit { margin-top: 18px; min-height: 58px; font-size: 17px; }
+.generator-note { text-align: center; font-size: 12px; color: #516e69; margin-top: 15px; }
+.generator-card .site-resume-link { display: block; text-align: center; margin: 0 0 18px; }
+.generator-card [hidden] { display: none !important; }
+@media (max-width: 560px) { .generator-header { padding: 20px; } .generator-page { align-items: start; padding-top: 12vh; } .generator-card textarea { font-size: 16px; padding: 18px; } }

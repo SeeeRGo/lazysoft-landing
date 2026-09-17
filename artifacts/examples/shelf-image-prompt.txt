@@ -1,0 +1,4 @@
+Generated with the built-in image_gen tool.
+Asset: tools/images/shelf.png
+
+Use case: photorealistic-natural. Asset type: landscape photograph-style image for a DIY tool shop website section. A simple real oak floating shelf mounted on a warm light gray-green plaster wall (#e7e8df), with two actual clothbound books in dark green and ivory leaning slightly at the left, and one small living houseplant with natural green leaves in a matte terracotta orange ceramic pot at the right. Straight-on interior photography, natural soft daylight from the upper left, realistic wood grain, paper edges, ceramic pores and subtle shadows, quiet contemporary home. Wide landscape composition, entire shelf and plant fit within the frame with breathing room. Only this still life, no people, no tools, no lettering, no logos, no watermark, no UI. Looks like a real interior photograph, not an illustration, flat vector or 3D render.

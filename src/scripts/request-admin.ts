@@ -15,7 +15,7 @@ interface RequestMessage {
 interface AdminThread {
   requestId: string;
   idea: string;
-  contactMethod: "telegram" | "email" | "max";
+  contactMethod: "telegram" | "email" | "max" | "none";
   contact: string;
   status: RequestStatus;
   receivedAt: number;
@@ -44,7 +44,7 @@ const senderLabels: Record<MessageSender, string> = {
   visitor: "Клиент",
   owner: "Вы",
 };
-const contactLabels = { telegram: "Telegram", email: "Почта", max: "MAX" } as const;
+const contactLabels = { none: "Пока без контакта", telegram: "Telegram", email: "Почта", max: "MAX" } as const;
 
 const loading = document.querySelector<HTMLElement>("[data-admin-loading]");
 const content = document.querySelector<HTMLElement>("[data-admin-content]");

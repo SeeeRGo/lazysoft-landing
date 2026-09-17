@@ -1,3 +1,4 @@
+import { setupSiteSubmission } from "./site-submission";
 type ContactMethod = "telegram" | "email" | "max";
 
 const form = document.querySelector<HTMLFormElement>("[data-mvp-request-form], [data-crm-request-form], [data-mobile-request-form]");
@@ -46,8 +47,8 @@ if (form) {
     },
   };
 
-  function selectedMethod(): ContactMethod {
-    return (form!.querySelector<HTMLInputElement>("[name='contactMethod']:checked")?.value || "telegram") as ContactMethod;
+  function selectedMethod(): ContactMethod | "none" {
+    return (form!.querySelector<HTMLInputElement>("[name='contactMethod']:checked")?.value || (requestType === "mvp" ? "none" : "telegram")) as ContactMethod | "none";
   }
 
   function trackGoal(goal: string, params: Record<string, unknown> = {}) {
@@ -72,7 +73,10 @@ if (form) {
   }
 
   function setContactMode(shouldTrack = true) {
-    const settings = contactSettings[selectedMethod()];
+    if (!contact || !contactLabel || !contactHint) return;
+    const method = selectedMethod();
+    if (method === "none") return;
+    const settings = contactSettings[method];
     contactLabel.innerHTML = `${settings.label} <b>*</b>`;
     contact.placeholder = settings.placeholder;
     contact.type = settings.type;
@@ -108,10 +112,10 @@ if (form) {
   });
   idea.addEventListener("focus", () => markStarted("idea"));
   idea.addEventListener("input", () => markStarted("idea"));
-  contact.addEventListener("focus", () => markStarted("contact"));
-  contact.addEventListener("input", () => markStarted("contact"));
+  contact?.addEventListener("focus", () => markStarted("contact"));
+  contact?.addEventListener("input", () => markStarted("contact"));
 
-  voiceButton.addEventListener("click", () => {
+  voiceButton?.addEventListener("click", () => {
     const SpeechRecognition = (window as typeof window & { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }).SpeechRecognition
       || (window as typeof window & { webkitSpeechRecognition?: new () => any }).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -147,15 +151,19 @@ if (form) {
     recognition.start();
   });
 
+  const submitSite = requestType === "mvp" ? setupSiteSubmission(form, trackGoal, sourceData) : null;
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     status.hidden = true;
-    idea.setCustomValidity(idea.value.trim().length < 20 ? "Расскажите об идее чуть подробнее — хотя бы одним-двумя предложениями." : "");
-    contact.setCustomValidity(contact.value.trim().length < 3 ? "Укажите контакт, на который можно прислать результат." : "");
+    idea.setCustomValidity(idea.value.trim().length < (requestType === "mvp" ? 10 : 20) ? "Расскажите об идее чуть подробнее — хотя бы одним-двумя предложениями." : "");
+    contact?.setCustomValidity(contact.value.trim().length < 3 ? "Укажите контакт, на который можно прислать результат." : "");
     if (!form.reportValidity()) {
       trackGoal("mvp_request_validation_error", { method: selectedMethod() });
       return;
     }
+
+    if (submitSite) { await submitSite(); return; }
 
     submit.disabled = true;
     submit.querySelector("span")!.textContent = "Отправляю…";

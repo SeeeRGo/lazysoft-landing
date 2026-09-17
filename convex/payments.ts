@@ -155,9 +155,16 @@ export const download = internalMutation({
     if (!request) throw new Error("Заявка не найдена");
     const state = await getAutomation(ctx, request.requestId);
     if (!state?.paid || !state.sourceStorageId) throw new Error("Исходники доступны после оплаты");
-    const url = await ctx.storage.getUrl(state.sourceStorageId);
+    const selectedSource = state.selectedDemoId
+      ? state.sourceVariants?.find(item => item.id === state.selectedDemoId)?.storageId
+      : undefined;
+    // Sequential site requests have a private server package per version.
+    // Their combined sourceStorageId is the worker's demo/revision bundle, never a delivery fallback.
+    if (state.revisionCount !== undefined && !selectedSource) throw new Error("Комплект выбранной версии ещё не подготовлен. Напишите разработчику.");
+    const storageId = selectedSource ?? state.sourceStorageId;
+    const url = await ctx.storage.getUrl(storageId);
     if (!url) throw new Error("Архив не найден");
-    await event(ctx, request.requestId, "source_downloaded", state.sourceStorageId, "");
+    await event(ctx, request.requestId, "source_downloaded", storageId, state.selectedDemoId ? `Скачана версия ${state.selectedDemoId}` : "");
     return url;
   },
 });

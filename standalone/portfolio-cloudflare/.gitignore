@@ -1,0 +1,6 @@
+node_modules/
+.wrangler/
+wrangler.jsonc
+installation-state.json
+installation-state.json.previous-*
+.install-command.json

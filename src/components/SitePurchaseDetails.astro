@@ -1,0 +1,47 @@
+---
+import { sourcePrice, setupPrice, price } from "../lib/site-offer";
+import siteExamples from "../data/site-examples.json";
+const faq = [
+  { question: "Что я получу бесплатно?", answer: "Первую версию сайта по исходной идее и ещё два сообщения с доработками. После каждого сообщения создаётся новая версия, а предыдущие сохраняются. В итоге можно сравнить до трёх версий и купить любую. Покупать исходники необязательно." },
+  { question: "Что входит в покупку исходников?", answer: `За ${price(sourcePrice)} ₽ вы получаете одну выбранную версию сайта, админку для изменения контента и архив для Cloudflare или HostiMan с PDF-инструкцией по установке. Помощь с размещением стоит дополнительно ${price(setupPrice)} ₽.` },
+  { question: "Чем демо отличается от сайта после установки?", answer: "Демо позволяет посмотреть страницы и попробовать редактирование. Его изменения сохраняются только в вашем браузере. В комплекте для установки на выбранный хостинг админка сохраняет контент на сервере: обновления видят все посетители." },
+  { question: "Нужны ли ТЗ или скриншоты?", answer: "Нет. Достаточно идеи своими словами: для кого сайт, какие разделы нужны и что должен делать посетитель. ТЗ не составляется — результатом будут версии сайта. Изображения прикладывать необязательно." },
+  { question: "Нужно ли покупать домен и оплачивать хостинг?", answer: "Для Cloudflare предусмотрена установка в рамках бесплатных лимитов сервисов. В инструкции HostiMan есть варианты с покупкой домена .ru и без неё; доступность технического адреса и расходы зависят от тарифа. Домен и платные услуги хостинга не входят в цену исходников или помощи." },
+  { question: "Подойдёт ли это для любой идеи?", answer: "Предложение подходит для небольших сайтов: портфолио, сайта услуг, лендинга или каталога. Онлайн-оплата, личные кабинеты, CRM-интеграции и сложная бизнес-логика обсуждаются отдельно. Цена относится к выбранной версии, которую вы увидите до покупки." },
+  { question: "Как оплатить и получить сайт?", answer: "После просмотра выберите версию, хостинг и нужный комплект на странице заявки. Кнопка покупки отправит мне запрос в Telegram. Оплату, подготовку комплекта и передачу обсудим в чате заявки — автоматического списания нет." },
+];
+---
+<details class="purchase-more"><summary>Примеры сайтов и ответы на вопросы</summary>
+  <section class="section builder-examples" id="examples" aria-labelledby="builder-examples-title">
+    <div class="section-head"><p class="kicker">От идеи к готовым страницам</p><h2 id="builder-examples-title">Что получается из одной фразы</h2></div>
+    <p class="builder-examples-intro">Откройте сайты, посмотрите страницы и попробуйте пример админки. Вот с каких описаний всё начиналось.</p>
+    <div class="builder-examples-grid">
+      {siteExamples.map(example => (
+        <article class="builder-example">
+          <a class="builder-example-preview" href={example.url} target="_blank" rel="noopener noreferrer" aria-label={`Открыть пример: ${example.title}`}>
+            <div class="builder-example-browser" aria-hidden="true"><span>● ● ●</span><span>{example.label}</span><span>↗</span></div>
+            <img src={example.preview} width="1440" height="1000" loading="lazy" decoding="async" alt={example.previewAlt} />
+          </a>
+          <div class="builder-example-copy">
+            <p class="kicker">Исходная идея</p>
+            <blockquote>«{example.idea}»</blockquote>
+            <h3>{example.title}</h3>
+            <p class="builder-example-description">{example.description}</p>
+            <div class="builder-example-links">
+              <a href={example.url} target="_blank" rel="noopener noreferrer">Открыть сайт ↗</a>
+              <a href={example.url.replace("index.html", "admin.html")} target="_blank" rel="noopener noreferrer">Пример админки ↗</a>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+    <p class="mvp-boundary-note">Это демонстрационные сайты с вымышленными данными. В примерах админок можно попробовать поля и кнопки, но изменения не сохраняются и не меняют сайт. В магазине нет реальных заказов и оплаты.</p>
+  </section>
+
+  <section class="mvp-simple-faq section" id="faq" aria-labelledby="mvp-faq-title">
+    <div class="section-head"><p class="kicker">Коротко об условиях</p><h2 id="mvp-faq-title">Ответы на вопросы</h2></div>
+    <div class="faq-list">
+      {faq.map(({ question, answer }) => <details><summary>{question}</summary><p>{answer}</p></details>)}
+    </div>
+  </section>
+</details>

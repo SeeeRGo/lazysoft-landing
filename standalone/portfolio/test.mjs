@@ -1,11 +1,11 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,rmSync,readFileSync,readdirSync,symlinkSync} from 'node:fs';
+import {mkdtempSync,rmSync,readFileSync,readdirSync,symlinkSync,writeFileSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {backup,DatabaseSync} from 'node:sqlite';
+import {backup,DatabaseSync} from './sqlite-compat.mjs';
 import {createApp} from './server.mjs';
 
 const rootKey='k'.repeat(43),replacement='n'.repeat(43);
@@ -82,10 +82,23 @@ test('login and upload throttles are persistent across restarts',async t=>{
 test('portable frontend has no hosted backend or remote script/style dependencies',()=>{
  for(const name of readdirSync(new URL('./public/',import.meta.url))){const s=readFileSync(new URL('./public/'+name,import.meta.url),'utf8');assert.ok(!/convex\.(site|cloud)|storage\.yandexcloud\.net/.test(s),name);assert.ok(!/<(?:script|link)[^>]+(?:src|href)=["']https?:/i.test(s),name)}
 });
+test('authenticated downloadable backup retains content, strips sessions, cleans temporary files',async t=>{
+ const f=await fixture(t),s=await login(f);
+ assert.equal((await f.post('save',s.token,{version:0,content})).status,200);
+ assert.equal((await f.post('backup')).status,401);
+ const r=await f.post('backup',s.token);assert.equal(r.status,200);assert.match(r.headers.get('content-disposition'),/attachment/);
+ const target=join(f.dataDir,'downloaded.sqlite');writeFileSync(target,Buffer.from(await r.arrayBuffer()));
+ const copy=new DatabaseSync(target);
+ try{assert.equal(copy.prepare('SELECT version FROM content').get().version,1);assert.equal(copy.prepare('SELECT count(*) n FROM sessions').get().n,0)}finally{copy.close()}
+ await new Promise(r=>setTimeout(r,30));assert.ok(!readdirSync(f.dataDir).some(n=>n.startsWith('download-')));
+ assert.equal((await f.post('backup',s.token)).status,200);
+ assert.equal((await f.post('backup',s.token)).status,429);
+});
 test('CLI startup through a release symlink (systemd deployment)',{timeout:10000},async()=>{
  const dir=mkdtempSync(join(tmpdir(),'portfolio-startup-test-'));
  symlinkSync(fileURLToPath(new URL('./server.mjs',import.meta.url)),join(dir,'server.mjs'));
- const child=spawn(process.execPath,[join(dir,'server.mjs')],{env:{...process.env,DATA_DIR:join(dir,'data'),PORT:'0',HOST:'127.0.0.1'},stdio:['ignore','pipe','pipe']});
+ const runtimeArgs=Number(process.versions.node.split('.')[0])===22?['--experimental-sqlite']:[];
+ const child=spawn(process.execPath,[...runtimeArgs,join(dir,'server.mjs')],{env:{...process.env,DATA_DIR:join(dir,'data'),PORT:'0',HOST:'127.0.0.1'},stdio:['ignore','pipe','pipe']});
  const closed=new Promise(r=>child.once('close',r));
  try{
   await new Promise((resolve,reject)=>{

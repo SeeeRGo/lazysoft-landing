@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Размещение портфолио — бюджетный хостинг</title>
+<style>
+@page{size:A4;margin:15mm 17mm}*{box-sizing:border-box}body{margin:0;color:#203a37;font:11pt/1.45 Arial,sans-serif}a{color:#16736b;text-decoration:underline;overflow-wrap:anywhere}h1{font-size:29pt;line-height:1.1;margin:10mm 0 6mm;letter-spacing:-.6pt}h2{font-size:21pt;line-height:1.2;margin:5mm 0}h3{font-size:12pt;margin:5mm 0 2mm}p{margin:2.5mm 0}ul,ol{margin:2.5mm 0;padding-left:6mm}li{margin:2mm 0}.page{height:267mm;position:relative;padding-bottom:13mm;break-after:page}.page:last-child{break-after:auto}.eyebrow{color:#14766e;font-size:9pt;font-weight:bold;letter-spacing:1.1pt;text-transform:uppercase}.lead{font-size:14pt;line-height:1.4}.card{padding:4mm 5mm;background:#edf4ef;border-left:3px solid #247f73;margin:4mm 0;break-inside:avoid}.warn{background:#fcf3e5;border-color:#b78129}.muted{color:#5c716d}.small{font-size:9.5pt}.footer{position:absolute;bottom:0;left:0;right:0;border-top:1px solid #ccd9d3;padding-top:3mm;font-size:8pt;color:#627873;display:flex;justify-content:space-between}table{border-collapse:collapse;width:100%;font-size:10pt;margin:4mm 0}th,td{padding:3mm;border-bottom:1px solid #d5dfd9;text-align:left;vertical-align:top}th{background:#edf4ef}pre{font:9pt/1.45 "DejaVu Sans Mono",monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f4f1;padding:3.5mm;margin:3mm 0;border:1px solid #dce4dc;break-inside:avoid}code{font-family:"DejaVu Sans Mono",monospace;font-size:9pt}.big{font-size:25pt;font-weight:bold;color:#14766e}.tag{display:inline-block;padding:1mm 3mm;border:1px solid #bfd1c9;border-radius:3mm;font-size:9pt}.sources{font-size:9.5pt}.sources li{margin:3mm 0}.check li{padding-left:1mm}
+</style></head><body>
+
+<section class="page">
+<div class="eyebrow">Lazysoft · инструкция владельцу сайта</div>
+<h1>Портфолио и админка<br>на бюджетном хостинге</h1>
+<p class="lead">Перенос автономного сайта на Beget.<br>Без Convex, отдельной платной базы и VPS.</p>
+<p><span class="tag">Проверка цен: 8 сентября 2026</span> <span class="tag">Для одного небольшого портфолио</span></p>
+<div class="card"><div class="big">5 040 ₽ в год</div><p>Beget Blog — эквивалент <b>420 ₽/месяц</b> при годовой оплате. Домен оплачивается отдельно, если своего ещё нет. Бесплатный SSL указан в тарифе. <a href="https://beget.com/ru/hosting/virtual">Источник: тарифы Beget</a>.</p></div>
+<h3>Почему выбран этот вариант</h3>
+<p>Это бюджетный вариант из проверенных предложений <b>без администрирования VPS</b>, а не обещание самой низкой цены во всём интернете. По документации Beget поддерживает нужный Node.js через Passenger. Совместимость конкретного аккаунта нужно проверить до оплаты.</p>
+<table><thead><tr><th>Вариант</th><th>Что увидели при проверке</th><th>Вывод</th></tr></thead><tbody>
+<tr><td>Blog, оплата за год</td><td>5 040 ₽/год; 12 ГБ</td><td>Основной путь этой инструкции</td></tr>
+<tr><td>Минимальный VPS Beget</td><td>В открытом конфигураторе: 11 ₽/день + 5 ₽/день IPv4 = 16 ₽/день</td><td>480 ₽ за 30 дней, 5 840 ₽ за 365 дней; ещё требуется обслуживание ОС</td></tr>
+</tbody></table>
+<p class="small muted">Цена VPS — расчёт по показанному итогу конфигуратора, не по рекламному «от 330 ₽/месяц». Итог корзины, регион и правила оплаты проверяйте при заказе. <a href="https://beget.com/ru/vps">Конфигуратор VPS</a>.</p>
+<div class="card warn"><b>Сначала тест, потом годовая оплата.</b><p>На странице хостинга заявлены 30 дней тестирования. Сначала подтвердите поддержку Node/SQLite и проверьте сайт на аккаунте. Не оплачивайте год ради скидки до успешной проверки.</p></div>
+<p><b>Не покупать для этого сайта:</b> MySQL/PostgreSQL, Convex, Redis, платную панель, Kubernetes, отдельное S3-хранилище и платный SSL. Они не нужны для текущего комплекта.</p>
+<div class="footer"><span>Автономное портфолио · бюджетное размещение</span><span>1 / 7</span></div>
+</section>
+
+<section class="page">
+<div class="eyebrow">Подготовка · до оплаты</div><h2>1. Проверьте хостинг<br>и получите комплект</h2>
+<h3>Создайте аккаунт на своё имя</h3>
+<p>Откройте <a href="https://beget.com/ru/hosting/virtual">виртуальный хостинг Beget</a>, выберите Blog и тестовый период, если он доступен. Аккаунт и домен должны принадлежать владельцу сайта, а не разработчику. Включите дополнительную защиту входа, если она предлагается.</p>
+<h3>Отправьте поддержке этот текст</h3>
+<div class="card small">Хочу разместить небольшой сайт с админкой на виртуальном хостинге Blog, без VPS. Нужны Ubuntu 22.04, официальный Node.js 24.15.0 x64 с модулем node:sqlite и Apache Passenger. База SQLite WAL с изображениями хранится в приватной папке вне public_html. Подтвердите постоянство файлов после перезапусков, поддержку блокировок SQLite на диске и доступ Passenger к каталогу приложения. Можно ли это проверить в тестовый период без доплат? Нужна помощь с точкой входа passenger.cjs и DocumentRoot app/webroot.</div>
+<p>Если ответ отрицательный или предлагается только старый Node — <b>не продолжайте оплату</b>. Попросите подходящий сервер/окружение. Наличие слова «Node.js» на сайте провайдера само по себе недостаточно.</p>
+<h3>Что получить от разработчика</h3>
+<ul>
+<li><b>Свежий архив <code>portfolio.tar.gz</code></b>: сайт, админка, backend, база с работами, изображения и история.</li>
+<li>Подтверждение, на какой момент актуальны данные. На время финального переноса не редактируйте старую админку.</li>
+<li>Доступ к своему домену/DNS. Для пробного запуска — технический домен с HTTPS, если хостинг его предоставляет.</li>
+</ul>
+<div class="card warn"><b>Не переносите секреты старой инфраструктуры.</b><p>В архиве не должно быть <code>.env</code>, ключей Яндекс Облака, авторизации Codex или старого ключа админки. Новый ключ создаётся на вашем хостинге. База и архив не должны лежать в публичной папке сайта.</p></div>
+<h3>Что уже проверено, а что нет</h3>
+<p>Автономная версия работает на отдельной VM Яндекс Облака: проверены HTTPS, админка, файлы и сохранность после перезагрузки. <b>Размещение на Beget ещё не проверено на реальном аккаунте</b>; эта инструкция опирается на их документацию и подготовленную совместимую точку входа.</p>
+<div class="footer"><span>Сначала совместимость, затем оплата</span><span>2 / 7</span></div>
+</section>
+
+<section class="page">
+<div class="eyebrow">Файлы и безопасные каталоги</div><h2>2. Загрузите сайт</h2>
+<p>Создайте в панели Beget <b>отдельный новый сайт</b>. Загрузите архив файловым менеджером или по SFTP в приватный каталог этого сайта, рядом с <code>public_html</code>, а не внутрь него.</p>
+<p>Распакуйте архив. Полученную папку <code>portfolio</code> переименуйте в <code>app</code>. Итоговая структура должна быть такой:</p>
+<pre>SITE/
+  .htaccess               ← настройка Passenger
+  public_html → app/webroot
+  app/
+    server.mjs
+    passenger.cjs
+    hosting.json           ← создадите из примера
+    public/                ← страницы, CSS и JavaScript
+    webroot/               ← только служебный .htaccess
+    data/
+      portfolio.sqlite     ← контент, файлы и история
+    tmp/
+      restart.txt</pre>
+<div class="card warn"><b>Критично:</b> <code>public_html</code> должен указывать на <code>app/webroot</code>, а не на <code>app</code>, <code>app/public</code> или <code>app/data</code>. В нашем варианте файлы и защитные заголовки отдаёт приложение. Не открывайте базу браузеру ради устранения ошибки доступа.</div>
+<h3>Настройте адрес</h3>
+<p>В редакторе файлов скопируйте содержимое <code>hosting.example.json</code> в новый <code>hosting.json</code> и подставьте адрес своего сайта:</p>
+<pre>{
+  "publicOrigin": "https://portfolio.example.com"
+}</pre>
+<p class="small"><code>portfolio.example.com</code> — пример, его нужно заменить. Без слеша в конце и без подкаталога. При смене технического домена на свой обновите этот файл и перезапустите приложение.</p>
+<h3>Права доступа</h3>
+<ul><li>Папка <code>app/data</code>: <b>700</b>.</li><li>Файл <code>portfolio.sqlite</code> и файлы ключей: <b>600</b>.</li><li>Владелец — пользователь, от которого хостинг запускает приложение.</li></ul>
+<p>Права выставляются через файловый менеджер. Не используйте <code>777</code>. Если Passenger не видит приватный каталог, обратитесь в поддержку с его точным путём.</p>
+<div class="footer"><span>Все данные остаются у владельца сайта</span><span>3 / 7</span></div>
+</section>
+
+<section class="page">
+<div class="eyebrow">Однократная техническая настройка</div><h2>3. Установите Node.js</h2>
+<p>Этот этап можно передать разработчику или поддержке. Обычному владельцу после установки терминал для редактирования портфолио не понадобится.</p>
+<h3>Войдите в нужное окружение</h3>
+<p>Откройте SSH-терминал из панели либо подключитесь по адресу, указанному в аккаунте. Затем войдите во внутреннее окружение Beget:</p>
+<pre>ssh localhost -p 222
+cat /etc/os-release</pre>
+<p>Нужна <b>Ubuntu 22.04</b>. На старом окружении 18.04 остановитесь и попросите поддержку сменить сервер. Следующие команды выполняются <b>внутри этого окружения</b>.</p>
+<h3>Установите отдельную копию Node для портфолио</h3>
+<p class="small">Команды ниже создают каталог в домашней папке аккаунта. Если <code>.local/portfolio-node</code> уже занят другим приложением, не перезаписывайте его.</p>
+<pre>cd
+mkdir -p .local/portfolio-node
+cd .local/portfolio-node
+curl -fL -O https://nodejs.org/dist/v24.15.0/node-v24.15.0-linux-x64.tar.xz
+tar -xJf node-v24.15.0-linux-x64.tar.xz --strip-components=1
+./bin/node -v
+pwd</pre>
+<p>Ожидаемая версия: <b>v24.15.0</b>. Запишите полный путь, который покажет <code>pwd</code>. Путь к исполняемому файлу — эта строка плюс <code>/bin/node</code>.</p>
+<div class="card"><b>Изоляция сайтов Beget.</b><p>По их инструкции веб-серверу нужно разрешить доступ к каталогу установленного Node через настройки изоляции/общего доступа. Попросите поддержку открыть только необходимый каталог Node, <b>не <code>app/data</code> и не всю домашнюю папку</b>.</p></div>
+<h3>Что не требуется</h3>
+<p>Не устанавливайте PM2, Docker daemon, MySQL или PostgreSQL. Не нужен <code>npm install</code>: этот комплект использует встроенные модули Node. Не нужно держать SSH-терминал открытым — процесс будет запускать Passenger.</p>
+<p class="small">Команды ориентированы на версию, указанную в документации Beget на дату проверки. Новую версию Node сначала проверяют тестами, затем обновляют рабочий сайт. <a href="https://beget.com/ru/kb/how-to/web-apps/node-js">Официальная инструкция по Node.js</a>.</p>
+<div class="footer"><span>Node.js 24.15.0 · без внешних npm-зависимостей</span><span>4 / 7</span></div>
+</section>
+
+<section class="page">
+<div class="eyebrow">Запуск приложения</div><h2>4. Настройте Passenger</h2>
+<p>В каталоге <code>SITE</code>, рядом с <code>public_html</code>, создайте <code>.htaccess</code> по образцу <code>app/beget.htaccess.example</code>. <b>Все пути в примере замените на реальные</b> из своего аккаунта:</p>
+<pre>PassengerEnabled on
+PassengerNodejs /home/u/ACCOUNT/.local/portfolio-node/bin/node
+PassengerAppRoot /home/u/ACCOUNT/SITE/app
+PassengerAppType node
+PassengerStartupFile passenger.cjs
+PassengerAppEnv production</pre>
+<p class="small">ACCOUNT, SITE и начальная часть <code>/home/u/…</code> — не готовые значения. Точный путь можно получить командой <code>pwd</code> в нужном каталоге. Запускать надо <code>passenger.cjs</code>, не <code>server.mjs</code>.</p>
+<h3>Свяжите публичную папку с webroot</h3>
+<p>Попросите поддержку настроить <code>public_html → app/webroot</code>. Либо, только для нового пустого сайта, из каталога SITE сохраните исходную папку и создайте ссылку:</p>
+<pre>mv public_html public_html.before-portfolio
+ln -s app/webroot public_html</pre>
+<p class="small">Не выполняйте это на существующем рабочем сайте или если резервное имя уже занято. Не удаляйте старую папку: она нужна для отката.</p>
+<h3>Проверьте окружение и создайте новый ключ</h3>
+<p>Перейдите в <code>app</code>. Вместо <code>NODE_BIN</code> в каждой команде вставьте полный путь к установленному <code>…/bin/node</code>:</p>
+<pre>NODE_BIN check-hosting.mjs
+NODE_BIN --test test.mjs
+NODE_BIN manage.mjs reset-key
+mkdir -p tmp
+touch tmp/restart.txt</pre>
+<p><code>NODE_BIN</code> здесь — обозначение для замены, не команда. Проверка окружения должна вывести PASS, тесты — <b>7 passed</b>. Если нет, не продолжайте: передайте сообщение об ошибке разработчику.</p>
+<div class="card warn"><b>Ключ входа:</b> команда <code>reset-key</code> выводит путь к приватному текстовому файлу, а не пароль в логах. Откройте этот файл в приватном файловом менеджере и сохраните ключ в менеджере паролей. При повторном выполнении команды прежний ключ и все сессии перестанут работать.</div>
+<div class="footer"><span>Обновление restart.txt перезапускает приложение</span><span>5 / 7</span></div>
+</section>
+
+<section class="page">
+<div class="eyebrow">Проверка и обслуживание</div><h2>5. Подключите HTTPS<br>и проверьте результат</h2>
+<ol>
+<li>Добавьте домен к сайту в панели. В текущем DNS настройте запись A на адрес, который показывает Beget. Проверьте, не осталось ли старого AAAA для этого же имени.</li>
+<li><b>Не меняйте MX и почтовые TXT-записи.</b> Перевод всех NS к другому провайдеру без переноса зоны может сломать почту. Для сайта обычно достаточно изменить нужную A-запись.</li>
+<li>Дождитесь обновления DNS и включите бесплатный SSL в панели. До появления корректного HTTPS <b>не вводите ключ админки</b>.</li>
+<li>Откройте <code>https://ВАШ-ДОМЕН/health</code>: ожидается <code>{"ok":true}</code>. Проверьте главную и четыре раздела портфолио.</li>
+<li>Откройте <code>https://ВАШ-ДОМЕН/admin.html</code>, войдите новым ключом. Загрузите тестовую работу и опубликуйте. Затем обновите <code>app/tmp/restart.txt</code> и убедитесь, что работа осталась. Уберите тестовую работу через админку.</li>
+</ol>
+<h3>Короткий контрольный список</h3>
+<ul class="check"><li>С телефона и компьютера нет обрезанного текста и горизонтальной прокрутки.</li><li>Изображение открывается, контакты ведут куда нужно.</li><li><code>/data/portfolio.sqlite</code>, <code>/hosting.json</code> и <code>/server.mjs</code> возвращают 404, а не скачиваются.</li><li>После перезапуска сайт работает, контент и файлы сохранились.</li><li>Оплата за год производится только после успешных проверок.</li></ul>
+<h3>Резервное копирование без платной базы</h3>
+<p>Из каталога <code>app</code> запускайте тем же полным путём Node:</p>
+<pre>NODE_BIN manage.mjs backup</pre>
+<p>Команда создаёт новую согласованную копию <code>backup-….sqlite</code> в <code>data</code> и выводит путь. Скачивайте копию через приватный файловый менеджер после важных правок и перед обновлениями. Храните хотя бы одну копию вне хостинга.</p>
+<p class="small">При частых правках попросите настроить ежедневный Cron с полным путём к Node и скрипту. Ручная команда не удаляет старые копии: следите за местом. Не копируйте только рабочий <code>portfolio.sqlite</code> при запущенном приложении — часть данных может ещё находиться в WAL.</p>
+<div class="footer"><span>История версий не заменяет резервную копию</span><span>6 / 7</span></div>
+</section>
+
+<section class="page">
+<div class="eyebrow">Если что-то пошло не так</div><h2>Справка и завершение переноса</h2>
+<table><thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead><tbody>
+<tr><td>500 / 502 / приложение не стартует</td><td>Node 24.15, реальные пути в .htaccess, passenger.cjs, права и доступ внутри изоляции. Смотрите журнал ошибок хостинга.</td></tr>
+<tr><td>«Запрос с другого сайта запрещён»</td><td>publicOrigin в hosting.json должен в точности совпадать с HTTPS-адресом браузера. После изменения обновите tmp/restart.txt.</td></tr>
+<tr><td>Ключ перестал работать</td><td>Сессия длится 15 минут — войдите снова. Если потерян сам ключ, выполните reset-key через приватный доступ к хостингу.</td></tr>
+<tr><td>Слишком много запросов</td><td>Подождите около минуты. Не повторяйте вход непрерывно: установлен лимит попыток.</td></tr>
+<tr><td>Не загружается файл</td><td>JPG, PNG, WebP или PDF; до 8 МиБ за файл. Всего до 100 файлов / 100 МиБ и 40 работ. Удаление работы не освобождает файл из истории автоматически.</td></tr>
+<tr><td>Нужен откат базы</td><td>Остановить приложение; сохранить текущий data; восстановить бэкап в новый пустой приватный каталог без старых WAL/SHM. Попросить разработчика проверить восстановление и сменить ключ.</td></tr>
+</tbody></table>
+<h3>Как перестать платить за старое демо</h3>
+<p>После проверки нового сайта согласуйте с разработчиком отключение прежней VM Яндекс Облака и судьбу её диска, зарезервированного IP и резервных копий. <b>Простая остановка VM не прекращает все расходы.</b> Не удаляйте инфраструктуру до сохранения проверенной копии и подтверждения переноса.</p>
+<p>Старое и новое демо не синхронизируются. После переезда редактируйте только новую админку. При последующих обновлениях кода <b>не заменяйте папку data старой базой из архива</b>.</p>
+<h3>Официальные источники</h3>
+<ul class="sources">
+<li><a href="https://beget.com/ru/hosting/virtual">beget.com/ru/hosting/virtual</a> — Blog, годовая стоимость, SSL, тестовый период.</li>
+<li><a href="https://beget.com/ru/vps">beget.com/ru/vps</a> — минимальный VPS и показанный итог с IPv4.</li>
+<li><a href="https://beget.com/ru/kb/how-to/web-apps/node-js">beget.com/ru/kb/how-to/web-apps/node-js</a> — версии Node, окружение и Passenger.</li>
+</ul>
+<p class="small muted">Документ подготовлен 08.09.2026 для автономного портфолио 03212396. Цены и интерфейсы могут измениться; итог заказа и совместимость аккаунта проверяются перед оплатой. Серверные команды требуют внимательной подстановки ваших путей. Реальные пароли, ключи и клиентские данные в PDF не включены.</p>
+<div class="footer"><span>PDF можно передать владельцу сайта или поддержке хостинга</span><span>7 / 7</span></div>
+</section>
+</body></html>

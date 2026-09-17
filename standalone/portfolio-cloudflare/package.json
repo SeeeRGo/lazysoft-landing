@@ -1,0 +1,14 @@
+{
+  "name": "lazysoft-portfolio-cloudflare",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "node deploy.mjs",
+    "test": "node test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.131.1"
+  }
+}

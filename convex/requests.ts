@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { enqueueInitial } from "./automation";
+import { enqueueInitial, event } from "./automation";
 
-const contactMethod = v.union(v.literal("telegram"), v.literal("email"), v.literal("max"));
+const contactMethod = v.union(v.literal("telegram"), v.literal("email"), v.literal("max"), v.literal("none"));
 const requestStatus = v.union(
   v.literal("received"),
   v.literal("in_progress"),
@@ -78,17 +78,23 @@ export const store = internalMutation({
     accessTokenHash: v.optional(v.string()),
     adminTokenHash: v.optional(v.string()),
     deliveryTokenCiphertext: v.optional(v.string()),
+    ownerNotificationText: v.optional(v.string()),
     requestType: v.optional(v.union(v.literal("mvp"), v.literal("crm"), v.literal("mobile"))),
   },
-  returns: v.object({ created: v.boolean() }),
+  returns: v.object({ created: v.boolean(), requestId: v.string() }),
   handler: async (ctx, args) => {
+    if (args.accessTokenHash) {
+      const prior = await ctx.db.query("mvpRequests").withIndex("by_access_token_hash", q => q.eq("accessTokenHash", args.accessTokenHash)).unique();
+      if (prior) return { created: false, requestId: prior.requestId };
+    }
     const existing = await ctx.db
       .query("mvpRequests")
       .withIndex("by_request_id", (q) => q.eq("requestId", args.requestId))
       .unique();
-    if (existing) return { created: false };
+    if (existing) return { created: false, requestId: existing.requestId };
+    const { ownerNotificationText, ...record } = args;
     await ctx.db.insert("mvpRequests", {
-      ...args,
+      ...record,
       status: "received",
       updatedAt: args.receivedAt,
     });
@@ -103,7 +109,8 @@ export const store = internalMutation({
     if (process.env.REQUEST_AUTOMATION_ENABLED === "true" && args.requestType === "mvp" && args.accessTokenHash && args.adminTokenHash) {
       await enqueueInitial(ctx, args.requestId);
     }
-    return { created: true };
+    if (ownerNotificationText) await event(ctx, args.requestId, "request_received", "once", ownerNotificationText.slice(0, 3800));
+    return { created: true, requestId: args.requestId };
   },
 });
 

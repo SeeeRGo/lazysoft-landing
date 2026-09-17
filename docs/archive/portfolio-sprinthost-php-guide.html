@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Портфолио на Sprinthost — инструкция владельцу</title>
+<style>
+@page{size:A4;margin:14mm 16mm}*{box-sizing:border-box}body{margin:0;color:#233c39;font:11pt/1.43 Arial,sans-serif;counter-reset:sheet}a{color:#126c65;text-decoration:underline;overflow-wrap:anywhere}h1{font-size:31pt;line-height:1.12;letter-spacing:-.6pt;margin:7mm 0 5mm}h2{font-size:23pt;line-height:1.15;margin:4mm 0 5mm}h3{font-size:12pt;margin:4mm 0 2mm}p{margin:2.5mm 0}ol,ul{padding-left:6mm;margin:3mm 0}li{margin:2.5mm 0}.page{height:269mm;position:relative;padding-bottom:13mm;break-after:page;counter-increment:sheet}.page:last-child{break-after:auto}.kicker{font-size:8.5pt;font-weight:bold;letter-spacing:1.2pt;text-transform:uppercase;color:#197b72}.lead{font-size:14pt;line-height:1.4}.note{background:#edf3ed;border-left:3px solid #2d8178;padding:3.5mm 4mm;margin:4mm 0;break-inside:avoid}.warning{background:#fff3e0;border-color:#b8791c}.stop{background:#faebe7;border-color:#b45141}.small{font-size:9.5pt}.muted{color:#617570}.footer{position:absolute;bottom:0;left:0;right:0;padding-top:2.5mm;border-top:1px solid #cbd8d1;display:flex;justify-content:space-between;font-size:8pt;color:#657771}.number:after{content:counter(sheet) ' / 14'}figure{margin:4mm 0}figure img{max-width:100%;display:block}figcaption{font-size:8pt;color:#62756e;line-height:1.35;margin-top:2mm}.shot{border:1px solid #d5ddd6;border-radius:2mm;overflow:hidden;background:#f8f7f3}.shot img{width:100%;max-width:none}.cols{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.cols.aside{grid-template-columns:82mm 1fr;gap:7mm}.cols p:first-child{margin-top:0}.steps{display:grid;grid-template-columns:7mm 1fr;gap:2mm;margin:3mm 0}.badge{display:inline-flex;align-items:center;justify-content:center;background:#237e74;color:white;width:6mm;height:6mm;border-radius:50%;font-size:9pt;font-weight:bold}.steps p{margin:0}table{border-collapse:collapse;width:100%;margin:3mm 0;font-size:10pt}td,th{text-align:left;vertical-align:top;padding:2.5mm;border-bottom:1px solid #d7dfd9}th{background:#edf3ed}code{font-family:'DejaVu Sans Mono',monospace;font-size:9pt;overflow-wrap:anywhere}pre{padding:4mm;background:#f1f4ef;border:1px solid #d5dfd6;white-space:pre-wrap;overflow-wrap:anywhere;font:9pt/1.5 'DejaVu Sans Mono',monospace;margin:3mm 0}.contents{display:grid;grid-template-columns:1fr 1fr;gap:2mm 7mm;font-size:10pt}.contents a{text-decoration:none;border-bottom:1px solid #d5dfd6;padding:1.5mm 0}.inline-icon{height:7mm;width:auto;vertical-align:middle}.check{list-style:none;padding-left:0}.check li:before{content:'□';margin-right:3mm;color:#217b71}.source{font-size:8pt;color:#64756f}.plain-link{font-size:10pt}.result{font-weight:bold;color:#176d63}
+#config td:first-child{width:40mm}#config td:first-child code{white-space:nowrap}
+</style></head><body>
+
+<section class="page" id="start">
+<div class="kicker">Lazysoft · инструкция владельцу · 8 сентября 2026</div>
+<h1>Ваше портфолио<br>на Sprinthost</h1>
+<p class="lead">Как разместить сайт, добавить работы<br>и сохранить доступ к админке.</p>
+<p>Без командной строки. Для готового комплекта <b>PHP + MySQL</b>. Версия с Node.js из предыдущей инструкции здесь не используется.</p>
+<figure><div class="shot" style="height:87mm"><img src="assets/sprinthost-guide/index-1366.png" alt="Главная страница переносимого портфолио"></div><figcaption>Реальный скриншот локально проверенного сайта. Здесь показан верх страницы; ваши тексты и работы будут другими.</figcaption></figure>
+<div class="note"><b>Если сайт уже установлен:</b> сразу переходите на <a href="#login">стр. 10 — вход в админку</a>. Регистрацию, базу и установку повторять не нужно.</div>
+<div class="contents">
+<a href="#registration">2 · Где искать бесплатный хостинг</a><a href="#prepare">3 · Что подготовить</a>
+<a href="#database">4 · Создать базу данных</a><a href="#https">5 · Адрес и безопасное соединение</a>
+<a href="#files">6 · Загрузить файлы</a><a href="#config">7 · Заполнить настройки</a>
+<a href="#import">8 · Подготовить базу</a><a href="#install">9 · Запустить сайт</a>
+<a href="#login">10–12 · Редактировать портфолио</a><a href="#backup">13–14 · Копии и помощь</a>
+</div>
+<p class="small muted">Панель Sprinthost показана по официальной справке, админка — по нашему тестовому комплекту. Это не отчёт об установке в вашем аккаунте.</p>
+<div class="footer"><span>Начните с нужного раздела</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="registration">
+<div class="kicker">Разовая установка · шаг 1</div><h2>Найдите нужную регистрацию</h2>
+<p>Откройте <a href="https://free.sprinthost.ru/">https://free.sprinthost.ru/</a>. Бесплатное предложение находится на отдельной странице, а не обязательно в списке обычных тарифов.</p>
+<figure><div class="shot" style="height:105mm"><img src="assets/sprinthost-guide/free-hosting.png" alt="Официальная страница бесплатного хостинга с кнопкой регистрации"></div><figcaption>Фрагмент официальной страницы от 08.09.2026. Нужна розовая кнопка в центре. <a href="https://free.sprinthost.ru/">Источник</a>.</figcaption></figure>
+<div class="steps"><span class="badge">1</span><p>Нажмите <b>«Получить хостинг бесплатно»</b>. Можно попробовать <a href="https://cp.sprinthost.ru/quick-register/auth-in-demo?package=free1">прямую ссылку на регистрацию Free</a>.</p></div>
+<div class="steps"><span class="badge">2</span><p>Если открывается только вход или платный тариф — попробуйте отдельное окно браузера в режиме инкогнито. Если это не помогло, остановитесь.</p></div>
+<div class="note stop"><b>Не оплачивайте тариф ради продолжения инструкции.</b><p>Публичная страница есть, но успешная регистрация нового бесплатного аккаунта нами не подтверждена. Также пока не подтверждена доступность всех нужных функций на нём.</p></div>
+<p class="small">Напишите на <a href="mailto:support@sprinthost.ru">support@sprinthost.ru</a>: «Не получается зарегистрироваться на бесплатном тарифе free1. Доступен ли он новым пользователям? Нужны PHP 8.3, MySQL и HTTPS для небольшого сайта с админкой».</p>
+<div class="footer"><span>Дальше — только после подтверждения подходящего аккаунта</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="prepare">
+<div class="kicker">Перед установкой</div><h2>Получите комплект и доступы</h2>
+<p>Попросите разработчика прислать свежий архив <b>portfolio-sprinthost.tar.gz</b>. Если он не открывается на вашем компьютере — попросите такой же комплект в ZIP. Не используйте старый архив для Beget или Node.js.</p>
+<table><tr><th>Что это</th><th>Для чего нужно</th></tr>
+<tr><td><b>Аккаунт Sprinthost</b></td><td>Оплата, домен, файлы и база. Он должен принадлежать вам.</td></tr>
+<tr><td><b>Адрес сайта</b></td><td>Ссылка, которую вы даёте посетителям. Технический адрес можно использовать, только если на нём работает HTTPS.</td></tr>
+<tr><td><b>Данные базы</b></td><td>Служебные настройки. Вы получите их на следующем шаге.</td></tr>
+<tr><td><b>INSTALL-KEY.txt</b></td><td>Секретный ключ для первой установки и входа в админку. Он находится в комплекте.</td></tr></table>
+<div class="note"><b>Три разных доступа — не путайте их.</b><p>Пароль Sprinthost, пароль базы и ключ админки — разные вещи. Храните их в менеджере паролей, не в общедоступном документе.</p></div>
+<h3>Что находится внутри распакованной папки site</h3>
+<pre>public_html/       — страницы сайта и админки
+private/           — закрытые настройки и данные переноса
+schema.sql         — файл первоначальной настройки базы
+INSTALL-KEY.txt    — секретный ключ
+README.md          — подробности для разработчика</pre>
+<h3>Самый простой путь для владельца</h3>
+<p>Если вы не хотите разбираться с файлами настроек, передайте разработчику <b>разовую установку по страницам 4–9</b>. После неё всё редактируется через обычную форму — страницы 10–12.</p>
+<p class="small muted">До окончательного переноса не меняйте работы в старой админке: два сайта не синхронизируются. Уточните у разработчика, на какую дату сделан архив.</p>
+<div class="footer"><span>Архив и ключ не должны быть доступны посетителям</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="database">
+<div class="kicker">Разовая установка · шаг 2</div><h2>Создайте отдельную базу</h2>
+<p>База — это хранилище текстов, изображений и истории. Откройте в панели <b>«Базы данных» → «Добавить базу данных»</b>.</p>
+<figure><div class="shot"><img src="assets/sprinthost-guide/database-create.png" alt="Форма создания MySQL базы в Sprinthost"></div><figcaption>Скриншот из <a href="https://help.sprinthost.ru/control-panel/dumpdb">официальной справки Sprinthost</a>. login_dbname — пример, не ваши данные.</figcaption></figure>
+<div class="steps"><span class="badge">1</span><p>Выберите <b>MySQL</b>, не PostgreSQL.</p></div>
+<div class="steps"><span class="badge">2</span><p>Укажите название, например <b>portfolio</b>. Сохраните полное имя с добавленным панелью префиксом.</p></div>
+<div class="steps"><span class="badge">3</span><p>Сгенерируйте надёжный пароль, сохраните его и нажмите <b>«Создать»</b>.</p></div>
+<div class="note"><b>Сохраните четыре значения:</b> сервер базы, полное имя базы, имя пользователя и пароль. Они понадобятся на странице 7.</div>
+<p class="small">Используйте новую пустую базу. Если в выбранной базе уже есть таблицы другого сайта — не продолжайте и ничего не удаляйте.</p>
+<div class="footer"><span>Результат: отдельная пустая MySQL-база</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="https">
+<div class="kicker">Разовая установка · шаг 3</div><h2>Подготовьте адрес и HTTPS</h2>
+<ol>
+<li>Откройте раздел <b>«Сайты»</b>. Если нужный сайт уже создан, используйте его. Иначе выберите «Добавить сайт» и укажите домен, которым вы владеете.</li>
+<li>В разделе <b>«Сайты» → «Мои сайты»</b> найдите настройки SSL нужного адреса. По справке Sprinthost бесплатный Let’s Encrypt включается переключателем возле домена.</li>
+<li>Дождитесь выпуска сертификата. Откройте адрес с <b>https://</b>. Браузер не должен показывать предупреждение о небезопасном соединении.</li>
+<li>В <b>«Сайты» → «Веб-серверы»</b> выберите для этого сайта <b>PHP 8.3</b>, если доступен. Наша версия проверена на PHP 8.3; минимально требуется 8.1.</li>
+</ol>
+<div class="note warning"><b>Бесплатный адрес ≠ гарантированный HTTPS.</b><p>Для некоторых бесплатных зон сертификат не выпускается. Уточните возможности именно вашего технического адреса. Если HTTPS недоступен, не вводите ключ: может понадобиться собственный домен или другой тариф.</p></div>
+<h3>Готовый текст разработчику для проверки настроек</h3>
+<div class="note small">Проверьте мой сайт перед установкой: PHP 8.3 и pdo_mysql; отдельная MySQL-база с InnoDB; max_allowed_packet от 16 МБ; memory_limit от 256 МБ; post_max_size от 16 МБ; max_execution_time от 60 секунд. Нужен доступ PHP к папке private рядом с public_html, передача Authorization в PHP и HTTPS для всего сайта. В комплекте есть .user.ini и .htaccess. Проверьте, применяются ли они на этом аккаунте. Показ ошибок посетителям должен быть выключен.</div>
+<p class="small">Это проверка совместимости, не список платных услуг. Терминал, VPS, Node.js и Convex для этого комплекта не нужны.</p>
+<p class="source">Официальные ориентиры: <a href="https://help.sprinthost.ru/control-panel/certificates">сертификаты</a>, <a href="https://help.sprinthost.ru/faq/php">настройки PHP</a>, <a href="https://help.sprinthost.ru/howto/https">HTTPS</a>. На бесплатном тарифе помощь с настройкой сайта может не предоставляться.</p>
+<div class="footer"><span>Не обходите предупреждения браузера о сертификате</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="files">
+<div class="kicker">Разовая установка · шаг 4</div><h2>Разложите файлы по папкам</h2>
+<p>В файловом менеджере откройте <b>domains → папку вашего сайта</b>. Внутри уже должна быть папка <b>public_html</b>. Не перепутайте её с папкой другого сайта.</p>
+<div class="note small"><img class="inline-icon" src="assets/sprinthost-guide/upload-icon.png" alt="Загрузить файл"> — загрузить файл. <img class="inline-icon" src="assets/sprinthost-guide/extract-icon.png" alt="Извлечь архив"> — извлечь архив. Значки приведены из <a href="https://help.sprinthost.ru/important/move">официальной справки</a>; их вид может измениться.</div>
+<p>Загрузите и распакуйте комплект <b>в папке домена, рядом с public_html, не внутри неё</b>. Архив создаст папку <b>site</b>. Из неё перенесите <b>private</b> на уровень папки домена, а содержимое её <b>public_html</b> — в уже существующую public_html сайта.</p>
+<h3>Итоговая раскладка — схема, не экран панели</h3>
+<pre>domains/
+  ВАШ-ДОМЕН/
+    private/             ← закрытая папка
+      config.php
+      app.php
+      install.php
+      seed.json
+    public_html/         ← видно посетителям
+      index.html
+      admin.html
+      api.php
+      asset.php
+      install.php
+      .htaccess
+      .user.ini
+      … остальные файлы страниц и оформления</pre>
+<div class="note stop"><b>Внутри public_html не должно быть:</b> private, архива, schema.sql, INSTALL-KEY.txt, README и папки site целиком. Закрытые данные нельзя открывать посетителям.</div>
+<p class="small">Включите показ скрытых файлов, чтобы перенести .htaccess и .user.ini. Если в новом сайте есть стандартная заглушка index.php — сохраните её копию вне public_html и удалите только эту заглушку. Чужие файлы не заменяйте без резервной копии.</p>
+<p class="small">Права private: 700, файлов внутри: 600, если PHP работает от вашего пользователя. Если доступ не работает — попросите разработчика проверить владельца файлов. Не ставьте 777.</p>
+<div class="footer"><span>Результат: private и public_html стоят рядом</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="config">
+<div class="kicker">Разовая установка · шаг 5</div><h2>Свяжите сайт с новой базой</h2>
+<p>В файловом менеджере откройте <b>private → config.php → редактирование</b>. Это единственный файл, в котором нужно подставить ваши реквизиты. Остальной код менять не нужно.</p>
+<table><tr><th>Поле</th><th>Что подставить</th></tr>
+<tr><td><code>dsn</code></td><td>После <code>host=</code> — сервер базы из панели; после <code>dbname=</code> — полное имя базы. Остальную часть строки сохраните.</td></tr>
+<tr><td><code>user</code></td><td>Имя пользователя базы — не почту и не логин админки.</td></tr>
+<tr><td><code>password</code></td><td>Пароль базы, созданный на странице 4.</td></tr>
+<tr><td><code>origin</code></td><td>Адрес сайта с https://, без / в конце и без admin.html.</td></tr>
+<tr><td><code>setup_key_hash</code></td><td><b>Не меняйте.</b> Это готовая служебная строка из вашего комплекта, не сам ключ.</td></tr></table>
+<h3>Пример четырёх строк — значения вымышленные</h3>
+<pre>'dsn' => 'mysql:host=localhost;dbname=login_portfolio;charset=utf8mb4',
+'user' => 'login_portfolio',
+'password' => 'ВАШ_ПАРОЛЬ_БАЗЫ',
+'origin' => 'https://portfolio.example.com',</pre>
+<p class="small">В примере <b>localhost</b> — только пример сервера. Используйте значение из своей панели. Полное имя базы может отличаться от короткого названия portfolio.</p>
+<div class="note warning"><b>Сохраните кавычки, запятые и остальные строки.</b><p>Если в пароле есть одинарная кавычка <code>'</code> или обратная косая черта <code>\</code>, попросите разработчика корректно записать его в PHP. Не упрощайте пароль и не вставляйте реквизиты в случайный онлайн-конвертер.</p></div>
+<p>Нажмите <b>«Сохранить»</b>. Если редактирование кода некомфортно, просто передайте этот этап разработчику через согласованный защищённый канал. Не отправляйте скриншот файла в публичный чат.</p>
+<p class="result">Результат: файл сохранён вне public_html, значения совпадают с вашей базой и адресом сайта.</p>
+<div class="footer"><span>Пароль хостинга и ключ админки сюда не вставляются</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="import">
+<div class="kicker">Разовая установка · шаг 6</div><h2>Подготовьте таблицы базы</h2>
+<p>В панели откройте <b>«Базы данных» → вход в phpMyAdmin</b>. Это отдельное окно для работы с базой.</p>
+<figure><div class="shot"><img src="assets/sprinthost-guide/database-import.png" alt="Вкладка Импорт в phpMyAdmin"></div><figcaption>Скриншот из <a href="https://help.sprinthost.ru/control-panel/dumpdb">официальной справки Sprinthost</a>. Это более ранний вид phpMyAdmin; ориентируйтесь на названия вкладок.</figcaption></figure>
+<div class="steps"><span class="badge">1</span><p>Слева выберите именно <b>новую пустую базу</b>.</p></div>
+<div class="steps"><span class="badge">2</span><p>Сверху откройте <b>«Импорт»</b>, нажмите «Обзор» или «Выбрать файл».</p></div>
+<div class="steps"><span class="badge">3</span><p>На компьютере выберите <b>schema.sql</b> из комплекта. Не seed.json и не весь архив.</p></div>
+<div class="steps"><span class="badge">4</span><p>Оставьте формат SQL и кодировку UTF-8. Нажмите кнопку выполнения: она может называться «Вперёд», «Импорт» или «ОК».</p></div>
+<div class="note"><b>Результат:</b> сообщение об успехе и шесть таблиц: pf_settings, pf_content, pf_assets, pf_sessions, pf_limits, pf_history.</div>
+<p class="small">Если таблицы уже есть или появилась ошибка — не запускайте импорт повторно и не удаляйте их. Покажите разработчику текст ошибки без паролей.</p>
+<p>Пока база почти пустая. Существующие работы перенесутся на следующем шаге.</p>
+<div class="footer"><span>Этот шаг выполняется один раз</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="install">
+<div class="kicker">Разовая установка · шаг 7</div><h2>Включите сайт и проверьте его</h2>
+<div class="steps"><span class="badge">1</span><p>В адресной строке откройте <b>https://ВАШ-ДОМЕН/install.php</b>. Замените ВАШ-ДОМЕН настоящим адресом сайта.</p></div>
+<div class="steps"><span class="badge">2</span><p>Откройте INSTALL-KEY.txt на компьютере. Скопируйте ключ целиком, без лишних пробелов. Вставьте в поле установщика и нажмите <b>«Установить»</b>.</p></div>
+<div class="steps"><span class="badge">3</span><p>Дождитесь сообщения <b>«Сайт установлен»</b>. Не закрывайте страницу во время переноса.</p></div>
+<div class="steps"><span class="badge">4</span><p>В файловом менеджере удалите только <b>public_html/install.php</b> и <b>private/seed.json</b>. Сохраните исходный архив у себя.</p></div>
+<div class="note warning"><b>Не удаляйте private/config.php или private/app.php.</b><p>Они нужны работающему сайту. Повторная установка в уже заполненную базу запрещена: это защита, а не повод очищать её.</p></div>
+<h3>Пять проверок перед передачей ссылки посетителям</h3>
+<ul class="check">
+<li>Главная открывается по HTTPS без предупреждений.</li>
+<li>Открываются все четыре раздела работ. Пустые разделы могут показывать «Работы скоро появятся».</li>
+<li>Тексты и изображения совпадают с переданным архивом.</li>
+<li>Админка открывается по адресу с <b>/admin.html</b>.</li>
+<li>После открытия сайта на телефоне всё читается и нет горизонтальной прокрутки.</li>
+</ul>
+<h3>Проверка закрытых файлов — без ввода ключей</h3>
+<p class="small">Добавьте к адресу сайта по очереди <code>/private/config.php</code>, <code>/INSTALL-KEY.txt</code> и <code>/schema.sql</code>. Должна появляться ошибка 403/404 или страница «не найдено», а не содержимое файла. Если файл скачивается — остановите публикацию и позовите разработчика; раскрытые ключи и пароли нужно заменить.</p>
+<p class="small muted">Смена основного домена — отдельный этап. Не меняйте DNS и настройки почты вслепую. После смены адреса разработчик должен обновить origin в config.php.</p>
+<div class="footer"><span>Результат: сайт доступен, установочные данные убраны</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="login">
+<div class="kicker">Повседневная работа · можно начать отсюда</div><h2>Войдите и измените тексты</h2>
+<p>Откройте <b>https://ВАШ-ДОМЕН/admin.html</b>. Это админка самого портфолио, не панель Sprinthost.</p>
+<figure><div class="shot" style="height:76mm"><img src="assets/sprinthost-guide/admin-login.png" alt="Вход в админку: поле секретного ключа и кнопка Войти"></div><figcaption>Реальная страница входа из локального комплекта. Поле на снимке пустое: секретные ключи в инструкцию не включены.</figcaption></figure>
+<ol>
+<li>Вставьте действующий секретный ключ в поле и нажмите <b>«Войти»</b>. После первой установки это ключ из INSTALL-KEY.txt. Если ключ уже меняли, нужен последний сохранённый.</li>
+<li>В разделе <b>«О вас»</b> заполните имя, заголовок, описание, почту, Telegram и цены. Эти тексты появятся на сайте.</li>
+<li>Нажмите <b>«Опубликовать изменения»</b>. Простого ввода текста недостаточно.</li>
+<li>Откройте сайт в другой вкладке и обновите страницу, чтобы увидеть результат.</li>
+</ol>
+<div class="note"><b>Вход действует 15 минут.</b><p>Если сессия закончилась, войдите снова. Не обновляйте вкладку с несохранённым текстом: форма старается сохранить его до повторного входа, но после закрытия вкладки он может пропасть.</p></div>
+<p class="small">Обычная ссылка на админку не даёт права редактировать сайт — для входа нужен ключ. Не вставляйте его в адрес страницы и не добавляйте к ссылке.</p>
+<div class="footer"><span>Сначала редактирование, затем публикация</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="works">
+<div class="kicker">Повседневная работа</div><h2>Добавьте работу в портфолио</h2>
+<div class="cols aside">
+<figure style="margin-top:0"><div class="shot" style="height:188mm"><img src="assets/sprinthost-guide/admin-390.png" style="margin-top:-280mm" alt="Фрагмент редактора работы: название, категория, описание и файлы"></div><figcaption>Фрагмент реального мобильного экрана проверенной админки. На компьютере поля те же.</figcaption></figure>
+<div>
+<div class="steps"><span class="badge">1</span><p>В разделе «Работы» нажмите <b>«+ Добавить работу»</b>.</p></div>
+<div class="steps"><span class="badge">2</span><p>Напишите название и выберите категорию: обложки, развороты, журналы или логотипы.</p></div>
+<div class="steps"><span class="badge">3</span><p>Добавьте описание. В поле изображения выберите файл и дождитесь сообщения о загрузке.</p></div>
+<div class="steps"><span class="badge">4</span><p>Если это журнал, при желании прикрепите PDF. Для остальных работ он не нужен.</p></div>
+<div class="steps"><span class="badge">5</span><p>Нажмите <b>«Опубликовать изменения»</b> и проверьте нужный раздел сайта.</p></div>
+<div class="note small"><b>Ограничения:</b><br>JPG, PNG, WebP;<br>до 8 МБ на файл;<br>до 40 работ;<br>до 100 файлов / 100 МБ суммарно.</div>
+<p class="small">«Выше» и «Ниже» меняют порядок. «Удалить работу» убирает её из списка после публикации, но файл может оставаться для истории.</p>
+<p class="small">Загружайте только материалы, которые можно показывать посетителям. Это не место для приватных документов.</p>
+</div></div>
+<div class="footer"><span>Загрузка файла не заменяет кнопку публикации</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="security">
+<div class="kicker">Повседневная работа</div><h2>Доступ и история изменений</h2>
+<div class="cols aside">
+<figure style="margin-top:0"><div class="shot" style="height:132mm"><img src="assets/sprinthost-guide/admin-390.png" style="margin-top:-490mm" alt="Безопасность и история изменений в админке"></div><figcaption>Нижняя часть реальной страницы админки. Новый ключ на скриншоте не показан.</figcaption></figure>
+<div><h3 style="margin-top:0">Завершить доступ сейчас</h3><p>Нажмите <b>«Завершить все сессии»</b>. Все открытые сеансы редактирования закончатся. Сам ключ останется действующим.</p>
+<h3>Заменить ключ</h3><ol class="small"><li>Нажмите «Подготовить новый ключ».</li><li>Нажмите «Скачать ключ» и сохраните файл приватно.</li><li>Нажмите «Применить новый ключ».</li><li>Войдите заново новым ключом.</li></ol>
+<p class="small">Старый ключ больше не подойдёт. Сделайте это после передачи сайта от разработчика или если ключ мог попасть к постороннему.</p></div></div>
+<h3>Как вернуть предыдущий вариант текстов и работ</h3>
+<p>Нажмите <b>«Загрузить историю»</b>, найдите нужную версию и откройте её в форме. Проверьте результат и нажмите <b>«Опубликовать изменения»</b>. Само открытие версии сайт не меняет.</p>
+<div class="note warning"><b>История не заменяет резервную копию.</b><p>Она хранится в той же базе. При удалении базы понадобится отдельная копия со следующей страницы. Если ключ потерян, обратитесь к разработчику — не запускайте установку заново.</p></div>
+<div class="footer"><span>Новый ключ сначала сохраняют и только потом применяют</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="backup">
+<div class="kicker">Обслуживание · раз в неделю и перед крупными изменениями</div><h2>Сохраните резервную копию</h2>
+<p>Во время копирования не редактируйте сайт. Откройте его базу в phpMyAdmin, выберите <b>«Экспорт»</b>, формат <b>SQL</b>, все таблицы <b>pf_</b> и скачайте файл на компьютер.</p>
+<figure><div class="shot"><img src="assets/sprinthost-guide/database-export.png" alt="Экспорт базы данных в phpMyAdmin"></div><figcaption>Официальный скриншот <a href="https://help.sprinthost.ru/control-panel/dumpdb">Sprinthost</a>. Внешний вид может отличаться; нужна вкладка «Экспорт».</figcaption></figure>
+<h3>Держите две части копии</h3>
+<table><tr><th>Часть</th><th>Что сохранять</th></tr><tr><td><b>База в SQL</b></td><td>Тексты, изображения, PDF и история. Скачивайте заново после важных изменений.</td></tr><tr><td><b>Файлы сайта</b></td><td>Исходный комплект и актуальные папки public_html и private, включая config.php. Ключ храните отдельно в менеджере паролей.</td></tr></table>
+<p>Добавьте дату к имени копии. Храните хотя бы две последние версии <b>не на том же хостинге</b> — например, на компьютере и в закрытом резервном хранилище.</p>
+<div class="note warning"><b>Не публикуйте SQL-файл и config.php.</b><p>В копиях есть служебные данные доступа. При восстановлении попросите разработчика сначала сохранить текущую базу, затем восстановить копию и отозвать старые сессии.</p></div>
+<h3>Если используете Sprinthost Free</h3>
+<p>Поставьте напоминание заходить в панель каждые <b>25 дней</b>: официальное условие — не реже одного раза в 30 дней. Посещения вашего сайта клиентами этот вход не заменяют. <a href="https://free.sprinthost.ru/">Условия Free</a>.</p>
+<div class="footer"><span>Проверяйте, что скачанный файл существует и не пустой</span><span class="number"></span></div>
+</section>
+
+<section class="page" id="help">
+<div class="kicker">Если что-то пошло не так</div><h2>Не начинайте установку заново</h2>
+<table class="small"><tr><th style="width:35%">Что видите</th><th>Что делать</th></tr>
+<tr><td>Нет бесплатного тарифа</td><td>Вернитесь на стр. 2. Уточните регистрацию у Sprinthost. Не оплачивайте неизвестный тариф.</td></tr>
+<tr><td>Предупреждение HTTPS</td><td>Не вводите ключ. Проверьте адрес и сертификат с разработчиком или хостингом.</td></tr>
+<tr><td>Стандартная заглушка</td><td>Проверьте папку домена, вложенность public_html и стартовый index.php. Не трогайте файлы другого сайта.</td></tr>
+<tr><td>«Сервис временно недоступен»</td><td>Разработчику проверить PHP, реквизиты config.php, импорт schema.sql и доступ к private.</td></tr>
+<tr><td>«Установка уже выполнена»</td><td>Откройте /admin.html. Повторный запуск установщика заблокирован специально.</td></tr>
+<tr><td>Ключ не принимается</td><td>Проверьте последний сохранённый ключ и пробелы. После многих попыток подождите 1–2 минуты. Если не помогло — разработчику проверить передачу Authorization.</td></tr>
+<tr><td>Файл не загружается</td><td>Проверьте формат, размер до 8 МБ и свободное место. При меньшем файле и повторной ошибке нужны проверки лимитов PHP/MySQL.</td></tr>
+<tr><td>Изменений не видно</td><td>Нажмите «Опубликовать изменения», обновите сайт. Убедитесь, что смотрите новый адрес, а не старую демоверсию.</td></tr>
+<tr><td>«Версия изменилась…»</td><td>Скопируйте несохранённый текст себе, затем обновите страницу и внесите изменения поверх актуальной версии.</td></tr></table>
+<h3>Что отправить при обращении за помощью</h3>
+<p class="small">Адрес сайта, номер шага инструкции, точный текст ошибки и скриншот без паролей. Не присылайте публично ключ, содержимое config.php, SQL-копию или архив сайта.</p>
+<p class="small"><b>Sprinthost:</b> <a href="mailto:support@sprinthost.ru">support@sprinthost.ru</a> — аккаунт и возможности тарифа.<br><b>Разработчик Lazysoft:</b> <a href="mailto:hello@lazysoft.ru">hello@lazysoft.ru</a> · <a href="https://t.me/SeeeRGo88">Telegram @SeeeRGo88</a> — установка и работа этого комплекта.</p>
+<p class="source">Подготовлено 08.09.2026. Источники: <a href="https://free.sprinthost.ru/">Free</a>, <a href="https://help.sprinthost.ru/important/move">перенос</a>, <a href="https://help.sprinthost.ru/control-panel/dumpdb">базы</a>, <a href="https://help.sprinthost.ru/control-panel/certificates">SSL</a>, <a href="https://help.sprinthost.ru/faq/php">PHP</a>. Скриншоты панели — из официальной справки; внешний вид может отличаться. Наши экраны сняты с локальной версии. Реальное размещение и совместимость бесплатного аккаунта ещё требуют проверки.</p>
+<div class="footer"><span>Сохраните этот PDF рядом с приватной копией комплекта</span><span class="number"></span></div>
+</section>
+</body></html>

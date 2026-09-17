@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "../convex/schema";
+import type { Id } from "../convex/_generated/dataModel";
 import { internal } from "../convex/_generated/api";
 import { verifiedPayment } from "../convex/payments";
 
@@ -23,7 +24,7 @@ async function ready(t: Awaited<ReturnType<typeof setup>>, complete = false) {
     // convex-test's storeBlob omits MIME metadata; emulate the real HTTP upload metadata.
     await ctx.db.patch(sourceStorageId as never, { contentType: "application/zip" } as never);
     await ctx.db.patch(pdfStorageId as never, { contentType: "application/pdf" } as never);
-    await ctx.db.patch(state!._id, { phase: complete ? "complete" : "review", accepted: complete, sourceStorageId, pdfStorageId });
+    await ctx.db.patch(state!._id, { phase: complete ? "complete" : "review", accepted: complete, sourceStorageId, pdfStorageId, selectedDemoId: "1", sourceVariants: [{ id: "1", storageId: sourceStorageId }], demoOptions: [{ id: "1", title: "Версия 1", demoUrl: "https://demo.example.org/1/" }] });
     return { sourceStorageId, pdfStorageId };
   });
 }
@@ -35,6 +36,93 @@ beforeEach(() => {
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("request lifecycle", () => {
+  it("creates versions sequentially, limits follow-ups to two, and sells any preserved version", async () => {
+    const t = await setup();
+    const completeVersion = async (job: { jobId: Id<"requestJobs">; leaseToken: string; targetDemoId: "1" | "2" | "3" }) => {
+      const storageId = await t.run(async ctx => {
+        const id = await ctx.storage.store(new Blob([`version ${job.targetDemoId}`], { type: "application/zip" }));
+        await ctx.db.patch(id as never, { contentType: "application/zip" } as never);
+        return id;
+      });
+      await t.mutation(internal.automation.complete, { jobId: job.jobId, leaseToken: job.leaseToken,
+        sourceStorageId: storageId, sourceVariants: [{ id: job.targetDemoId, storageId }],
+        demoOptions: [{ id: job.targetDemoId, title: `Версия ${job.targetDemoId}`, demoUrl: `https://demo.example.org/release-${job.targetDemoId}/` }], text: "Новая версия готова" });
+      return storageId;
+    };
+    const initial = await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: "a".repeat(40) });
+    expect(initial?.targetDemoId).toBe("1");
+    const source1 = await completeVersion(initial!);
+    expect(await t.query(internal.automation.summary, { accessTokenHash: token })).toMatchObject({ phase: "review", revisionCount: 0, revisionLimit: 2, canRevise: true, canBuy: true, selectedDemoId: "1" });
+    const purchase = { accessTokenHash: token, kind: "offer_purchase_requested" as const, hosting: "cloudflare" as const, purchase: "source" as const, offerVariant: "standard" as const };
+    expect((await t.mutation(internal.automation.clientAction, { ...purchase, demoId: "1" })).ok).toBe(true);
+    const revision = { accessTokenHash: token, kind: "revision_requested" as const, text: "Добавьте цены на ремонт велосипедов" };
+    const parallel = await Promise.all([t.mutation(internal.automation.clientAction, revision), t.mutation(internal.automation.clientAction, revision)]);
+    expect(parallel.filter(r => r.ok)).toHaveLength(1);
+    expect(await t.query(internal.automation.summary, { accessTokenHash: token })).toMatchObject({ revisionCount: 1, canRevise: false, canBuy: true });
+    const second = await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: "b".repeat(40) });
+    expect(second).toMatchObject({ targetDemoId: "2", baseDemoId: "1" });
+    const source2 = await completeVersion(second!);
+    expect(await t.query(internal.automation.summary, { accessTokenHash: token })).toMatchObject({ phase: "review", revisionCount: 1, canRevise: true, canBuy: true });
+    await t.mutation(internal.automation.clientAction, { accessTokenHash: token, kind: "demo_selected", demoId: "1" });
+    expect((await t.mutation(internal.automation.clientAction, { ...revision, text: "Сделайте контакты и кнопку записи крупнее" })).ok).toBe(true);
+    const third = await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: "c".repeat(40) });
+    expect(third).toMatchObject({ targetDemoId: "3", baseDemoId: "2" });
+    await expect(t.mutation(internal.automation.complete, { jobId: third!.jobId, leaseToken: third!.leaseToken, sourceStorageId: source1,
+      sourceVariants: [{ id: "1", storageId: source1 }], demoOptions: [{ id: "1", title: "Overwrite", demoUrl: "https://demo.example.org/overwrite/" }], text: "Overwrite" })).rejects.toThrow("target version");
+    const source3 = await completeVersion(third!);
+    const summary = await t.query(internal.automation.summary, { accessTokenHash: token });
+    expect(summary).toMatchObject({ phase: "complete", revisionCount: 2, canRevise: false, canBuy: true });
+    expect(summary?.demoOptions.map(o => o.demoUrl)).toEqual([1, 2, 3].map(n => `https://demo.example.org/release-${n}/`));
+    expect((await t.mutation(internal.automation.clientAction, revision)).ok).toBe(false);
+    expect(await t.run(ctx => ctx.db.query("requestJobs").take(10))).toHaveLength(3);
+    const state = await t.run(ctx => ctx.db.query("requestAutomations").first());
+    expect(state?.sourceVariants).toEqual([{ id: "1", storageId: source1 }, { id: "2", storageId: source2 }, { id: "3", storageId: source3 }]);
+    for (const id of ["1", "2", "3"] as const) expect((await t.mutation(internal.automation.clientAction, { ...purchase, demoId: id })).ok).toBe(true);
+    expect((await t.mutation(internal.automation.clientAction, { ...purchase, accessTokenHash: "wrong", demoId: "1" })).ok).toBe(false);
+    expect((await t.run(ctx => ctx.db.query("requestEvents").take(30))).filter(e => e.kind === "revision_requested")).toHaveLength(2);
+    await expect(t.mutation(internal.payments.download, { accessTokenHash: token })).rejects.toThrow("после оплаты");
+  });
+
+  it("keeps a finished version purchasable after a revision exhausts its retries", async () => {
+    const t = await setup();
+    await ready(t);
+    await t.run(async ctx => { const job = await ctx.db.query("requestJobs").first(); await ctx.db.patch(job!._id, { status: "succeeded" }); });
+    await t.mutation(internal.automation.clientAction, { accessTokenHash: token, kind: "revision_requested", text: "Добавьте новый раздел услуг" });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const job = await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: String(attempt).repeat(40) });
+      expect(job?.targetDemoId).toBe("2");
+      await t.mutation(internal.automation.fail, { jobId: job!.jobId, leaseToken: job!.leaseToken, error: "Test failure" });
+      vi.setSystemTime(Date.now() + 4 * 60_000);
+    }
+    expect(await t.query(internal.automation.summary, { accessTokenHash: token })).toMatchObject({ phase: "failed", revisionCount: 1, canBuy: true, canRevise: true });
+    expect((await t.mutation(internal.automation.clientAction, { accessTokenHash: token, kind: "revision_requested", text: "Попробуйте другой вариант заголовка" })).ok).toBe(true);
+    const retry = await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: "d".repeat(40), requestId: "#test0001" });
+    expect(retry?.targetDemoId).toBe("2");
+  });
+  it("records the selected version, hosting and active offer prices", async () => {
+    const t = await setup();
+    await ready(t, true);
+    await t.run(async ctx => {
+      const state = await ctx.db.query("requestAutomations").first();
+      await ctx.db.patch(state!._id, { demoOptions: [
+        { id: "1", title: "Каталог", demoUrl: "https://demo.example.org/1/" },
+        { id: "2", title: "Витрина", demoUrl: "https://demo.example.org/2/" },
+        { id: "3", title: "Журнал", demoUrl: "https://demo.example.org/3/" },
+      ] });
+    });
+    expect((await t.mutation(internal.automation.clientAction, { accessTokenHash: token, kind: "demo_selected", demoId: "2" })).ok).toBe(true);
+    const action = { accessTokenHash: token, kind: "offer_purchase_requested" as const, demoId: "2" as const, hosting: "hostiman" as const, purchase: "source_and_setup" as const, offerVariant: "budget" as const };
+    expect((await t.mutation(internal.automation.clientAction, action)).ok).toBe(true);
+    expect((await t.mutation(internal.automation.clientAction, action)).ok).toBe(true);
+    const state = await t.query(internal.automation.summary, { accessTokenHash: token });
+    expect(state?.selectedDemoId).toBe("2");
+    expect(state?.offerRequestKeys).toEqual(["2:hostiman:source_and_setup:budget"]);
+    const messages = await t.run(ctx => ctx.db.query("mvpRequestMessages").take(20));
+    expect(messages.find(message => message.text.includes("Итого 5000 ₽"))?.text).toContain("HostiMan");
+    const events = await t.run(ctx => ctx.db.query("requestEvents").take(20));
+    expect(events.filter(event => event.kind === "offer_purchase_requested")).toHaveLength(1);
+  });
+
   it("records a manual source purchase once without charging or granting downloads", async () => {
     const t = await setup();
     const args = { accessTokenHash: token, kind: "source_purchase_requested" as const };
@@ -70,7 +158,7 @@ describe("request lifecycle", () => {
     await t.mutation(internal.requests.store, { requestId: "#test0001", idea: "duplicate", contact: "test@example.com", contactMethod: "email", requestType: "mvp", receivedAt: Date.now(), source: { utmSource: "", utmCampaign: "", utmContent: "", utmTerm: "", referrer: "" } });
     expect(await t.run(ctx => ctx.db.query("requestJobs").take(10))).toHaveLength(1);
   });
-  it("admits one revision even for parallel duplicate clicks", async () => {
+  it("admits only one current revision job for parallel duplicate clicks", async () => {
     const t = await setup();
     await ready(t);
     const args = { accessTokenHash: token, kind: "revision_requested" as const, text: "Добавьте выбор времени записи в мастерскую" };
@@ -95,6 +183,19 @@ describe("request lifecycle", () => {
     expect(JSON.stringify({ thread, state })).not.toContain(artifacts.sourceStorageId);
     await expect(t.mutation(internal.payments.download, { accessTokenHash: token })).rejects.toThrow("после оплаты");
   });
+  it("downloads the selected client package and never falls back to the worker demo bundle", async () => {
+    const t = await setup();
+    await ready(t, true);
+    const clientUrl = await t.run(async ctx => {
+      const state = await ctx.db.query("requestAutomations").first();
+      const clientId = await ctx.storage.store(new Blob(["server package"], { type: "application/zip" }));
+      await ctx.db.patch(state!._id, { paid: true, selectedDemoId: "1", sourceVariants: [{ id: "1", storageId: clientId }] });
+      return ctx.storage.getUrl(clientId);
+    });
+    expect(await t.mutation(internal.payments.download, { accessTokenHash: token })).toBe(clientUrl);
+    await t.run(async ctx => { const state = await ctx.db.query("requestAutomations").first(); await ctx.db.patch(state!._id, { sourceVariants: [] }); });
+    await expect(t.mutation(internal.payments.download, { accessTokenHash: token })).rejects.toThrow("Комплект выбранной версии");
+  });
   it("deduplicates development requests and owner events", async () => {
     const t = await setup();
     await ready(t, true);
@@ -108,23 +209,28 @@ describe("request lifecycle", () => {
 });
 
 describe("worker leases", () => {
+  it("does not let an old worker claim a sequential job", async () => {
+    const t = await setup();
+    expect(await t.mutation(internal.automation.claim, { leaseToken: "x".repeat(40) })).toBeNull();
+    expect((await t.run(ctx => ctx.db.query("requestJobs").first()))?.attempts).toBe(0);
+  });
   it("isolates a targeted test request and respects the server allowlist", async () => {
     const t = await setup();
     const leaseToken = "x".repeat(40);
-    expect(await t.mutation(internal.automation.claim, { leaseToken, requestId: "not-this-request" })).toBeNull();
+    expect(await t.mutation(internal.automation.claim, { protocol: 2, leaseToken, requestId: "not-this-request" })).toBeNull();
     vi.stubEnv("REQUEST_AUTOMATION_ALLOWED_REQUEST_ID", "#test0001");
-    expect(await t.mutation(internal.automation.claim, { leaseToken })).toBeNull();
-    expect((await t.mutation(internal.automation.claim, { leaseToken, requestId: "#test0001" }))?.requestId).toBe("#test0001");
-    expect(await t.mutation(internal.automation.claim, { leaseToken, requestId: "#test0001" })).toBeNull();
+    expect(await t.mutation(internal.automation.claim, { protocol: 2, leaseToken })).toBeNull();
+    expect((await t.mutation(internal.automation.claim, { protocol: 2, leaseToken, requestId: "#test0001" }))?.requestId).toBe("#test0001");
+    expect(await t.mutation(internal.automation.claim, { protocol: 2, leaseToken, requestId: "#test0001" })).toBeNull();
   });
   it("claims a job once and refuses stale completion after another worker reclaims it", async () => {
     const t = await setup();
     const artifacts = await ready(t);
-    const old = await t.mutation(internal.automation.claim, { leaseToken: "1".repeat(40) });
+    const old = await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: "1".repeat(40) });
     expect(old).not.toBeNull();
-    expect(await t.mutation(internal.automation.claim, { leaseToken: "2".repeat(40) })).toBeNull();
+    expect(await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: "2".repeat(40) })).toBeNull();
     vi.setSystemTime(Date.now() + 6 * 60_000);
-    const next = await t.mutation(internal.automation.claim, { leaseToken: "3".repeat(40) });
+    const next = await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: "3".repeat(40) });
     expect(next?.jobId).toBe(old?.jobId);
     const args = { jobId: old!.jobId, leaseToken: old!.leaseToken, ...artifacts, demoUrl: "https://demo.example.org/job/", text: "Готово" };
     expect(await t.mutation(internal.automation.complete, args)).toBe(false);
@@ -139,7 +245,7 @@ describe("payments", () => {
   it("completes without PDF and clears the previous PDF from current delivery state", async () => {
     const t = await setup();
     const { sourceStorageId } = await ready(t);
-    const job = await t.mutation(internal.automation.claim, { leaseToken: "9".repeat(40) });
+    const job = await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: "9".repeat(40) });
     expect(await t.mutation(internal.automation.complete, {
       jobId: job!.jobId, leaseToken: job!.leaseToken, sourceStorageId,
       demoUrl: "https://demo.example.org/new/", text: "Демо готово.",
@@ -220,12 +326,12 @@ describe("messenger authorization", () => {
     const events = await t.run(ctx => ctx.db.query("requestEvents").take(10));
     expect(events.filter(event => event.kind === "delivery_failed")).toHaveLength(1);
   });
-  it("refuses an unauthenticated webhook and binds a private chat only once", async () => {
+  it("refuses an unauthenticated webhook and does not bind client chats", async () => {
     const t = await setup();
     const response = await t.fetch("/telegram-request-webhook", { method: "POST", body: JSON.stringify({ message: { text: "/start fake", chat: { id: 123, type: "private" } } }) });
     expect(response.status).toBe(401);
     expect(await t.mutation(internal.deliveries.bindMessenger, { accessTokenHash: "wrong", channel: "telegram", recipientId: "123" })).toBe(false);
-    expect(await t.mutation(internal.deliveries.bindMessenger, { accessTokenHash: token, channel: "telegram", recipientId: "123" })).toBe(true);
+    expect(await t.mutation(internal.deliveries.bindMessenger, { accessTokenHash: token, channel: "telegram", recipientId: "123" })).toBe(false);
     expect(await t.mutation(internal.deliveries.bindMessenger, { accessTokenHash: token, channel: "telegram", recipientId: "456" })).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import {backup} from 'node:sqlite';
+import {backup} from './sqlite-compat.mjs';
 import {resolve,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes,createHash} from 'node:crypto';

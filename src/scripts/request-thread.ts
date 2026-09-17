@@ -33,7 +33,7 @@ const POLL_INTERVAL_MS = 15_000;
 
 const statusLabels: Record<RequestStatus, string> = {
   received: "Заявка получена",
-  in_progress: "Готовлю варианты",
+  in_progress: "Сайт в работе",
   ready: "Результат готов",
   closed: "Заявка закрыта",
 };
@@ -159,6 +159,10 @@ function renderThread(thread: RequestThread) {
     statusBadge.textContent = statusLabels[thread.status];
     statusBadge.dataset.status = thread.status;
   }
+  const count = document.querySelector<HTMLElement>("[data-message-count]");
+  if (count) count.textContent = thread.messages.length ? `(${thread.messages.length})` : "";
+  const ownerReply = document.querySelector<HTMLElement>("[data-owner-reply]");
+  if (ownerReply) ownerReply.hidden = !thread.messages.some(message => message.sender === "owner");
   if (messages) {
     messages.replaceChildren(...thread.messages.map(renderMessage));
   }
@@ -182,13 +186,15 @@ async function fetchThread({ quiet = false } = {}) {
     const response = await fetch("/api/request-thread", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accessToken }),
+      body: JSON.stringify({ accessToken }), signal: AbortSignal.timeout(12_000),
     });
     const result = (await response.json().catch(() => ({}))) as ThreadResponse;
     if (!response.ok || !result.thread) throw new Error(result.error || "Не удалось загрузить заявку");
     renderThread(result.thread);
+    document.querySelector<HTMLElement>("[data-request-sync]")?.setAttribute("hidden", "");
   } catch (error) {
-    if (!quiet) showError(error instanceof Error ? error.message : "Не удалось загрузить заявку");
+    if (!quiet) showError("Не удалось связаться с сервером. Если заявку уже отправляли, она сохранена. Оставьте страницу открытой — повторим проверку автоматически.");
+    else { const sync = document.querySelector<HTMLElement>("[data-request-sync]"); if(sync) { sync.hidden=false;sync.textContent="Связь временно прервалась. Показаны последние полученные данные; повторяем проверку."; } }
   }
 }
 

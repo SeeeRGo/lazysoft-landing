@@ -7,25 +7,31 @@ export const reserve = internalMutation({
   args: { deliveryId: v.id("requestDeliveries") },
   returns: v.union(v.null(), v.object({
     requestId: v.string(), contact: v.string(), contactMethod: v.string(),
+    kind: v.optional(v.union(v.literal("started"), v.literal("result"))),
     tokenCiphertext: v.optional(v.string()), telegramChatId: v.optional(v.string()), maxUserId: v.optional(v.string()),
     attempt: v.number(), pdfStorageId: v.optional(v.id("_storage")), demoUrl: v.optional(v.string()),
   })),
   handler: async (ctx, args) => {
     const delivery = await ctx.db.get(args.deliveryId);
-    if (!delivery || delivery.status === "sent" || (delivery.status === "sending" && (delivery.leaseUntil ?? 0) > Date.now())) return null;
+    if (!delivery || delivery.status === "sent" || delivery.status === "cancelled" || (delivery.status === "sending" && (delivery.leaseUntil ?? 0) > Date.now())) return null;
+    const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", delivery.requestId)).unique();
+    // Also suppress legacy queued deliveries to previously connected chats.
+    if (request && request.contactMethod !== "email") {
+      await ctx.db.patch(delivery._id, { status: "cancelled", leaseUntil: undefined });
+      return null;
+    }
     if (delivery.attempts >= 8) {
       await ctx.db.patch(delivery._id, { status: "failed" });
       await event(ctx, delivery.requestId, "delivery_failed", delivery._id, "Исчерпаны попытки доставки клиенту; результат сохранён на странице заявки.");
       return null;
     }
-    const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", delivery.requestId)).unique();
     const state = await getAutomation(ctx, delivery.requestId);
     if (!request || !state) throw new Error("Missing delivery context");
     await ctx.db.patch(delivery._id, { status: "sending", attempts: delivery.attempts + 1, leaseUntil: Date.now() + 120_000 });
     // Watchdog recovers an interrupted action, independently of provider retries.
     await ctx.scheduler.runAfter(125_000, internal.clientDelivery.send, args);
     return {
-      requestId: request.requestId, contact: request.contact, contactMethod: request.contactMethod, attempt: delivery.attempts + 1,
+      kind: delivery.kind ?? "result", requestId: request.requestId, contact: request.contact, contactMethod: request.contactMethod, attempt: delivery.attempts + 1,
       ...(request.deliveryTokenCiphertext ? { tokenCiphertext: request.deliveryTokenCiphertext } : {}),
       ...(request.telegramChatId ? { telegramChatId: request.telegramChatId } : {}),
       ...(request.maxUserId ? { maxUserId: request.maxUserId } : {}),
@@ -46,19 +52,6 @@ export const finish = internalMutation({
 
 export const bindMessenger = internalMutation({
   args: { accessTokenHash: v.string(), channel: v.union(v.literal("telegram"), v.literal("max")), recipientId: v.string() }, returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const request = await ctx.db.query("mvpRequests").withIndex("by_access_token_hash", q => q.eq("accessTokenHash", args.accessTokenHash)).unique();
-    if (!request) return false;
-    const field = args.channel === "telegram" ? "telegramChatId" : "maxUserId";
-    if (request[field] && request[field] !== args.recipientId) return false;
-    await ctx.db.patch(request._id, { [field]: args.recipientId });
-    await event(ctx, request.requestId, "messenger_connected", args.channel, args.channel === "telegram" ? "Клиент подключил Telegram-бота" : "Клиент подключил MAX-бота");
-    const deliveries = await ctx.db.query("requestDeliveries").withIndex("by_request_id", q => q.eq("requestId", request.requestId)).take(2);
-    for (const delivery of deliveries) {
-      if (delivery.status === "sent" || (delivery.status === "sending" && (delivery.leaseUntil ?? 0) > Date.now())) continue;
-      await ctx.db.patch(delivery._id, { status: "pending", attempts: 0 });
-      await ctx.scheduler.runAfter(0, internal.clientDelivery.send, { deliveryId: delivery._id });
-    }
-    return true;
-  },
+  // Retain the internal endpoint for old webhook calls without binding or sending.
+  handler: async () => false,
 });

@@ -8,7 +8,7 @@ const source=resolve('standalone/portfolio'),input=resolve(process.argv[2]||'');
 if(!process.argv[2]||!existsSync(join(input,'portfolio.sqlite')))throw Error('Usage: node scripts/package-portfolio-standalone.mjs <export-directory/data>');
 const target=mkdtempSync(resolve('.local/portfolio-handover-'));chmodSync(target,0o700);
 const app=join(target,'portfolio');mkdirSync(app,{mode:0o700});
-for(const name of ['public','webroot','package.json','server.mjs','manage.mjs','passenger.cjs','hosting.example.json','beget.htaccess.example','check-hosting.mjs','README.md','Dockerfile','compose.yaml','.dockerignore','test.mjs'])cpSync(join(source,name),join(app,name),{recursive:true});
+for(const name of ['public','webroot','package.json','server.mjs','sqlite-compat.mjs','manage.mjs','passenger.cjs','hosting.example.json','beget.htaccess.example','check-hosting.mjs','README.md','Dockerfile','compose.yaml','.dockerignore','test.mjs'])cpSync(join(source,name),join(app,name),{recursive:true});
 mkdirSync(join(app,'data'),{mode:0o700});
 const db=new DatabaseSync(join(input,'portfolio.sqlite'),{readOnly:true});
 try{await backup(db,join(app,'data/portfolio.sqlite'))}finally{db.close()}

@@ -1,104 +1,179 @@
 ---
-import SiteLayout from "../layouts/SiteLayout.astro";
+import SitePurchaseDetails from "../components/SitePurchaseDetails.astro";
+import "../styles/mvp.css";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import "../styles/site-generator.css";
+import "../styles/request-minimal.css";
 import "../styles/request-thread.css";
+import "../styles/waiting.css";
+import { isBudgetOffer, sourcePrice, setupPrice, totalPrice, price } from "../lib/site-offer";
 
 const title = "Страница заявки — Lazysoft";
-const description = "Приватная страница заявки: статус, сообщения, демонстрация интерфейса.";
+const description = "Приватная страница заявки: готовый сайт, сообщения и варианты передачи исходников.";
 ---
 
-<SiteLayout title={title} description={description} canonicalPath="/request/" noindex mainClass="request-page">
-  <section class="request-shell" aria-labelledby="request-title">
-    <header class="request-intro">
-      <p class="request-kicker">Приватная страница заявки</p>
-      <h1 id="request-title">Результат и сообщения<br /><em>в одном месте.</em></h1>
-      <p>Сохраните эту страницу. Здесь появятся демо интерфейса и вопросы по вашей идее.</p>
-      <div class="request-actions">
-        <button type="button" class="request-secondary-button" data-copy-request-link>Скопировать секретную ссылку</button>
-        <a href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer">Написать напрямую ↗</a>
-      </div>
-    </header>
-
-    <div class="request-panel" data-request-panel aria-live="polite">
+<BaseLayout title={title} description={description} canonicalPath="/request/" noindex>
+  <header class="generator-header">
+    <a class="brand" href="/" aria-label="Lazysoft — на главную"><img src="/lazysoft-logo.webp" alt="" width="38" height="38" /><span class="brand-name">lazy<em>soft</em></span></a>
+  </header>
+  <main class="request-page request-minimal">
+  <section class="request-shell" aria-label="Ваш сайт и статус заявки">
+    <div class="request-panel" data-request-panel>
       <div class="request-loading" data-request-loading>
         <span></span>
         <p>Загружаю заявку…</p>
       </div>
 
+      <p class="request-sync-status" data-request-sync role="status" hidden></p>
       <div data-request-content hidden>
-        <div class="request-panel-head">
-          <div>
-            <span data-request-id>Заявка</span>
-            <h2 data-request-status-label>Получена</h2>
-          </div>
-          <span class="request-status-badge" data-request-status>Получена</span>
+        <div class="request-toolbar">
+          <span data-request-id>Заявка</span>
+          <button type="button" class="request-copy-link" data-copy-request-link>Сохранить ссылку ↗</button>
         </div>
+        <h1 class="request-main-title" data-request-status-label>Заявка получена</h1>
+        <span class="request-status-badge visually-hidden" data-request-status>Получена</span>
 
+        <section class="site-wait" data-work-progress hidden aria-label="Подготовка сайта">
+          <div class="wait-heading"><span class="wait-orbit" aria-hidden="true"></span><span class="wait-eyebrow" data-work-kicker>Ваша идея сохранена</span></div>
+          <h2 data-work-title role="status">Заявка сохранена</h2>
+          <p data-progress-note>Обычно создание сайта занимает до 15 минут.</p>
+          <details class="request-progress-details"><summary>Этапы работы</summary>
+          <ol class="wait-steps" aria-label="Этапы подготовки">
+            <li data-work-step>Заявка в очереди</li><li data-work-step>Создание сайта и админки</li><li data-work-step>Проверка файлов сайта</li><li data-work-step>Публикация версии для просмотра</li>
+          </ol>
+          </details>
+          <div class="wait-facts"><span>Прошло <strong data-work-elapsed>0:00</strong></span><span data-work-connection>Проверяем статус…</span></div>
+          <div class="wait-aside"><small>Пока ждём</small><p data-work-joke></p></div>
+
+        </section>
+        <section class="request-next-steps" data-automation hidden aria-label="Что дальше">
+          <p data-automation-status></p>
+          <section class="demo-showcase" data-demo-showcase hidden>
+            <span class="site-offer-kicker">Ваш сайт</span>
+            <h3>Посмотрите, что получилось</h3>
+            <p>Откройте сайт. Если хочется что-то изменить, напишите ниже — создадим следующую версию, сохранив предыдущую.</p>
+            <fieldset class="demo-choice" data-demo-choice>
+              <legend class="visually-hidden">Выберите версию сайта</legend>
+              {[1, 2, 3].map((version) => (
+                <label class="demo-card" data-demo-option={version} hidden>
+                  <input type="radio" name="design-version" value={String(version)} />
+                  <span class="demo-card-copy"><small>Версия {version}</small><strong data-demo-title>Вариант сайта</strong></span>
+                  <a data-demo-preview target="_blank" rel="noopener noreferrer">Посмотреть ↗</a>
+                </label>
+              ))}
+            </fieldset>
+            <p class="request-form-status" data-demo-feedback hidden role="status"></p>
+          </section>
+          <p class="request-form-status" data-revision-exhausted hidden>Оба сообщения с доработками использованы. Все готовые версии доступны — можно купить любую.</p>
+          <div data-automation-review hidden>
+            <p data-revision-budget></p>
+            <form data-revision-form>
+              <label for="revision-text">Что доработать в последней версии?</label>
+              <textarea id="revision-text" name="revision" minlength="10" maxlength="3000" rows="3" required placeholder="Опишите изменения для следующей версии сайта"></textarea>
+              <button type="submit">Создать следующую версию</button>
+            </form>
+            <button type="button" data-accept-result hidden>Всё подходит — принять результат</button>
+          </div>
+          <button type="button" class="purchase-intent-button" data-show-purchase hidden>Хочу купить</button>
+          <div class="site-offer" data-automation-purchase data-site-offer data-offer-variant={isBudgetOffer ? "budget" : "standard"} hidden>
+            <button type="button" class="request-secondary-button" data-hide-purchase>← Вернуться к просмотру</button>
+            <div class="site-offer-heading">
+              <div>
+                <span class="site-offer-kicker">Сайт создан по вашей идее</span>
+                <h3 tabindex="-1" data-purchase-title>Ваш сайт + админка для его редактирования</h3>
+              </div>
+              <span class="site-offer-price">от {price(sourcePrice)} ₽</span>
+            </div>
+            <p>Вы получаете сайт и полноценную админку: добавление и удаление записей, тексты, цены и изображения. После установки изменения сохраняются на сервере и видны всем посетителям. До покупки в опубликованной версии админка работает в демонстрационном режиме — изменения видны только в вашем браузере.</p>
+
+            <fieldset class="hosting-choice">
+              <legend>Выберите вариант размещения</legend>
+              <label class="hosting-card">
+                <input type="radio" name="offer-hosting" value="cloudflare" checked />
+                <span class="hosting-card-body"><strong>Cloudflare</strong><small>Хостинг может быть бесплатным в рамках лимитов. Установка технически сложнее.</small><span>Сайт и админка в вашем аккаунте</span></span>
+              </label>
+              <label class="hosting-card">
+                <input type="radio" name="offer-hosting" value="hostiman" />
+                <span class="hosting-card-body"><strong>HostiMan</strong><small>Установка через панель хостинга. Инструкция с покупкой домена .ru и без неё; условия зависят от тарифа.</small><span>Загрузка архива по инструкции</span></span>
+              </label>
+            </fieldset>
+
+            <div class="delivery-includes">
+              <strong>В исходники входит</strong>
+              <ul><li>сайт и закрытая админка;</li><li>архив для выбранного хостинга;</li><li>пошаговая PDF-инструкция;</li><li>право менять и использовать код.</li></ul>
+            </div>
+
+            <form class="purchase-contact" id="purchase-contact-form" data-purchase-contact>
+              <label for="purchase-contact-method">Как связаться для согласования покупки?</label>
+              <select id="purchase-contact-method" name="contactMethod">
+                <option value="telegram">Telegram</option><option value="email">Почта</option><option value="max">MAX</option>
+              </select>
+              <label for="purchase-contact">Ваш контакт</label>
+              <input id="purchase-contact" name="contact" type="text" minlength="3" maxlength="200" required placeholder="@username или ссылка на профиль" autocomplete="off" />
+              <p>Контакт сохранится при выборе комплекта ниже. Свяжусь с вами для согласования оплаты и передачи сайта.</p>
+            </form>
+            <div class="purchase-options" aria-label="Варианты покупки">
+              <article class="purchase-card">
+                <span>Самостоятельная установка</span>
+                <strong>{price(sourcePrice)} ₽</strong>
+                <p>Исходники и инструкция. Размещаете сайт самостоятельно.</p>
+                <button type="submit" form="purchase-contact-form" data-request-offer data-purchase="source">Купить исходники · {price(sourcePrice)} ₽</button>
+              </article>
+              <article class="purchase-card purchase-card-featured">
+                <span>С установкой</span>
+                <strong>{price(totalPrice)} ₽</strong>
+                <p>Исходники + моя помощь в развёртывании за {price(setupPrice)} ₽.</p>
+                <button type="submit" form="purchase-contact-form" data-request-offer data-purchase="source_and_setup">Исходники + установка · {price(totalPrice)} ₽</button>
+              </article>
+            </div>
+            <div class="guide-links">
+              <span>Инструкции до покупки:</span>
+              <a href="/guides/cloudflare-free.pdf" target="_blank" rel="noopener noreferrer">Cloudflare PDF ↗</a>
+              <a href="/guides/hostiman-options.pdf" target="_blank" rel="noopener noreferrer">HostiMan PDF ↗</a>
+            </div>
+            <p class="site-offer-note">Кнопка не списывает деньги. Я получу сообщение в Telegram и напишу здесь для согласования оплаты и передачи.</p>
+            <p class="site-offer-note">Домен и платные услуги хостинга оплачиваются отдельно. Помощь включает развёртывание выбранного сайта; дополнительные функции обсуждаются отдельно.</p>
+            <SitePurchaseDetails />
+            <p data-offer-requested hidden role="status">Запрос отправлен. Напишу вам в этом чате для согласования оплаты и передачи.</p>
+          </div>
+          <button type="button" data-download-source hidden>Скачать оплаченные исходники</button>
+          <p class="request-form-status" data-automation-feedback hidden role="status"></p>
+        </section>
+
+        <p class="request-save-note">Можно обновить или закрыть страницу — работа продолжится. Сохраните ссылку: здесь будут все версии сайта и переписка.</p>
         <details class="request-idea">
           <summary>Описание идеи</summary>
           <p data-request-idea></p>
         </details>
 
-        <div class="request-messages" data-request-messages aria-label="Сообщения по заявке"></div>
-
-        <section class="request-next-steps" data-automation hidden aria-label="Что дальше">
-          <h2>Что дальше</h2>
-          <p data-automation-status></p>
-          <div data-messenger-connect hidden>
-            <p>Чтобы получить уведомление о результате, откройте бота и нажмите «Начать».</p>
-            <div class="request-actions">
-              <a data-connect-telegram hidden target="_blank" rel="noopener noreferrer">Получить результат в Telegram ↗</a>
-              <a data-connect-max hidden target="_blank" rel="noopener noreferrer">Получить результат в MAX ↗</a>
-            </div>
-          </div>
-          <div data-automation-review hidden>
-            <p>Посмотрите демо. Можно один раз отправить общий список правок или принять результат сразу.</p>
-            <form data-revision-form>
-              <label for="revision-text">Что изменить в демо?</label>
-              <textarea id="revision-text" name="revision" minlength="10" maxlength="3000" rows="3" required placeholder="Соберите все пожелания в одно сообщение"></textarea>
-              <button type="submit">Отправить правки · 1 раз бесплатно</button>
-            </form>
-            <button type="button" data-accept-result>Всё подходит — принять результат</button>
-          </div>
-          <div data-automation-purchase hidden>
-            <h3>Забрать исходники — 5 000 ₽</h3>
-            <p>Архив демоверсии с инструкцией запуска. Дальнейшая разработка и внешние сервисы оплачиваются отдельно.</p>
-            <p>Нажмите кнопку — я получу уведомление. Оплату и передачу исходников обсудим здесь, в чате заявки.</p>
-            <button type="button" data-request-source>Хочу купить исходники за 5 000 ₽</button>
-            <p data-source-requested hidden role="status">Запрос отправлен. Напишу вам в этом чате, чтобы согласовать оплату и передачу исходников.</p>
-          </div>
-          <button type="button" data-download-source hidden>Скачать оплаченные исходники</button>
-          <div data-development-choice hidden>
-            <h3>Довести до рабочего продукта</h3>
-            <p>Доработка от 10 000 ₽ с постоплатой. Сначала согласуем объём, стоимость и критерии готовности.</p>
-            <button type="button" data-request-development>Обсудить доработку</button>
-          </div>
-          <p class="request-form-status" data-automation-feedback hidden role="status"></p>
-        </section>
-
+        <details class="request-conversation" data-request-conversation>
+          <summary><span>Переписка с разработчиком <span data-message-count></span></span><small data-owner-reply hidden>Есть ответ</small></summary>
+          <div class="request-messages" data-request-messages aria-label="Сообщения по заявке"></div>
         <form class="request-composer" data-request-message-form>
-          <label for="request-message">Ответить или дополнить заявку</label>
+          <label for="request-message">Написать разработчику</label>
           <textarea id="request-message" name="message" rows="3" maxlength="2000" required placeholder="Напишите уточнение или ответ…"></textarea>
           <div>
-            <p>Сообщение увидит разработчик на этой странице заявки.</p>
+            <p>Личная переписка с разработчиком. Для новой версии используйте форму доработок выше.</p>
             <button type="submit">Отправить →</button>
           </div>
           <p class="request-form-status" data-request-form-status hidden></p>
         </form>
+        <a class="request-direct-link" href="https://t.me/SeeeRGo88" target="_blank" rel="noopener noreferrer">Написать напрямую в Telegram ↗</a>
+        </details>
+        <details class="request-link-help"><summary>Кто может открыть эту страницу?</summary><p>Любой человек с этой секретной ссылкой сможет прочитать переписку и отправить сообщение. Не публикуйте её и не добавляйте пароли, платёжные данные или сведения третьих лиц.</p></details>
       </div>
 
       <div class="request-error" data-request-error hidden>
         <span>Ссылка не открылась</span>
         <h2>Не удалось найти заявку</h2>
         <p data-request-error-text>Проверьте, что секретная ссылка скопирована полностью.</p>
-        <a href="/mvp-za-3-dnya/">Вернуться к форме →</a>
+        <a href="/sayt-po-idee/">Вернуться к форме →</a>
       </div>
     </div>
   </section>
 
-  <section class="request-security-note section">
-    <p><strong>Важно:</strong> любой человек с этой ссылкой сможет прочитать переписку и отправить сообщение. Не публикуйте её и не добавляйте пароли, платёжные данные или сведения третьих лиц.</p>
-  </section>
+  </main>
 
   <script src="../scripts/request-thread.ts"></script>
   <script src="../scripts/request-automation.ts"></script>
-</SiteLayout>
+</BaseLayout>
