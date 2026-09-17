@@ -33,6 +33,7 @@ jobs:
           CONVEX_SITE_URL: ${{ vars.CONVEX_SITE_URL }}
           AUTOMATION_WORKER_SECRET: ${{ secrets.AUTOMATION_WORKER_SECRET }}
           CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           REQUEST_DEMO_BUCKET: ${{ vars.REQUEST_DEMO_BUCKET }}
           REQUEST_DEMO_ORIGIN: ${{ vars.REQUEST_DEMO_ORIGIN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_STORAGE_ACCESS_KEY_ID }}

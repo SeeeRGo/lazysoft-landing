@@ -3,8 +3,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import "../styles/mvp.css";
 import "../styles/waiting.css";
 import "../styles/site-generator.css";
-const title = "Сайт по вашей идее — попробуйте бесплатно | Lazysoft";
-const description = "Опишите идею и посмотрите первую версию сайта. Без регистрации и контактов. Обычно готово в течение 15 минут.";
+const title = "Генератор сайтов по идее с ИИ | Lazysoft";
+const description = "Опишите идею — ИИ через OpenRouter создаст первую версию сайта. Демо публикуется в Яндекс Облаке. Без регистрации и контактов.";
 ---
 <BaseLayout title={title} description={description} canonicalPath="/sayt-po-idee/">
   <header class="generator-header">
@@ -12,18 +12,26 @@ const description = "Опишите идею и посмотрите перву�
   </header>
   <main class="generator-page">
     <section class="generator-card" aria-labelledby="generator-title">
-      <h1 id="generator-title">Какой сайт вам нужен?</h1>
-      <p class="generator-intro">Опишите идею — посмотрите, что получится.</p>
+      <p class="generator-eyebrow">Идея → ИИ → ваш сайт</p>
+      <h1 id="generator-title">Ваш сайт начинается<br />с одной идеи.</h1>
+      <p class="generator-intro">Расскажите, что вы задумали. ИИ создаст первую версию,<br class="generator-desktop-break" /> а мы опубликуем демо в Яндекс Облаке.</p>
       <form id="site-idea-form" data-mvp-request-form novalidate>
         <label class="mvp-request-field mvp-request-idea">
           <span class="visually-hidden">Идея сайта</span>
-          <textarea name="idea" rows="4" minlength="10" maxlength="3000" required placeholder="Хочу сайт для продажи инструментов с каталогом и корзиной"></textarea>
+          <textarea name="idea" rows="4" minlength="10" maxlength="3000" required aria-describedby="idea-hint" placeholder="Например, сайт небольшой керамической мастерской: каталог посуды, история мастера и запись на занятия. Тёплые оттенки, крупные фото, много воздуха."></textarea>
         </label>
         <label class="mvp-honeypot" aria-hidden="true"><span>Сайт</span><input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
-        <button class="mvp-request-submit" type="submit"><span>Создать сайт →</span></button>
-        <p class="generator-note">Бесплатно попробовать · обычно до 15 минут</p>
+        <p class="generator-hint" id="idea-hint">Для кого сайт, что на нём должно быть и какое настроение передать?</p>
+        <button class="mvp-request-submit" type="submit"><span>Сгенерировать сайт →</span></button>
+        <p class="generator-note">Первое демо бесплатно · без регистрации · обычно до 15 минут</p>
         <p class="mvp-request-status" data-request-status hidden aria-live="polite"></p>
       </form>
+      <ol class="generator-steps" aria-label="Как это работает">
+        <li><span>01</span><div><strong>Опишите идею</strong><p>Достаточно пары предложений.</p></div></li>
+        <li><span>02</span><div><strong>ИИ соберёт сайт</strong><p>Генерация через OpenRouter.</p></div></li>
+        <li><span>03</span><div><strong>Откройте демо</strong><p>Ссылка в Яндекс Облаке и две доработки.</p></div></li>
+      </ol>
+      <p class="generator-disclaimer">Демо — прототип, не готовый бизнес-сервис. Исходники с админкой и помощь с установкой оплачиваются отдельно.</p>
     </section>
   </main>
   <script src="../scripts/mvp-brief.ts"></script>
