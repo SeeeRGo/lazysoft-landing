@@ -131,7 +131,7 @@ export const clientAction = internalMutation({
       });
       eventText = `Контакт (${request.contactMethod}): ${request.contact}\nИдея: ${request.idea}\nОбсудите оплату и передачу исходников в чате заявки. Оплата не подтверждена.`;
     } else if (args.kind === "development_requested") {
-      if (state.phase !== "complete") return { ok: false, error: "Сначала посмотрите и примите результат" };
+      if (!["review", "complete"].includes(state.phase)) return { ok: false, error: "Сначала дождитесь готовой версии" };
       if (text.length > 3000) return { ok: false, error: "Слишком длинное описание" };
       await ctx.db.patch(state._id, { developmentRequested: true, updatedAt: now });
       if (!state.developmentRequested) await ctx.db.insert("mvpRequestMessages", {

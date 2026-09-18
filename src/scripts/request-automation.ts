@@ -126,7 +126,7 @@ function render() {
   }
   contactInitialized = true;
   visible("[data-source-requested]", state.sourcePurchaseRequested);
-  visible("[data-development-offer]", state.phase === "complete" && !state.developmentRequested);
+  visible("[data-development-offer]", ["review", "complete"].includes(state.phase) && !state.developmentRequested);
   visible("[data-development-requested]", state.developmentRequested);
   const selected = selectedDemoId();
   const downloadButton = section.querySelector<HTMLButtonElement>("[data-download-source]");
