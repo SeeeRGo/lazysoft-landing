@@ -42,6 +42,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install bundled AWS CLI for worker tests
+        run: |
+          python3 -m venv .local/aws-cli
+          .local/aws-cli/bin/pip install -q awscli==1.46.1
+
       - name: Test production code
         run: npm test && npx tsc --noEmit -p convex/tsconfig.json
 
