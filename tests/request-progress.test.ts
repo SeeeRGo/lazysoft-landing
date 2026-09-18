@@ -48,10 +48,13 @@ it('requires the exact failed job and error for one operator recovery attempt',a
  const job=await t.mutation(internal.automation.claim,{protocol:2,leaseToken:'d'.repeat(40)});
  await t.run(ctx=>ctx.db.patch(job!.jobId,{attempts:3}));
  await t.mutation(internal.automation.fail,{jobId:job!.jobId,leaseToken:job!.leaseToken,error:'Missing README'});
+ expect((await t.query(internal.requests.getVisitorThread,{accessTokenHash:input.accessTokenHash}))?.status).toBe('failed');
+ expect((await t.query(internal.requests.getVisitorThread,{accessTokenHash:input.accessTokenHash}))?.messages.at(-1)?.text).toContain('Повторно отправлять заявку не нужно');
  const args={requestId:input.requestId,jobId:job!.jobId,expectedError:'Missing README'};
  expect(await t.mutation(internal.automation.retryFailedJob,{...args,requestId:'#different'})).toBe(false);
  expect(await t.mutation(internal.automation.retryFailedJob,{...args,expectedError:'Other error'})).toBe(false);
  expect(await t.mutation(internal.automation.retryFailedJob,args)).toBe(true);
+ expect((await t.query(internal.requests.getVisitorThread,{accessTokenHash:input.accessTokenHash}))?.status).toBe('in_progress');
  expect(await t.mutation(internal.automation.retryFailedJob,args)).toBe(false);
  const resumed=await t.mutation(internal.automation.claim,{protocol:2,requestId:input.requestId,leaseToken:'e'.repeat(40)});
  expect(resumed?.jobId).toBe(job!.jobId);

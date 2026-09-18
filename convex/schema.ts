@@ -33,6 +33,7 @@ export default defineSchema({
         v.literal("received"),
         v.literal("in_progress"),
         v.literal("ready"),
+        v.literal("failed"),
         v.literal("closed"),
       ),
     ),

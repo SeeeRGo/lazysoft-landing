@@ -30,6 +30,8 @@
 .request-direct-link { display: inline-block; margin-top: 16px; color: #176861; font-size: 12px; font-weight: 650; }
 .request-minimal .request-link-help summary { font-size: 12px; color: #516e69; font-weight: 500; }
 .request-minimal .request-next-steps { margin: 20px 0 0; padding: 0; border: 0; }
+.request-minimal [data-automation][data-phase="failed"] { margin: 24px 0; padding: 18px 20px; border: 1px solid #c97d55; border-left-width: 4px; border-radius: 10px; background: #fff4ec; }
+.request-minimal [data-automation][data-phase="failed"] > [data-automation-status] { margin: 0; color: #74391f; font-weight: 650; line-height: 1.6; }
 .request-minimal .demo-showcase { padding: 0; background: transparent; border: 0; border-radius: 0; margin-top: 20px; }
 .request-minimal .demo-showcase > .site-offer-kicker { display: none; }
 .request-minimal .demo-showcase h3 { font-size: 24px; }

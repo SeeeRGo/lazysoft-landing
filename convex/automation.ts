@@ -191,6 +191,8 @@ export const claim = internalMutation({
     if (job.attempts >= 3) {
       await ctx.db.patch(job._id, { status: "failed", error: "Исчерпаны попытки выполнения" });
       await ctx.db.patch(state._id, { phase: "failed", updatedAt: now });
+      await ctx.db.patch(request._id, { status: "failed", updatedAt: now });
+      await ctx.db.insert("mvpRequestMessages", { requestId: job.requestId, sender: "system", text: "Автоматическая генерация остановилась после нескольких попыток. Заявка и идея сохранены, разработчик получил уведомление и проверит её вручную. Повторно отправлять заявку не нужно.", createdAt: now });
       await event(ctx, job.requestId, "generation_failed", job._id, "Исчерпаны попытки выполнения; требуется проверка разработчика.");
       return null;
     }
@@ -278,9 +280,15 @@ export const fail = internalMutation({
     if (!job || job.status !== "running" || job.leaseToken !== args.leaseToken || (job.leaseUntil ?? 0) < Date.now()) return false;
     const terminal = job.attempts >= 3;
     await ctx.db.patch(job._id, { status: terminal ? "failed" : "queued", availableAt: Date.now() + 60_000 * job.attempts, error: args.error.slice(0, 1000), leaseUntil: undefined, leaseToken: undefined });
+    const now = Date.now();
     const state = await getAutomation(ctx, job.requestId);
-    if (state) await ctx.db.patch(state._id, { phase: terminal ? "failed" : job.kind === "initial" ? "queued" : "revision_queued", updatedAt: Date.now() });
-    if (terminal) await event(ctx, job.requestId, "generation_failed", job._id, "Автоматическая подготовка не завершилась после трёх попыток; требуется проверка разработчика.");
+    if (state) await ctx.db.patch(state._id, { phase: terminal ? "failed" : job.kind === "initial" ? "queued" : "revision_queued", updatedAt: now });
+    if (terminal) {
+      const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", job.requestId)).unique();
+      if (request) await ctx.db.patch(request._id, { status: "failed", updatedAt: now });
+      await ctx.db.insert("mvpRequestMessages", { requestId: job.requestId, sender: "system", text: "Автоматическая генерация остановилась после нескольких попыток. Заявка и идея сохранены, разработчик получил уведомление и проверит её вручную. Повторно отправлять заявку не нужно.", createdAt: now });
+      await event(ctx, job.requestId, "generation_failed", job._id, "Автоматическая подготовка не завершилась после трёх попыток; требуется проверка разработчика.");
+    }
     return true;
   },
 });
@@ -296,6 +304,8 @@ export const retryFailedJob = internalMutation({
     if (!job || job.requestId !== args.requestId || job.status !== "failed" || job.error !== args.expectedError || state?.phase !== "failed" || latest?._id !== job._id) return false;
     await ctx.db.patch(job._id, { status: "queued", attempts: 2, availableAt: Date.now(), leaseToken: undefined, leaseUntil: undefined });
     await ctx.db.patch(state._id, { phase: job.kind === "initial" ? "queued" : "revision_queued", updatedAt: Date.now() });
+    const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", args.requestId)).unique();
+    if (request) await ctx.db.patch(request._id, { status: "in_progress", updatedAt: Date.now() });
     return true;
   },
 });

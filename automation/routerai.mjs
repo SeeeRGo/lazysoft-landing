@@ -284,7 +284,7 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
         ],
       });
       if (!objectKeys(foundation, ["cmsSchema", "cmsContent", "designPlan", "imagePlan", "result"]) || typeof foundation.cmsSchema !== "string" || typeof foundation.cmsContent !== "string" || !Array.isArray(foundation.imagePlan)) throw new Error("Invalid RouterAI foundation");
-      try { validateCmsStrings(foundation.cmsSchema, foundation.cmsContent); }
+      try { validateCmsStrings(foundation.cmsSchema, foundation.cmsContent); validateImagePlan(foundation); }
       catch (error) {
         onPhase("foundation-repair");
         foundation = await requestPhase({
@@ -296,15 +296,15 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
         });
         if (!objectKeys(foundation, ["cmsSchema", "cmsContent", "designPlan", "imagePlan", "result"]) || typeof foundation.cmsSchema !== "string" || typeof foundation.cmsContent !== "string" || !Array.isArray(foundation.imagePlan)) throw new Error("Invalid RouterAI foundation repair");
         validateCmsStrings(foundation.cmsSchema, foundation.cmsContent);
+        validateImagePlan(foundation);
       }
-      validateImagePlan(foundation);
       onPhase("images");
       const imageFiles = await Promise.all(foundation.imagePlan.map(requestImage));
       onPhase("implementation");
       let implementation = await requestPhase({
         name: "site_implementation", schema: implementationSchema(), maxTokens: 40000,
         messages: [
-          { role: "system", content: `Stage 2 of 2. Generate the complete visual implementation for the supplied fixed CMS foundation and its separately generated imagePlan photographs. Return readme for README.md, index for versions/${targetId}/index.html, and every other generated text file in extra with a full project-relative path under versions/${targetId}/. Do not repeat cms-schema.json or cms-content.json in extra. Do not generate raster files, illustrative SVG files or worker-owned files: ${[...reserved].join(", ")}. Use the exact imagePlan .jpg paths supplied through CMS. Public pages must reference cms-config.js and load CMS from cms.js in a module. Every visible demo-admin link must navigate to admin.html, including when an editable CMS value is empty or incorrect. All visible editable data and collections must render from the supplied CMS, including newly added items, safe data:image PNG/JPEG/WebP uploads, and empty collections. Use a distinctive display/body font pair, varied asymmetric composition, stable aspect ratios for hero media, purposeful motion with prefers-reduced-motion, visible focus states, a prominent site-wide demo label, and a clear visible CMS loading error. Avoid system-font-only typography and uniform card grids. No external runtime integrations or fabricated server code.` },
+          { role: "system", content: `Stage 2 of 2. Generate the complete visual implementation for the supplied fixed CMS foundation and its separately generated imagePlan photographs. Return readme for README.md, index for versions/${targetId}/index.html, and every other generated text file in extra with a full project-relative path under versions/${targetId}/. Do not repeat cms-schema.json or cms-content.json in extra. Do not generate raster files, illustrative SVG files or worker-owned files: ${[...reserved].join(", ")}. Use the exact imagePlan .jpg paths supplied through CMS. Public pages must reference cms-config.js and load CMS from cms.js in a module. Every visible demo-admin link must navigate to admin.html, including when an editable CMS value is empty or incorrect. All visible editable data and collections must render from the supplied CMS, including newly added items, safe data:image PNG/JPEG/WebP uploads, and empty collections. Every image field in every collection item must be rendered for every item, including compact rows and all items after the first; the browser gate adds an item with an uploaded data:image and requires it to appear on the public page. Use a distinctive display/body font pair, varied asymmetric composition, stable aspect ratios for hero media, purposeful motion with prefers-reduced-motion, visible focus states, a prominent site-wide demo label, and a clear visible CMS loading error. Avoid system-font-only typography and uniform card grids. No external runtime integrations or fabricated server code.` },
           { role: "user", content: JSON.stringify({ context, foundation }) },
         ],
       });

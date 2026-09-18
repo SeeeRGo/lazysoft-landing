@@ -24,7 +24,7 @@ export async function checkCms(site,{screenshots}={}){
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBypassServiceWorker',{bypass:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
  await navigate('index.html');
  await evaluate(`(()=>{document.querySelectorAll('img').forEach(i=>i.loading='eager');window.scrollTo(0,document.body.scrollHeight)})()`);
- await until(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).every(i=>i.complete)`);
+ await until(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).length>=3&&Array.from(document.images).filter(i=>!i.src.startsWith('data:')).every(i=>i.complete)`);
  const initialImages=await evaluate(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).map(i=>({src:new URL(i.src,location.href).pathname,width:i.naturalWidth,height:i.naturalHeight}))`);
  const rasterImages=initialImages.filter(i=>/\.(?:jpe?g|png|webp)$/i.test(i.src));
  assert(rasterImages.length>=3,'At least three generated raster images are required');

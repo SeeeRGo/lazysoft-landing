@@ -1,6 +1,6 @@
 export {};
 
-type RequestStatus = "received" | "in_progress" | "ready" | "closed";
+type RequestStatus = "received" | "in_progress" | "ready" | "failed" | "closed";
 type MessageSender = "system" | "visitor" | "owner";
 
 interface RequestMessage {
@@ -37,6 +37,7 @@ const statusLabels: Record<RequestStatus, string> = {
   received: "Заявка получена",
   in_progress: "В работе",
   ready: "Результат готов",
+  failed: "Нужна ручная проверка",
   closed: "Заявка закрыта",
 };
 const senderLabels: Record<MessageSender, string> = {

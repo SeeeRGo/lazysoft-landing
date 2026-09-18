@@ -80,15 +80,19 @@ function selectedDemoId() {
 }
 function render() {
   if (!section || !state) return;
+  section.dataset.phase = state.phase;
   section.hidden = !state.demoOptions.length && ["queued", "generating", "revision_queued", "revising"].includes(state.phase);
   const labels = {
     queued: "Заявка в очереди. Здесь появится первая версия.", generating: "Готовим первую версию по вашей идее.",
     review: "Новая версия готова. Можно купить любую готовую версию или отправить доработки.", revision_queued: "Сообщение принято. Новая версия появится здесь; предыдущие доступны ниже.",
     revising: "Создаём новую версию по вашему сообщению. Предыдущие версии сохранены.", complete: "Все готовые версии доступны. Выберите понравившуюся для покупки.",
-    failed: "Подготовка задерживается. Разработчик проверит заявку; вы можете написать ему ниже.",
+    failed: "Автоматическая генерация остановилась после нескольких попыток. Ваша заявка и идея сохранены. Разработчик уже получил уведомление и проверит её вручную. Повторно отправлять заявку не нужно. Если хотите, напишите уточнение ниже.",
   };
   const status = section.querySelector("[data-automation-status]");
-  if (status) status.textContent = labels[state.phase];
+  if (status) {
+    status.textContent = labels[state.phase];
+    status.setAttribute("role", state.phase === "failed" ? "alert" : "status");
+  }
   visible("[data-automation-review]", state.canRevise);
   const remaining = Math.max(0, state.revisionLimit - state.revisionCount);
   const latest = Math.max(0, ...state.demoOptions.map(option => Number(option.id)));
