@@ -3,12 +3,24 @@ import { mkdtemp, mkdir, writeFile, readFile, readdir, symlink } from 'node:fs/p
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateDemo, validateResult, completionMessage, generationPrompt, restoreSource, prepareRevisionWorkspace, assembleVersionBundle, ensureProjectReadme } from '../automation/worker.mjs';
+import { command, validateDemo, validateResult, completionMessage, generationPrompt, restoreSource, prepareRevisionWorkspace, assembleVersionBundle, ensureProjectReadme } from '../automation/worker.mjs';
 
 const brief = { title: "Сайт мастерской", variants: [
   { id: "1", title: "Спокойный каталог" },
 ] };
 describe('worker artifacts', () => {
+  it('publishes through the bundled AWS CLI even when PATH lacks it (production failure of #2547a43f)', async () => {
+    await expect(command('aws', ['--version'], { env: { ...process.env, PATH: '/usr/bin:/bin' } })).resolves.toContain('aws-cli/');
+  });
+  it('handles early stdin closure without crashing the worker', async () => {
+    await expect(command(process.execPath, ['-e', 'process.exit(0)'], {input:'x'.repeat(1024*1024)})).resolves.toBe('');
+  });
+  it('reports missing executables without an unhandled stdin error', async () => {
+    await expect(command('/nonexistent/lazysoft-test-command', [], {input:'test'})).rejects.toMatchObject({code:'ENOENT'});
+  });
+  it('captures output from commands that need no stdin', async () => {
+    await expect(command(process.execPath, ['-e', 'process.stdout.write("ready")'])).resolves.toBe('ready');
+  });
   it('packages a nested README but refuses a symlink instead of copying it', async () => {
     const project=await mkdtemp(join(tmpdir(),'readme-test-'));
     await mkdir(join(project,'versions','1'),{recursive:true});

@@ -44,7 +44,7 @@ const senderLabels: Record<MessageSender, string> = {
   visitor: "Клиент",
   owner: "Вы",
 };
-const contactLabels = { none: "Пока без контакта", telegram: "Telegram", email: "Почта", max: "MAX" } as const;
+const contactLabels = { none: "Страница заявки", telegram: "Telegram", email: "Почта", max: "MAX" } as const;
 
 const loading = document.querySelector<HTMLElement>("[data-admin-loading]");
 const content = document.querySelector<HTMLElement>("[data-admin-content]");
@@ -59,10 +59,27 @@ const idea = document.querySelector<HTMLElement>("[data-admin-idea]");
 const messages = document.querySelector<HTMLElement>("[data-admin-messages]");
 const form = document.querySelector<HTMLFormElement>("[data-admin-message-form]");
 const formStatus = document.querySelector<HTMLElement>("[data-admin-form-status]");
+const syncStatus = document.querySelector<HTMLElement>("[data-admin-sync]");
+const refreshButton = document.querySelector<HTMLButtonElement>("[data-admin-refresh]");
+const retryButton = document.querySelector<HTMLButtonElement>("[data-admin-retry]");
+const demoList = document.querySelector<HTMLUListElement>("[data-admin-demos]");
+const demoEmpty = document.querySelector<HTMLElement>("[data-admin-demo-empty]");
+const demoCount = document.querySelector<HTMLElement>("[data-admin-demo-count]");
+const statusSelect = form?.elements.namedItem("status") as HTMLSelectElement | null;
 
 let adminToken = "";
 let pollTimer: number | undefined;
 let renderedSignature = "";
+let messageSignature = "";
+let statusEdited = false;
+let statusEdits = 0;
+let sending = false;
+let threadController: AbortController | undefined;
+
+statusSelect?.addEventListener("change", () => {
+  statusEdited = true;
+  statusEdits += 1;
+});
 
 function tokenFromPage() {
   let hashToken = "";
@@ -137,8 +154,29 @@ function renderMessage(message: RequestMessage) {
   return article;
 }
 
+function renderDemos(threadMessages: RequestMessage[]) {
+  const demos = new Map<string, RequestMessage>();
+  for (const message of [...threadMessages].sort((a, b) => b.createdAt - a.createdAt)) {
+    const url = safeResultUrl(message.demoUrl);
+    if (url && !demos.has(url)) demos.set(url, message);
+  }
+  if (demoCount) demoCount.textContent = demos.size ? String(demos.size) : "";
+  if (demoEmpty) demoEmpty.hidden = demos.size > 0;
+  if (!demoList) return;
+  demoList.hidden = demos.size === 0;
+  demoList.replaceChildren(...Array.from(demos, ([url, message]) => {
+    const item = document.createElement("li");
+    const link = createResultLink(new URL(url).hostname + new URL(url).pathname, url);
+    const time = document.createElement("time");
+    time.dateTime = new Date(message.createdAt).toISOString();
+    time.textContent = `${senderLabels[message.sender]} · ${formatDate(message.createdAt)}`;
+    item.append(link, time);
+    return item;
+  }));
+}
+
 function renderThread(thread: AdminThread) {
-  const signature = `${thread.status}:${thread.updatedAt}:${thread.messages.map((message) => message._id).join(",")}`;
+  const signature = JSON.stringify(thread);
   if (signature === renderedSignature) return;
   renderedSignature = signature;
   if (requestId) requestId.textContent = `Заявка ${thread.requestId}`;
@@ -147,14 +185,26 @@ function renderThread(thread: AdminThread) {
     statusBadge.textContent = statusLabels[thread.status];
     statusBadge.dataset.status = thread.status;
   }
-  if (contact) contact.textContent = thread.contact;
+  if (contact) contact.textContent = thread.contactMethod === "none" ? "Не указан — общение на странице заявки" : thread.contact || "Не указан";
   if (contactMethod) contactMethod.textContent = contactLabels[thread.contactMethod];
   if (idea) idea.textContent = thread.idea;
-  const statusSelect = form?.elements.namedItem("status") as HTMLSelectElement | null;
-  if (statusSelect && document.activeElement !== statusSelect) statusSelect.value = thread.status;
-  if (messages) {
+  if (statusSelect && !statusEdited) statusSelect.value = thread.status;
+  const nextMessageSignature = JSON.stringify(thread.messages);
+  if (messages && nextMessageSignature !== messageSignature) {
+    const nearBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 48;
+    const scrollTop = messages.scrollTop;
+    const focusedLink = messages.contains(document.activeElement) && document.activeElement instanceof HTMLAnchorElement ? document.activeElement.href : null;
     messages.replaceChildren(...thread.messages.map(renderMessage));
-    messages.scrollTop = messages.scrollHeight;
+    if (!thread.messages.length) {
+      const empty = document.createElement("p");
+      empty.className = "request-admin-empty";
+      empty.textContent = "Сообщений пока нет. Можно написать первый ответ.";
+      messages.append(empty);
+    }
+    if (focusedLink) Array.from(messages.querySelectorAll("a")).find((link) => link.href === focusedLink)?.focus({ preventScroll: true });
+    messages.scrollTop = nearBottom || !messageSignature ? messages.scrollHeight : scrollTop;
+    messageSignature = nextMessageSignature;
+    renderDemos(thread.messages);
   }
   loading?.setAttribute("hidden", "");
   errorBlock?.setAttribute("hidden", "");
@@ -166,21 +216,47 @@ function showError(message: string) {
   content?.setAttribute("hidden", "");
   if (errorText) errorText.textContent = message;
   errorBlock?.removeAttribute("hidden");
+  if (retryButton) retryButton.hidden = !adminToken;
+}
+
+function showSync(message: string, isError = false) {
+  if (!syncStatus) return;
+  syncStatus.textContent = message;
+  syncStatus.classList.toggle("is-error", isError);
 }
 
 async function fetchThread({ quiet = false } = {}) {
-  if (!adminToken) return;
+  if (!adminToken || threadController || sending) return;
+  const controller = new AbortController();
+  threadController = controller;
+  const timeout = window.setTimeout(() => controller.abort(), 20_000);
+  if (refreshButton) refreshButton.disabled = true;
+  if (retryButton) retryButton.disabled = true;
+  showSync("Проверяю обновления…");
   try {
     const response = await fetch("/api/request-admin/thread", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ adminToken }),
+      signal: controller.signal,
     });
     const result = (await response.json().catch(() => ({}))) as AdminResponse;
+    if (controller !== threadController) return;
     if (!response.ok || !result.thread) throw new Error(result.error || "Не удалось загрузить заявку");
     renderThread(result.thread);
+    showSync(`Проверено в ${new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(new Date())}. Автообновление каждые 15 с.`);
   } catch (error) {
-    if (!quiet) showError(error instanceof Error ? error.message : "Не удалось загрузить заявку");
+    if (controller !== threadController) return;
+    const message = controller.signal.aborted ? "Сервер не ответил вовремя. Попробуйте обновить заявку." : error instanceof Error ? error.message : "Не удалось загрузить заявку";
+    if (!quiet || content?.hidden) showError(message);
+    showSync("Нет свежих данных. Черновик сохранён в этом окне. Повторите обновление.", true);
+  } finally {
+    window.clearTimeout(timeout);
+    if (controller === threadController) {
+      threadController = undefined;
+      if (refreshButton) refreshButton.disabled = false;
+      if (retryButton) retryButton.disabled = false;
+    }
   }
 }
 
@@ -193,36 +269,80 @@ function showFormStatus(message: string, isError = false) {
 
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (sending || !adminToken) return;
   const formData = new FormData(form);
-  const text = String(formData.get("message") ?? "").trim();
-  const pdfUrl = String(formData.get("pdfUrl") ?? "").trim();
-  const demoUrl = String(formData.get("demoUrl") ?? "").trim();
+  const messageDraft = String(formData.get("message") ?? "");
+  const demoDraft = String(formData.get("demoUrl") ?? "");
+  const text = messageDraft.trim();
+  const demoUrl = demoDraft.trim();
   const status = String(formData.get("status") ?? "in_progress") as RequestStatus;
+  const submittedStatusEdits = statusEdits;
+  const messageField = form.elements.namedItem("message") as HTMLTextAreaElement | null;
+  const demoField = form.elements.namedItem("demoUrl") as HTMLInputElement | null;
   const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-  if (!text && !pdfUrl && !demoUrl) return showFormStatus("Напишите сообщение или добавьте ссылку на результат.", true);
-  if (button) button.disabled = true;
+  messageField?.removeAttribute("aria-invalid");
+  demoField?.removeAttribute("aria-invalid");
+  if (!text && !demoUrl) {
+    showFormStatus("Напишите сообщение или добавьте ссылку на демо.", true);
+    messageField?.setAttribute("aria-invalid", "true");
+    messageField?.focus();
+    return;
+  }
+  if (demoUrl && !safeResultUrl(demoUrl)) {
+    showFormStatus("Укажите ссылку на демо с http:// или https://.", true);
+    demoField?.setAttribute("aria-invalid", "true");
+    demoField?.focus();
+    return;
+  }
+  sending = true;
+  threadController?.abort();
+  threadController = undefined;
+  if (refreshButton) refreshButton.disabled = true;
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Публикую…";
+  }
+  form.setAttribute("aria-busy", "true");
+  showFormStatus("Публикую ответ…");
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 30_000);
   try {
     const response = await fetch("/api/request-admin/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adminToken, text, pdfUrl, demoUrl, status }),
+      body: JSON.stringify({ adminToken, text, demoUrl, status }),
+      signal: controller.signal,
     });
     const result = (await response.json().catch(() => ({}))) as AdminResponse;
     if (!response.ok) throw new Error(result.error || "Не удалось отправить сообщение");
-    const messageField = form.elements.namedItem("message") as HTMLTextAreaElement | null;
-    const pdfField = form.elements.namedItem("pdfUrl") as HTMLInputElement | null;
-    const demoField = form.elements.namedItem("demoUrl") as HTMLInputElement | null;
-    if (messageField) messageField.value = "";
-    if (pdfField) pdfField.value = "";
-    if (demoField) demoField.value = "";
-    showFormStatus("Сообщение опубликовано на странице заявки.");
+    if (messageField?.value === messageDraft) messageField.value = "";
+    if (demoField?.value === demoDraft) demoField.value = "";
+    if (statusEdits === submittedStatusEdits) statusEdited = false;
+    showFormStatus("Сообщение опубликовано на странице заявки. ИИ не запускался.");
     renderedSignature = "";
-    await fetchThread({ quiet: true });
   } catch (error) {
-    showFormStatus(error instanceof Error ? error.message : "Не удалось отправить сообщение", true);
+    const message = controller.signal.aborted || error instanceof TypeError
+      ? "Не удалось подтвердить публикацию. Черновик сохранён. Обновите переписку перед повторной отправкой, чтобы не создать дубликат."
+      : error instanceof Error ? error.message : "Не удалось отправить сообщение";
+    showFormStatus(message, true);
   } finally {
-    if (button) button.disabled = false;
+    window.clearTimeout(timeout);
+    sending = false;
+    form.removeAttribute("aria-busy");
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Опубликовать ответ →";
+    }
+    if (refreshButton) refreshButton.disabled = false;
+    void fetchThread({ quiet: true });
   }
+});
+
+refreshButton?.addEventListener("click", () => void fetchThread({ quiet: true }));
+retryButton?.addEventListener("click", () => void fetchThread());
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") void fetchThread({ quiet: true });
+  else showSync("Автообновление приостановлено, пока вкладка скрыта.");
 });
 
 adminToken = tokenFromPage();

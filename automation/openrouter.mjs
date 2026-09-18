@@ -86,7 +86,7 @@ async function existingAssets(project, targetId) {
 
 export async function generationContext({ project, targetId, prompt }) {
   if (!validId(targetId) || typeof prompt !== "string" || bytes(prompt) > 128 * 1024) throw new Error("Generation prompt exceeds limits");
-  const references = await Promise.all(["../skills/prompt-site-yandex/references/generation.md", "../standalone/site-cms/model.mjs", "../standalone/site-cms/public/cms.js"].map(async path => ({ path, content: await readFile(new URL(path, import.meta.url), "utf8") })));
+  const references = await Promise.all(["../skills/prompt-site-yandex/references/generation.md", "../skills/prompt-site-yandex/references/frontend-design.md", "../standalone/site-cms/model.mjs", "../standalone/site-cms/public/cms.js"].map(async path => ({ path, content: await readFile(new URL(path, import.meta.url), "utf8") })));
   const inventory = await existingAssets(project, targetId);
   const existing = [];
   const context = { prompt, references, inventory, existing };

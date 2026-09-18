@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { installDemoCms, buildPackages } from "../standalone/site-cms/package.mjs";
 import { randomBytes } from "node:crypto";
 import { mkdtemp, readFile, writeFile, mkdir, readdir, lstat, copyFile, cp } from "node:fs/promises";
@@ -24,22 +24,37 @@ async function providerConfig() {
 async function checkConfig() { for (const key of required) if (!process.env[key]) throw new Error(`Missing ${key}`); return providerConfig(); }
 
 async function api(operation, args = {}) {
-  const response = await fetch(`${process.env.CONVEX_SITE_URL.replace(/\/$/, "")}/automation-worker`, {
-    method: "POST", headers: { Authorization: `Bearer ${process.env.AUTOMATION_WORKER_SECRET}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ operation, ...args }), signal: AbortSignal.timeout(20_000),
-  });
+  let response;
+  for (let attempt = 0; attempt < (operation === "heartbeat" ? 3 : 1); attempt += 1) {
+    try {
+      response = await fetch(`${process.env.CONVEX_SITE_URL.replace(/\/$/, "")}/automation-worker`, {
+        method: "POST", headers: { Authorization: `Bearer ${process.env.AUTOMATION_WORKER_SECRET}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ operation, ...args }), signal: AbortSignal.timeout(20_000),
+      });
+      break;
+    } catch (error) {
+      const code = /^[A-Z0-9_]+$/.test(error?.cause?.code || "") ? error.cause.code : "NETWORK_ERROR";
+      if (operation !== "heartbeat" || attempt === 2) throw new Error(`Worker API ${operation}: ${code}`);
+      await new Promise(resolveDelay => setTimeout(resolveDelay, 300 * (attempt + 1)));
+    }
+  }
   if (!response.ok) throw new Error(`Worker API ${operation}: HTTP ${response.status}`);
   return response.json();
 }
-function command(file, args, { cwd, input, env = process.env, signal } = {}) {
+export function command(file, args, { cwd, input, env = process.env, signal } = {}) {
+  const localAws = resolve(here, "../.local/aws-cli/bin/aws");
+  const executable = file === "aws" && existsSync(localAws) ? localAws : file;
   return new Promise((resolveRun, reject) => {
-    const child = spawn(file, args, { cwd, env, signal, stdio: ["pipe", "pipe", "pipe"], timeout: 30 * 60_000 });
+    const child = spawn(executable, args, { cwd, env, signal, stdio: [input === undefined ? "ignore" : "pipe", "pipe", "pipe"], timeout: 30 * 60_000 });
     let output = "";
     // Bound output; never forward generated prompts or provider credentials into owner notifications.
     for (const stream of [child.stdout, child.stderr]) stream.on("data", chunk => { output = (output + chunk.toString()).slice(-4000); });
     child.once("error", reject);
-    child.once("exit", code => code === 0 ? resolveRun(output) : reject(Object.assign(new Error(`${file} failed (${code})`), { diagnosticOutput: output })));
-    child.stdin.end(input ?? "");
+    child.once("close", code => code === 0 ? resolveRun(output) : reject(Object.assign(new Error(`${file} failed (${code})`), { diagnosticOutput: output })));
+    if (child.stdin) {
+      child.stdin.on("error", error => { if (error.code !== "EPIPE") reject(error); });
+      child.stdin.end(input);
+    }
   });
 }
 
