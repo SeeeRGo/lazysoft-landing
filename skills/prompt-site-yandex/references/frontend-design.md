@@ -28,6 +28,7 @@ Design is the product. Choose one clear, bold, intentional aesthetic direction t
 
 ## Visual acceptance
 - A hero image that exists must occupy a stable visible area at both 390px and 1440px; use aspect-ratio, min-height or a responsive explicit height.
+- Use the separately generated raster photographs for the hero, catalog and story. Do not replace subject photography with abstract SVG shapes, line drawings or generic geometric placeholders.
 - Loading failure shows a visible explanation and recovery action rather than an empty page.
 - Demo sites show a persistent, clearly readable demonstration label wherever fictional contacts, prices, reviews or forms appear.
 - Keyboard focus is visible. Empty states explain what will appear and what the visitor can do next.

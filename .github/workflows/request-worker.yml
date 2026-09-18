@@ -36,6 +36,7 @@ jobs:
           REQUEST_GENERATION_PROVIDER: routerai
           ROUTERAI_API_KEY: ${{ secrets.ROUTERAI_API_KEY }}
           ROUTERAI_MODEL: anthropic/claude-opus-5
+          ROUTERAI_IMAGE_MODEL: black-forest-labs/flux.2-pro
           REQUEST_DEMO_BUCKET: ${{ vars.REQUEST_DEMO_BUCKET }}
           REQUEST_DEMO_ORIGIN: ${{ vars.REQUEST_DEMO_ORIGIN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_STORAGE_ACCESS_KEY_ID }}

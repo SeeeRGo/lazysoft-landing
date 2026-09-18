@@ -2,29 +2,36 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, mkdir, readFile, writeFile, readdir, symlink, link, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { DEFAULT_ROUTERAI_MODEL, LIMITS, routeraiConfig, generateRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration } from "../automation/routerai.mjs";
+import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, LIMITS, routeraiConfig, generateRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration } from "../automation/routerai.mjs";
 import { generationProvider, routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
 import { installDemoCms } from "../standalone/site-cms/package.mjs";
 import { checkCms } from "../automation/cms-check.mjs";
 
 const roots = [];
-const config = { apiKey: "test-provider-credential-not-for-output", model: DEFAULT_ROUTERAI_MODEL };
+const config = { apiKey: "test-provider-credential-not-for-output", model: DEFAULT_ROUTERAI_MODEL, imageModel: DEFAULT_ROUTERAI_IMAGE_MODEL };
 const job = { kind: "initial", targetDemoId: "1", idea: "Мастерская", instructions: "" };
-const schema = { format: "lazysoft-cms-v1", fields: [{ key: "heading", label: "Заголовок", type: "text" }], collections: [] };
+const schema = { format: "lazysoft-cms-v1", fields: [{ key: "heading", label: "Заголовок", type: "text" }, { key: "heroImage", label: "Hero", type: "image" }, { key: "detailImage", label: "Detail", type: "image" }, { key: "storyImage", label: "Story", type: "image" }], collections: [] };
 const generation = (id = "1") => ({ result: { title: "Мастерская", variants: [{ id, title: "Первая версия" }] }, files: [
   { path: "README.md", content: "Serve over HTTP. Demo CMS uses browser storage; external integrations are not connected." },
   { path: `versions/${id}/index.html`, content: '<html><head><title>Мастерская</title><link href="https://fonts.googleapis.com/css2?family=Manrope" rel="stylesheet"><style>.hero{aspect-ratio:16/9}.hero:focus-visible{outline:2px solid}@media (prefers-reduced-motion: reduce){*{animation:none}}</style></head><body><aside>Демо-сайт</aside><h1></h1><a href="admin.html">Админка</a><script src="cms-config.js"></script><script type="module" src="app.js"></script></body></html>' },
   { path: `versions/${id}/app.js`, content: "import {CMS} from './cms.js'; const safeImage = value => /^(?:data:image\\/(?:png|jpeg|webp);base64,|[A-Za-z0-9_./-]+\\.(?:png|jpg|jpeg|webp|svg)$)/i.test(value); try { const {content} = await CMS.load(); document.querySelector('h1').textContent = content.values.heading; } catch { document.querySelector('h1').textContent = 'Ошибка загрузки сайта'; }" },
   { path: `versions/${id}/cms-schema.json`, content: JSON.stringify(schema) },
-  { path: `versions/${id}/cms-content.json`, content: JSON.stringify({ values: { heading: "Мастерская" }, items: {} }) },
+  { path: `versions/${id}/cms-content.json`, content: JSON.stringify({ values: { heading: "Мастерская", heroImage: "assets/hero.jpg", detailImage: "assets/detail.jpg", storyImage: "assets/story.jpg" }, items: {} }) },
 ] });
 const response = (value = generation(), finish = "stop") => Response.json({ choices: [{ finish_reason: finish, message: { content: typeof value === "string" ? value : JSON.stringify(value) } }] });
+const jpeg = (() => { const data = Buffer.alloc(12 * 1024, 1); data[0] = 0xff; data[1] = 0xd8; data[data.length - 2] = 0xff; data[data.length - 1] = 0xd9; return data.toString("base64"); })();
+const imageResponse = () => Response.json({ data: [{ b64_json: jpeg }] });
 function phaseValue(value, init) {
   const name = JSON.parse(init.body).response_format.json_schema.name;
   if (name === "site_foundation") return {
     cmsSchema: value.files.find(file => file.path.endsWith("cms-schema.json")).content,
     cmsContent: value.files.find(file => file.path.endsWith("cms-content.json")).content,
     designPlan: { direction: "Workshop editorial", subjectMotif: "Joinery details", palette: ["#111111", "#f5f0e6", "#a34220", "#31533a"], typography: "Manrope and serif", layout: "Asymmetric workshop grid", hero: "Large furniture portrait", motion: "One restrained reveal", avoid: ["uniform cards", "purple gradients", "generic labels"], selfCritique: "Removed generic SaaS cards and decorative counters." },
+    imagePlan: [
+      { path: "assets/hero.jpg", prompt: "Editorial photograph of a handmade object in a quiet workshop with side window light and negative space", aspectRatio: "3:2" },
+      { path: "assets/detail.jpg", prompt: "Close editorial photograph of natural materials and fine craft details in believable daylight", aspectRatio: "4:3" },
+      { path: "assets/story.jpg", prompt: "Environmental editorial portrait of a craft workspace with tools and warm directional light", aspectRatio: "3:4" },
+    ],
     result: value.result,
   };
   const readme = value.files.find(file => file.path === "README.md");
@@ -32,7 +39,7 @@ function phaseValue(value, init) {
   const fixed = new Set([readme, index, value.files.find(file => file.path.endsWith("cms-schema.json")), value.files.find(file => file.path.endsWith("cms-content.json"))]);
   return { readme: readme.content, index: index.content, extra: value.files.filter(file => !fixed.has(file)) };
 }
-const staged = (value = generation()) => async (_url, init) => response(phaseValue(value, init));
+const staged = (value = generation()) => async (url, init) => url.endsWith("/images") ? imageResponse() : response(phaseValue(value, init));
 async function workspace() { const root = await mkdtemp(join(tmpdir(), "routerai-provider-test-")); roots.push(root); return root; }
 async function run(fetchImpl, options = {}) { const project = await workspace(); return generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl, ...options }); }
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
@@ -44,6 +51,7 @@ describe("RouterAI provider", () => {
     vi.stubEnv("ROUTERAI_API_KEY", config.apiKey);
     const project = await workspace();
     const fetchImpl = vi.fn(async (url, init) => {
+      if (url.endsWith("/images")) return imageResponse();
       expect(url).toBe("https://routerai.ru/api/v1/chat/completions");
       expect(JSON.parse(init.body).model).toBe(DEFAULT_ROUTERAI_MODEL);
       return response(phaseValue(generation(), init));
@@ -54,7 +62,7 @@ describe("RouterAI provider", () => {
       await writeGeneration(project, job.targetDemoId, generated);
       await installDemoCms(join(project, "versions", job.targetDemoId));
       await validateDemo(join(project, "versions", job.targetDemoId));
-      expect(fetchImpl).toHaveBeenCalledTimes(2);
+      expect(fetchImpl).toHaveBeenCalledTimes(5);
       expect(generated.result.variants).toEqual([{ id: "1", title: "Первая версия" }]);
       expect(await readFile(join(project, "versions", "1", "index.html"), "utf8")).toContain("Мастерская");
       expect(await readFile(join(project, "README.md"), "utf8")).toContain("Serve over HTTP");
@@ -68,7 +76,7 @@ describe("RouterAI provider", () => {
     value.files[1].content = value.files[1].content.replace("<h1></h1>", '<h1></h1><section id="catalog"></section>');
     value.files[2].content = "import {CMS} from './cms.js'; const {content} = await CMS.load(); document.querySelector('h1').textContent = content.values.heading; for (const product of content.items.products) { const item = document.createElement('article'); const name = document.createElement('h2'); name.textContent = product.name; item.append(name); if (product.image) { const image = document.createElement('img'); image.src = product.image; image.style.maxWidth = '100%'; item.append(image); } document.querySelector('#catalog').append(item); }";
     value.files[3].content = JSON.stringify(catalogSchema);
-    value.files[4].content = JSON.stringify({ values: { heading: "Мастерская" }, items: { products: [] } });
+    value.files[4].content = JSON.stringify({ values: { heading: "Мастерская", heroImage: "assets/hero.jpg", detailImage: "assets/detail.jpg", storyImage: "assets/story.jpg" }, items: { products: [] } });
     const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl: staged(value) });
     await writeGeneration(project, "1", generated);
     await installDemoCms(join(project, "versions", "1"));
@@ -90,6 +98,12 @@ describe("RouterAI provider", () => {
   it("generates structured files through a single mocked chat request then installs the real CMS", async () => {
     const project = await workspace();
     const fetchImpl = vi.fn(async (url, init) => {
+      if (url.endsWith("/images")) {
+        const body = JSON.parse(init.body);
+        expect(body.model).toBe(DEFAULT_ROUTERAI_IMAGE_MODEL);
+        expect(body.prompt).toContain("photorealistic editorial website photograph");
+        return imageResponse();
+      }
       expect(url).toBe("https://routerai.ru/api/v1/chat/completions");
       expect(init.headers.Authorization).toBe(`Bearer ${config.apiKey}`);
       expect(init.body).not.toContain(config.apiKey);
@@ -107,7 +121,7 @@ describe("RouterAI provider", () => {
       return response(phaseValue(generation(), init));
     });
     const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(5);
     await writeGeneration(project, "1", generated);
     await installDemoCms(join(project, "versions", "1"));
     await validateDemo(join(project, "versions", "1"));
@@ -119,13 +133,14 @@ describe("RouterAI provider", () => {
     const project = await workspace();
     const value = generation();
     const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl: staged(value) });
-    expect(generated.files.map(file => file.path).sort()).toEqual(value.files.map(file => file.path).sort());
+    expect(generated.files.map(file => file.path).sort()).toEqual([...value.files.map(file => file.path), "versions/1/assets/hero.jpg", "versions/1/assets/detail.jpg", "versions/1/assets/story.jpg"].sort());
   });
 
   it("normalizes duplicate and fixed paths returned by an implementation repair", async () => {
     const project = await workspace();
     const value = generation();
-    const fetchImpl = vi.fn(async (_url, init) => {
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (url.endsWith("/images")) return imageResponse();
       const name = JSON.parse(init.body).response_format.json_schema.name;
       if (name === "site_foundation") return response(phaseValue(value, init));
       const implementation = phaseValue(value, init);
@@ -139,7 +154,7 @@ describe("RouterAI provider", () => {
       return response(implementation);
     });
     const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl });
-    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(fetchImpl).toHaveBeenCalledTimes(6);
     expect(generated.files.filter(file => file.path.toLowerCase() === "versions/1/theme.css")).toEqual([{ path: "versions/1/theme.css", content: "new" }]);
     expect(generated.files.find(file => file.path === "versions/1/index.html").content).toContain("Мастерская");
     expect(generated.files.find(file => file.path === "versions/1/cms-schema.json").content).toBe(JSON.stringify(schema));

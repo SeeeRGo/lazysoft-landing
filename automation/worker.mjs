@@ -127,7 +127,7 @@ export function routeraiBrief(job) {
       "All important texts, contacts, images, prices and repeatable items are editable through the supplied CMS contract.",
       "If CMS loading fails, show a clear visible error message instead of silently rendering empty content.",
       "Show a prominent site-wide label that this is a demonstration with fictional data.",
-      "Use local SVG assets for newly created illustrations; do not claim unconnected payments, orders or integrations work.",
+      "Use realistic local raster photographs for the main subject, catalog and story; never substitute abstract SVG drawings for requested photography. Do not claim unconnected payments, orders or integrations work.",
       "Include clear empty states, working navigation and an admin link on every public page.",
     ],
   });

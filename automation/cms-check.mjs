@@ -22,6 +22,15 @@ export async function checkCms(site,{screenshots}={}){
  const until=async expression=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,100))}throw Error('CMS browser condition timed out: '+String(await evaluate("document.querySelector('#status')?.textContent||document.body.innerText.slice(0,160)")).slice(0,300))};
  const navigate=async path=>{await send('Page.navigate',{url:origin+'/'+path});await until(`location.pathname===${JSON.stringify('/'+path)}&&document.readyState==='complete'`)};
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBypassServiceWorker',{bypass:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
+ await navigate('index.html');
+ await evaluate(`(()=>{document.querySelectorAll('img').forEach(i=>i.loading='eager');window.scrollTo(0,document.body.scrollHeight)})()`);
+ await until(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).every(i=>i.complete)`);
+ const initialImages=await evaluate(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).map(i=>({src:new URL(i.src,location.href).pathname,width:i.naturalWidth,height:i.naturalHeight}))`);
+ const rasterImages=initialImages.filter(i=>/\.(?:jpe?g|png|webp)$/i.test(i.src));
+ assert(rasterImages.length>=3,'At least three generated raster images are required');
+ assert(new Set(rasterImages.map(i=>i.src)).size>=3,'At least three distinct generated raster images are required');
+ assert(rasterImages.every(i=>i.width>=512&&i.height>=384),'Generated raster images are too small or failed to load');
+ assert.equal(initialImages.length,rasterImages.length,'Illustrative SVG or unsupported initial images are not allowed');
  for(const c of schema.collections){
   await navigate('admin.html');await until(`!!document.querySelector('[data-add-collection="${c.key}"]')`);
   await evaluate(`document.querySelector('[data-add-collection="${c.key}"]').click()`);
