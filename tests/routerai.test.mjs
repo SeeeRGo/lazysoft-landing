@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, mkdir, readFile, writeFile, readdir, symlink, link, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { DEFAULT_ROUTERAI_MODEL, LIMITS, routeraiConfig, generateRouterAI, generationContext, validateGeneration, writeGeneration } from "../automation/routerai.mjs";
+import { DEFAULT_ROUTERAI_MODEL, LIMITS, routeraiConfig, generateRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration } from "../automation/routerai.mjs";
 import { generationProvider, routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
 import { installDemoCms } from "../standalone/site-cms/package.mjs";
 import { checkCms } from "../automation/cms-check.mjs";
@@ -13,8 +13,8 @@ const job = { kind: "initial", targetDemoId: "1", idea: "Мастерская", 
 const schema = { format: "lazysoft-cms-v1", fields: [{ key: "heading", label: "Заголовок", type: "text" }], collections: [] };
 const generation = (id = "1") => ({ result: { title: "Мастерская", variants: [{ id, title: "Первая версия" }] }, files: [
   { path: "README.md", content: "Serve over HTTP. Demo CMS uses browser storage; external integrations are not connected." },
-  { path: `versions/${id}/index.html`, content: '<html><head><title>Мастерская</title></head><body><h1></h1><a href="admin.html">Админка</a><script src="cms-config.js"></script><script type="module" src="app.js"></script></body></html>' },
-  { path: `versions/${id}/app.js`, content: "import {CMS} from './cms.js'; const {content} = await CMS.load(); document.querySelector('h1').textContent = content.values.heading;" },
+  { path: `versions/${id}/index.html`, content: '<html><head><title>Мастерская</title><link href="https://fonts.googleapis.com/css2?family=Manrope" rel="stylesheet"><style>.hero{aspect-ratio:16/9}.hero:focus-visible{outline:2px solid}@media (prefers-reduced-motion: reduce){*{animation:none}}</style></head><body><aside>Демо-сайт</aside><h1></h1><a href="admin.html">Админка</a><script src="cms-config.js"></script><script type="module" src="app.js"></script></body></html>' },
+  { path: `versions/${id}/app.js`, content: "import {CMS} from './cms.js'; const safeImage = value => /^(?:data:image\\/(?:png|jpeg|webp);base64,|[A-Za-z0-9_./-]+\\.(?:png|jpg|jpeg|webp|svg)$)/i.test(value); try { const {content} = await CMS.load(); document.querySelector('h1').textContent = content.values.heading; } catch { document.querySelector('h1').textContent = 'Ошибка загрузки сайта'; }" },
   { path: `versions/${id}/cms-schema.json`, content: JSON.stringify(schema) },
   { path: `versions/${id}/cms-content.json`, content: JSON.stringify({ values: { heading: "Мастерская" }, items: {} }) },
 ] });
@@ -24,6 +24,7 @@ function phaseValue(value, init) {
   if (name === "site_foundation") return {
     cmsSchema: value.files.find(file => file.path.endsWith("cms-schema.json")).content,
     cmsContent: value.files.find(file => file.path.endsWith("cms-content.json")).content,
+    designPlan: { direction: "Workshop editorial", subjectMotif: "Joinery details", palette: ["#111111", "#f5f0e6", "#a34220", "#31533a"], typography: "Manrope and serif", layout: "Asymmetric workshop grid", hero: "Large furniture portrait", motion: "One restrained reveal", avoid: ["uniform cards", "purple gradients", "generic labels"], selfCritique: "Removed generic SaaS cards and decorative counters." },
     result: value.result,
   };
   const readme = value.files.find(file => file.path === "README.md");
@@ -119,6 +120,11 @@ describe("RouterAI provider", () => {
     const value = generation();
     const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl: staged(value) });
     expect(generated.files.map(file => file.path).sort()).toEqual(value.files.map(file => file.path).sort());
+  });
+
+  it("detects missing visual quality requirements before publishing", () => {
+    expect(visualContractIssues({ index: "<html></html>", extra: [] })).toContain("add prefers-reduced-motion handling");
+    expect(visualContractIssues(phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) }))).toEqual([]);
   });
 
   it.each(["{", "```json\n{}\n```", "null", "[]"])("rejects malformed generated JSON %s", async content => {

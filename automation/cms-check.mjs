@@ -35,13 +35,14 @@ export async function checkCms(site,{screenshots}={}){
    }else await evaluate(`(()=>{const i=document.querySelector(${JSON.stringify(selector)});i.value=${JSON.stringify(f.type==='number'?'123':f.type==='url'?'https://example.org':marker)};i.dispatchEvent(new Event('input',{bubbles:true}))})()`);
   }
   await evaluate(`document.querySelector('#editor').requestSubmit()`);await until(`document.querySelector('#status').textContent.startsWith('Сохранено')`);
-  await navigate(c.page||'index.html');await until(`document.body.innerText.includes(${JSON.stringify(marker)})`);
+  await navigate(c.page||'index.html');
+  try{await until(`document.documentElement.textContent.includes(${JSON.stringify(marker)})`)}catch{throw Error('CMS collection is not rendered: '+c.key)}
   await evaluate(`Array.from(document.images).find(i=>i.src.startsWith('data:image/'))?.scrollIntoView({block:'center'})`);
-  await until(`Array.from(document.images).filter(i=>i.src.startsWith('data:image/')).some(i=>i.complete&&i.naturalWidth>0)`);
+  try{await until(`Array.from(document.images).filter(i=>i.src.startsWith('data:image/')).some(i=>i.complete&&i.naturalWidth>0)`)}catch{throw Error('CMS uploaded image is not rendered: '+c.key)}
  }
  if(screenshots)await mkdir(screenshots,{recursive:true});
  const screenshot=async(name)=>{if(!screenshots)return;const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(join(screenshots,name+'.png'),Buffer.from(shot.data,'base64'))};
- for(const width of [390,1440]){await send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:width<500});await navigate('index.html');await until(`document.readyState==='complete'`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Public layout overflows');await new Promise(r=>setTimeout(r,500));await screenshot('site-'+width);await navigate('admin.html');await until(`!document.querySelector('#editor').hidden`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Admin layout overflows');await screenshot('admin-'+width)}
+ for(const width of [390,1440]){await send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:width<500});await navigate('index.html');await until(`document.readyState==='complete'`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Public layout overflows');assert(await evaluate(`(()=>{const image=document.querySelector('.hero img,[class*="hero"] img');return !image||image.getBoundingClientRect().height>=80})()`),'Hero image collapsed');await new Promise(r=>setTimeout(r,500));await screenshot('site-'+width);await navigate('admin.html');await until(`!document.querySelector('#editor').hidden`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Admin layout overflows');await screenshot('admin-'+width)}
  assert.deepEqual(errors,[]);return {collections:schema.collections.length,admin:true,images:true,widths:[390,1440]};
  }finally{ws?.close();chrome.kill('SIGTERM');await new Promise(r=>server.close(r));await rm(profile,{recursive:true,force:true}).catch(()=>{})}
 }
