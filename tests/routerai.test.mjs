@@ -2,13 +2,13 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, mkdir, readFile, writeFile, readdir, symlink, link, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { DEFAULT_OPENROUTER_MODEL, LIMITS, openrouterConfig, generateOpenRouter, generationContext, validateGeneration, writeGeneration } from "../automation/openrouter.mjs";
-import { generationProvider, generationPrompt, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
+import { DEFAULT_ROUTERAI_MODEL, LIMITS, routeraiConfig, generateRouterAI, generationContext, validateGeneration, writeGeneration } from "../automation/routerai.mjs";
+import { generationProvider, routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
 import { installDemoCms } from "../standalone/site-cms/package.mjs";
 import { checkCms } from "../automation/cms-check.mjs";
 
 const roots = [];
-const config = { apiKey: "test-provider-credential-not-for-output", model: DEFAULT_OPENROUTER_MODEL };
+const config = { apiKey: "test-provider-credential-not-for-output", model: DEFAULT_ROUTERAI_MODEL };
 const job = { kind: "initial", targetDemoId: "1", idea: "Мастерская", instructions: "" };
 const schema = { format: "lazysoft-cms-v1", fields: [{ key: "heading", label: "Заголовок", type: "text" }], collections: [] };
 const generation = (id = "1") => ({ result: { title: "Мастерская", variants: [{ id, title: "Первая версия" }] }, files: [
@@ -19,28 +19,41 @@ const generation = (id = "1") => ({ result: { title: "Мастерская", var
   { path: `versions/${id}/cms-content.json`, content: JSON.stringify({ values: { heading: "Мастерская" }, items: {} }) },
 ] });
 const response = (value = generation(), finish = "stop") => Response.json({ choices: [{ finish_reason: finish, message: { content: typeof value === "string" ? value : JSON.stringify(value) } }] });
-async function workspace() { const root = await mkdtemp(join(tmpdir(), "openrouter-provider-test-")); roots.push(root); return root; }
-async function run(fetchImpl, options = {}) { const project = await workspace(); return generateOpenRouter({ project, targetId: "1", prompt: generationPrompt(job), config, fetchImpl, ...options }); }
+function phaseValue(value, init) {
+  const name = JSON.parse(init.body).response_format.json_schema.name;
+  if (name === "site_foundation") return {
+    cmsSchema: value.files.find(file => file.path.endsWith("cms-schema.json")).content,
+    cmsContent: value.files.find(file => file.path.endsWith("cms-content.json")).content,
+    result: value.result,
+  };
+  const readme = value.files.find(file => file.path === "README.md");
+  const index = value.files.find(file => file.path.endsWith("index.html"));
+  const fixed = new Set([readme, index, value.files.find(file => file.path.endsWith("cms-schema.json")), value.files.find(file => file.path.endsWith("cms-content.json"))]);
+  return { readme: readme.content, index: index.content, extra: value.files.filter(file => !fixed.has(file)) };
+}
+const staged = (value = generation()) => async (_url, init) => response(phaseValue(value, init));
+async function workspace() { const root = await mkdtemp(join(tmpdir(), "routerai-provider-test-")); roots.push(root); return root; }
+async function run(fetchImpl, options = {}) { const project = await workspace(); return generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl, ...options }); }
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 
-describe("OpenRouter provider", () => {
-  it("completes an initial request without provider or model using the OpenRouter default", async () => {
+describe("RouterAI provider", () => {
+  it("completes an initial request without provider or model using the RouterAI default", async () => {
     vi.stubEnv("REQUEST_GENERATION_PROVIDER", undefined);
-    vi.stubEnv("OPENROUTER_MODEL", undefined);
-    vi.stubEnv("OPENROUTER_API_KEY", config.apiKey);
+    vi.stubEnv("ROUTERAI_MODEL", undefined);
+    vi.stubEnv("ROUTERAI_API_KEY", config.apiKey);
     const project = await workspace();
     const fetchImpl = vi.fn(async (url, init) => {
-      expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
-      expect(JSON.parse(init.body).model).toBe(DEFAULT_OPENROUTER_MODEL);
-      return response();
+      expect(url).toBe("https://routerai.ru/api/v1/chat/completions");
+      expect(JSON.parse(init.body).model).toBe(DEFAULT_ROUTERAI_MODEL);
+      return response(phaseValue(generation(), init));
     });
     try {
-      expect(generationProvider()).toBe("openrouter");
-      const generated = await generateOpenRouter({ project, targetId: job.targetDemoId, prompt: generationPrompt(job), fetchImpl });
+      expect(generationProvider()).toBe("routerai");
+      const generated = await generateRouterAI({ project, targetId: job.targetDemoId, prompt: routeraiBrief(job), fetchImpl });
       await writeGeneration(project, job.targetDemoId, generated);
       await installDemoCms(join(project, "versions", job.targetDemoId));
       await validateDemo(join(project, "versions", job.targetDemoId));
-      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
       expect(generated.result.variants).toEqual([{ id: "1", title: "Первая версия" }]);
       expect(await readFile(join(project, "versions", "1", "index.html"), "utf8")).toContain("Мастерская");
       expect(await readFile(join(project, "README.md"), "utf8")).toContain("Serve over HTTP");
@@ -55,43 +68,45 @@ describe("OpenRouter provider", () => {
     value.files[2].content = "import {CMS} from './cms.js'; const {content} = await CMS.load(); document.querySelector('h1').textContent = content.values.heading; for (const product of content.items.products) { const item = document.createElement('article'); const name = document.createElement('h2'); name.textContent = product.name; item.append(name); if (product.image) { const image = document.createElement('img'); image.src = product.image; image.style.maxWidth = '100%'; item.append(image); } document.querySelector('#catalog').append(item); }";
     value.files[3].content = JSON.stringify(catalogSchema);
     value.files[4].content = JSON.stringify({ values: { heading: "Мастерская" }, items: { products: [] } });
-    const generated = await generateOpenRouter({ project, targetId: "1", prompt: generationPrompt(job), config, fetchImpl: async () => response(value) });
+    const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl: staged(value) });
     await writeGeneration(project, "1", generated);
     await installDemoCms(join(project, "versions", "1"));
     expect(await checkCms(join(project, "versions", "1"))).toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
   }, 30_000);
 
-  it("uses configured OpenRouter while preserving existing unconfigured workers", () => {
+  it("uses configured RouterAI while preserving existing unconfigured workers", () => {
     expect(generationProvider({})).toBe("codex");
-    expect(generationProvider({ OPENROUTER_API_KEY: " " })).toBe("codex");
-    expect(generationProvider({ OPENROUTER_API_KEY: config.apiKey })).toBe("openrouter");
-    expect(generationProvider({ REQUEST_GENERATION_PROVIDER: "openrouter" })).toBe("openrouter");
+    expect(generationProvider({ ROUTERAI_API_KEY: " " })).toBe("codex");
+    expect(generationProvider({ ROUTERAI_API_KEY: config.apiKey })).toBe("routerai");
+    expect(generationProvider({ REQUEST_GENERATION_PROVIDER: "routerai" })).toBe("routerai");
     expect(generationProvider({ REQUEST_GENERATION_PROVIDER: "codex" })).toBe("codex");
     expect(() => generationProvider({ REQUEST_GENERATION_PROVIDER: "other" })).toThrow("Invalid REQUEST_GENERATION_PROVIDER");
-    expect(() => openrouterConfig({ CODEX_API_KEY: "not-openrouter" })).toThrow("Missing OPENROUTER_API_KEY");
-    expect(openrouterConfig({ OPENROUTER_API_KEY: config.apiKey }).model).toBe(DEFAULT_OPENROUTER_MODEL);
-    expect(openrouterConfig({ OPENROUTER_API_KEY: config.apiKey, OPENROUTER_MODEL: "test/model" }).model).toBe("test/model");
+    expect(() => routeraiConfig({ CODEX_API_KEY: "not-routerai" })).toThrow("Missing ROUTERAI_API_KEY");
+    expect(routeraiConfig({ ROUTERAI_API_KEY: config.apiKey }).model).toBe(DEFAULT_ROUTERAI_MODEL);
+    expect(routeraiConfig({ ROUTERAI_API_KEY: config.apiKey, ROUTERAI_MODEL: "test/model" }).model).toBe("test/model");
   });
 
   it("generates structured files through a single mocked chat request then installs the real CMS", async () => {
     const project = await workspace();
     const fetchImpl = vi.fn(async (url, init) => {
-      expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
+      expect(url).toBe("https://routerai.ru/api/v1/chat/completions");
       expect(init.headers.Authorization).toBe(`Bearer ${config.apiKey}`);
       expect(init.body).not.toContain(config.apiKey);
       const body = JSON.parse(init.body);
-      expect(body.model).toBe(DEFAULT_OPENROUTER_MODEL);
+      expect(body.model).toBe(DEFAULT_ROUTERAI_MODEL);
+      expect(body.structured_outputs).toBe(true);
       expect(body.tools).toBeUndefined();
       expect(body.stream).toBe(false);
-      expect(body.max_tokens).toBe(32768);
+      expect(body.max_tokens).toBe(body.response_format.json_schema.name === "site_foundation" ? 20000 : 40000);
+      expect(body.reasoning_effort).toBe("low");
       expect(body.response_format.json_schema.strict).toBe(true);
-      expect(body.messages[1].content).toContain("validateContent");
-      expect(body.messages[1].content).toContain("async load()");
+      expect(body.messages[1].content).toContain("lazysoft-cms-v1");
+      expect(body.messages[1].content).toContain("CMS.load()");
       expect(body.messages[1].content).toContain("Мастерская");
-      return response();
+      return response(phaseValue(generation(), init));
     });
-    const generated = await generateOpenRouter({ project, targetId: "1", prompt: generationPrompt(job), config, fetchImpl });
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
     await writeGeneration(project, "1", generated);
     await installDemoCms(join(project, "versions", "1"));
     await validateDemo(join(project, "versions", "1"));
@@ -99,11 +114,18 @@ describe("OpenRouter provider", () => {
     expect(await readFile(join(project, "versions", "1", "cms.js"), "utf8")).toContain("export const CMS");
   });
 
+  it("combines RouterAI foundation and implementation stages into worker files", async () => {
+    const project = await workspace();
+    const value = generation();
+    const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl: staged(value) });
+    expect(generated.files.map(file => file.path).sort()).toEqual(value.files.map(file => file.path).sort());
+  });
+
   it.each(["{", "```json\n{}\n```", "null", "[]"])("rejects malformed generated JSON %s", async content => {
     await expect(run(async () => response(content))).rejects.toThrow(/Malformed|Invalid/);
   });
   it.each(["length", "content_filter", "tool_calls", null])("rejects incomplete finish reason %s", async finish => {
-    await expect(run(async () => response(generation(), finish))).rejects.toThrow("Incomplete OpenRouter generation");
+    await expect(run(async () => response(generation(), finish))).rejects.toThrow("Incomplete RouterAI generation");
   });
   it("rejects malformed envelopes, tool calls, refusals and upstream errors without leaking details", async () => {
     for (const fetchImpl of [
@@ -114,16 +136,16 @@ describe("OpenRouter provider", () => {
       async () => new Response(config.apiKey, { status: 429 }),
       async () => { throw new Error(config.apiKey); },
     ]) {
-      try { await run(fetchImpl); expect.fail("Expected rejection"); } catch (error) { expect(error.message).not.toContain(config.apiKey); expect(error.message).toMatch(/OpenRouter/); }
+      try { await run(fetchImpl); expect.fail("Expected rejection"); } catch (error) { expect(error.message).not.toContain(config.apiKey); expect(error.message).toMatch(/RouterAI/); }
     }
   });
   it("enforces timeout even if a fetch mock ignores abort", async () => {
-    await expect(run(() => new Promise(() => {}), { timeoutMs: 10 })).rejects.toThrow("OpenRouter generation timed out");
+    await expect(run(() => new Promise(() => {}), { timeoutMs: 10 })).rejects.toThrow("RouterAI generation timed out");
   });
   it("honors caller cancellation", async () => {
     const controller = new AbortController(); controller.abort();
     const fetchImpl = vi.fn();
-    await expect(run(fetchImpl, { signal: controller.signal })).rejects.toThrow("OpenRouter generation cancelled");
+    await expect(run(fetchImpl, { signal: controller.signal })).rejects.toThrow("RouterAI generation cancelled");
     expect(fetchImpl).not.toHaveBeenCalled();
   });
   it("rejects oversized responses with and without content length", async () => {
@@ -131,11 +153,11 @@ describe("OpenRouter provider", () => {
     await expect(run(async () => new Response("x".repeat(LIMITS.responseBytes + 1)))).rejects.toThrow("response exceeds size limit");
   });
   it("refuses credentials in context or output", async () => {
-    const fetchImpl = vi.fn(async () => response());
+    const fetchImpl = vi.fn(staged());
     await expect(run(fetchImpl, { prompt: config.apiKey })).rejects.toThrow("Credential found");
     expect(fetchImpl).not.toHaveBeenCalled();
     const value = generation(); value.files[0].content = config.apiKey;
-    await expect(run(async () => response(value))).rejects.toThrow("Credential found");
+    await expect(run(staged(value))).rejects.toThrow("Credential found");
   });
   it.each(["../escape.js", "/tmp/escape.js", "versions/2/index.html", "versions/1/../escape.js", "versions/1/.env", "versions/1/.hidden/app.js", "versions/1/a\\b.js", "versions/1/a//b.js", "versions/1/%2e%2e/app.js", "versions/1/run.sh", "versions/1/admin.html", "versions/1/CMS.js", "versions/1/cms-model.mjs"])("rejects unsafe file %s", path => {
     const value = generation(); value.files.push({ path, content: "unsafe" });
@@ -181,13 +203,13 @@ describe("OpenRouter provider", () => {
     await writeFile(join(previous, "versions", "1", "large.svg"), "x".repeat(LIMITS.fileBytes + 1));
     const revision = { ...job, kind: "revision", baseDemoId: "1", targetDemoId: "2", demoOptions: [{ id: "1" }], instructions: "Синий фон" };
     await prepareRevisionWorkspace(previous, project, revision);
-    const context = await generationContext({ project, targetId: "2", prompt: generationPrompt(revision) });
+    const context = await generationContext({ project, targetId: "2", prompt: routeraiBrief(revision) });
     expect(context.existing.some(file => file.path === "versions/2/index.html" && file.content === original)).toBe(true);
     expect(context.inventory.some(file => file.path === "photo.png")).toBe(true);
     expect(context.existing.some(file => /photo.png|large.svg|cms.js$/.test(file.path))).toBe(false);
     expect(Buffer.byteLength(JSON.stringify(context))).toBeLessThanOrEqual(LIMITS.contextBytes);
     const value = generation("2"); value.files[1].content = original.replace("<body>", '<body style="background:blue">');
-    const generated = await generateOpenRouter({ project, targetId: "2", prompt: generationPrompt(revision), config, fetchImpl: async () => response(value) });
+    const generated = await generateRouterAI({ project, targetId: "2", prompt: routeraiBrief(revision), config, fetchImpl: staged(value) });
     await writeGeneration(project, "2", generated);
     await installDemoCms(join(project, "versions", "2"));
     await assembleVersionBundle(previous, project, bundle, revision);

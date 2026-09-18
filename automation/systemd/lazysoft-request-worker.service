@@ -1,5 +1,5 @@
 [Unit]
-Description=Lazysoft local request worker (saved Codex ChatGPT authorization)
+Description=Lazysoft local request site generator
 After=network-online.target
 Wants=network-online.target
 

@@ -8,18 +8,18 @@ import { join, resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { codexAuth, assertAuthOutsideWorkspace } from "./codex-auth.mjs";
 import { nestedContainerArgs, sandboxConfigArgs } from "./isolation.mjs";
-import { openrouterConfig, generateOpenRouter, writeGeneration } from "./openrouter.mjs";
+import { routeraiConfig, generateRouterAI, writeGeneration } from "./routerai.mjs";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const required = ["CONVEX_SITE_URL", "AUTOMATION_WORKER_SECRET", "REQUEST_DEMO_BUCKET", "REQUEST_DEMO_ORIGIN", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"];
 export function generationProvider(env = process.env) {
-  const provider = env.REQUEST_GENERATION_PROVIDER || (env.OPENROUTER_API_KEY?.trim() ? "openrouter" : "codex");
-  if (!["openrouter", "codex"].includes(provider)) throw new Error("Invalid REQUEST_GENERATION_PROVIDER");
+  const provider = env.REQUEST_GENERATION_PROVIDER || (env.ROUTERAI_API_KEY?.trim() ? "routerai" : "codex");
+  if (!["routerai", "codex"].includes(provider)) throw new Error("Invalid REQUEST_GENERATION_PROVIDER");
   return provider;
 }
 async function providerConfig() {
   const provider = generationProvider();
-  return { provider, config: provider === "openrouter" ? openrouterConfig() : await codexAuth() };
+  return { provider, config: provider === "routerai" ? routeraiConfig() : await codexAuth() };
 }
 async function checkConfig() { for (const key of required) if (!process.env[key]) throw new Error(`Missing ${key}`); return providerConfig(); }
 
@@ -111,6 +111,26 @@ ${instructions}
 
 CLIENT DATA:
 ${JSON.stringify({ idea: job.idea, revisionMessage: job.instructions })}`;
+}
+
+export function routeraiBrief(job) {
+  return JSON.stringify({
+    task: job.kind === "revision" ? "Revise the existing generated site while preserving its content and applying the client's message." : "Create the first website version from the client's idea.",
+    targetVersion: job.targetDemoId,
+    clientIdea: job.idea,
+    revisionMessage: job.instructions || "",
+    requirements: [
+      "Original polished responsive design at 390px and 1440px without horizontal overflow.",
+      "Use a distinctive display/body font pair (Google Fonts is allowed), varied asymmetric composition and clear hierarchy; avoid system-font-only typography and uniform card grids.",
+      "Include purposeful entrance/hover motion plus a prefers-reduced-motion fallback.",
+      "Give every hero/media container an explicit aspect ratio or stable height so images cannot collapse at any viewport.",
+      "All important texts, contacts, images, prices and repeatable items are editable through the supplied CMS contract.",
+      "If CMS loading fails, show a clear visible error message instead of silently rendering empty content.",
+      "Show a prominent site-wide label that this is a demonstration with fictional data.",
+      "Use local SVG assets for newly created illustrations; do not claim unconnected payments, orders or integrations work.",
+      "Include clear empty states, working navigation and an admin link on every public page.",
+    ],
+  });
 }
 
 async function sourceDirectory(previous, id) {
@@ -219,8 +239,8 @@ export async function runOnce() {
       if (!process.env.REQUEST_WORKER_REQUEST_ID || process.env.REQUEST_WORKER_RESUME_JOB_ID !== String(job.jobId) || !resume.startsWith(join(tmpdir(), "lazysoft-request-"))) throw new Error("Invalid artifact recovery scope");
       await cp(join(resume, "project"), project, { recursive: true });
       await copyFile(join(resume, "output", "result.json"), join(output, "result.json"));
-    } else if (provider === "openrouter") {
-      const generated = await generateOpenRouter({ project, targetId, prompt, config, signal: controller.signal });
+    } else if (provider === "routerai") {
+      const generated = await generateRouterAI({ project, targetId, prompt: routeraiBrief(job), config, signal: controller.signal, onPhase: phase => console.log(`RouterAI ${job.jobId}: ${phase}`) });
       controller.signal.throwIfAborted();
       validateResult(generated.result, targetId);
       await writeGeneration(project, targetId, generated);
