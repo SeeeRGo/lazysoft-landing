@@ -122,6 +122,29 @@ describe("RouterAI provider", () => {
     expect(generated.files.map(file => file.path).sort()).toEqual(value.files.map(file => file.path).sort());
   });
 
+  it("normalizes duplicate and fixed paths returned by an implementation repair", async () => {
+    const project = await workspace();
+    const value = generation();
+    const fetchImpl = vi.fn(async (_url, init) => {
+      const name = JSON.parse(init.body).response_format.json_schema.name;
+      if (name === "site_foundation") return response(phaseValue(value, init));
+      const implementation = phaseValue(value, init);
+      if (name === "site_implementation") implementation.extra = implementation.extra.map(file => ({ ...file, content: file.content.replace("data:image", "uploaded-image") }));
+      implementation.extra.push(
+        { path: "versions/1/theme.css", content: "old" },
+        { path: "versions/1/theme.css", content: "new" },
+        { path: "versions/1/index.html", content: "must not replace index" },
+        { path: "versions/1/cms-schema.json", content: "must not replace foundation" },
+      );
+      return response(implementation);
+    });
+    const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(generated.files.filter(file => file.path.toLowerCase() === "versions/1/theme.css")).toEqual([{ path: "versions/1/theme.css", content: "new" }]);
+    expect(generated.files.find(file => file.path === "versions/1/index.html").content).toContain("Мастерская");
+    expect(generated.files.find(file => file.path === "versions/1/cms-schema.json").content).toBe(JSON.stringify(schema));
+  });
+
   it("detects missing visual quality requirements before publishing", () => {
     expect(visualContractIssues({ index: "<html></html>", extra: [] })).toContain("add prefers-reduced-motion handling");
     expect(visualContractIssues(phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) }))).toEqual([]);
