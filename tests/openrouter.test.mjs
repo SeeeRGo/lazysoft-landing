@@ -31,7 +31,7 @@ describe("OpenRouter provider", () => {
     const project = await workspace();
     const fetchImpl = vi.fn(async (url, init) => {
       expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
-      expect(JSON.parse(init.body).model).toBe("anthropic/claude-sonnet-4.6");
+      expect(JSON.parse(init.body).model).toBe(DEFAULT_OPENROUTER_MODEL);
       return response();
     });
     try {

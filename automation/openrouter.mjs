@@ -3,7 +3,7 @@ import { readFile, readdir, lstat, mkdir, open } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { validateSchema, validateContent } from "../standalone/site-cms/model.mjs";
 
-export const DEFAULT_OPENROUTER_MODEL = "anthropic/claude-sonnet-4.6";
+export const DEFAULT_OPENROUTER_MODEL = "anthropic/claude-fable-5.1";
 export const LIMITS = Object.freeze({ files: 80, fileBytes: 256 * 1024, totalBytes: 1024 * 1024, responseBytes: 4 * 1024 * 1024, contextBytes: 768 * 1024, timeoutMs: 8 * 60_000 });
 const textExtensions = new Set([".html", ".css", ".js", ".mjs", ".json", ".svg", ".md"]);
 const assetExtensions = new Set([...textExtensions, ".png", ".jpg", ".webp", ".ico", ".woff2"]);
