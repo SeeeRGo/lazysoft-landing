@@ -126,6 +126,20 @@ const description = "Приватная страница заявки: гото�
                 <button type="submit" form="purchase-contact-form" data-request-offer data-purchase="source_and_setup">Исходники + установка · {price(totalPrice)} ₽</button>
               </article>
             </div>
+            <section class="development-offer" data-development-offer hidden>
+              <div class="development-offer-head">
+                <span class="site-offer-kicker">Нужно больше, чем в готовой версии</span>
+                <h3>Доработки под ключ</h3>
+                <span class="site-offer-price">от 10 000 ₽</span>
+              </div>
+              <p>Новые разделы, интеграции, формы, оплата на сайте — любые изменения сверх двух бесплатных сообщений с доработками. Опишите задачу, согласуем объём и сроки; оплата после приёмки результата.</p>
+              <form data-development-form>
+                <label for="development-text">Что нужно доработать?</label>
+                <textarea id="development-text" name="development" rows="3" maxlength="3000" placeholder="Например: добавить запись на тренировку и оплату взносов картой"></textarea>
+                <button type="submit">Хочу заказать доработки · от 10 000 ₽</button>
+              </form>
+              <p data-development-requested hidden role="status">Запрос отправлен. Напишу вам в этом чате для согласования объёма, сроков и оплаты.</p>
+            </section>
             <div class="guide-links">
               <span>Инструкции до покупки:</span>
               <a href="/guides/cloudflare-free.pdf" target="_blank" rel="noopener noreferrer">Cloudflare PDF ↗</a>

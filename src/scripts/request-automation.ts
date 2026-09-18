@@ -126,6 +126,8 @@ function render() {
   }
   contactInitialized = true;
   visible("[data-source-requested]", state.sourcePurchaseRequested);
+  visible("[data-development-offer]", state.phase === "complete" && !state.developmentRequested);
+  visible("[data-development-requested]", state.developmentRequested);
   const selected = selectedDemoId();
   const downloadButton = section.querySelector<HTMLButtonElement>("[data-download-source]");
   if (downloadButton) downloadButton.textContent = selected ? `Скачать исходники версии ${selected}` : "Скачать оплаченные исходники";
@@ -215,6 +217,14 @@ contactForm?.addEventListener("submit", event => {
     // Keep the successful choice locally even if the following summary refresh fails.
     state?.offerRequestKeys.push(requestKey);
     trackPurchaseGoal("mvp_purchase_requested", { demoId, hosting, purchase, offerVariant, contactMethod });
+  });
+});
+document.querySelector<HTMLFormElement>("[data-development-form]")?.addEventListener("submit", event => {
+  event.preventDefault();
+  const form = event.currentTarget as HTMLFormElement;
+  void action(async () => {
+    await call("action", { kind: "development_requested", text: String(new FormData(form).get("development") ?? "") });
+    form.reset();
   });
 });
 document.querySelector("[data-download-source]")?.addEventListener("click", () => { void action(async () => {
