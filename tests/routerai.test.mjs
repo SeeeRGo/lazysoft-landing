@@ -129,7 +129,7 @@ describe("RouterAI provider", () => {
       expect(body.messages[1].content).toContain("Мастерская");
       return response(phaseValue(generation(), init));
     });
-    const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl });
+    const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl, imageRetryBaseMs: 0 });
     expect(fetchImpl).toHaveBeenCalledTimes(5);
     await writeGeneration(project, "1", generated);
     await installDemoCms(join(project, "versions", "1"));
@@ -161,15 +161,27 @@ describe("RouterAI provider", () => {
     expect(generated.files.filter(file => file.path.endsWith(".jpg"))).toHaveLength(3);
   });
 
-  it("fails after three bounded invalid image responses", async () => {
+  it("fails after five bounded invalid image responses", async () => {
     let imageCalls = 0;
     const fetchImpl = vi.fn(async (url, init) => {
       if (!url.endsWith("/images")) return response(phaseValue(generation(), init));
       imageCalls += 1;
       return Response.json({ data: [{ b64_json: "truncated" }] });
     });
-    await expect(run(fetchImpl)).rejects.toThrow("Invalid RouterAI image response");
-    expect(imageCalls).toBe(3);
+    await expect(run(fetchImpl, { imageRetryBaseMs: 0 })).rejects.toThrow("Invalid RouterAI image response");
+    expect(imageCalls).toBe(5);
+  });
+
+  it("backs off and recovers from retryable image HTTP failures", async () => {
+    let imageCalls = 0;
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (!url.endsWith("/images")) return response(phaseValue(generation(), init));
+      imageCalls += 1;
+      if (imageCalls <= 3) return new Response("", { status: 429, headers: { "retry-after": "0" } });
+      return imageResponse();
+    });
+    await expect(run(fetchImpl, { imageRetryBaseMs: 0 })).resolves.toBeTruthy();
+    expect(imageCalls).toBe(6);
   });
 
   it("repairs only public text implementation files and preserves CMS data and raster assets", async () => {

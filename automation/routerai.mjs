@@ -269,7 +269,7 @@ function validJpegBase64(encoded) {
   return data.length >= 10 * 1024 && data.length <= LIMITS.imageBytes && data[0] === 0xff && data[1] === 0xd8 && data.at(-2) === 0xff && data.at(-1) === 0xd9;
 }
 
-export async function generateRouterAI({ project, targetId, prompt, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, onPhase = () => {} }) {
+export async function generateRouterAI({ project, targetId, prompt, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, imageRetryBaseMs = 2000, onPhase = () => {} }) {
   const context = await generationContext({ project, targetId, prompt });
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -287,26 +287,36 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
     const phase = args => requestPhase({ ...args, config, fetchImpl, signal: controller.signal });
     const requestImage = async image => {
       const body = JSON.stringify({ model: config.imageModel || DEFAULT_ROUTERAI_IMAGE_MODEL, prompt: `Create a polished, photorealistic editorial website photograph. ${image.prompt} No illustration, vector art, diagram, collage, text, letters, logo, watermark, border or UI mockup. Natural materials, believable lighting, rich fine detail, commercially usable composition with intentional negative space.`, n: 1, aspect_ratio: image.aspectRatio, output_format: "jpeg" });
-      for (let attempt = 0; attempt < 3; attempt += 1) {
+      let lastError = "Invalid RouterAI image response";
+      for (let attempt = 0; attempt < 5; attempt += 1) {
         controller.signal.throwIfAborted();
+        let retryAfterMs = 0;
         try {
           const response = await fetchImpl("https://routerai.ru/api/v1/images", { method: "POST", headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json" }, body, signal: controller.signal });
           if (!response.ok) {
             const retryable = [408, 409, 425, 429].includes(response.status) || response.status >= 500;
+            lastError = `RouterAI image HTTP ${response.status}`;
+            const retryAfter = Number(response.headers.get("retry-after"));
+            if (Number.isFinite(retryAfter) && retryAfter > 0) retryAfterMs = Math.min(30_000, retryAfter * 1000);
             await response.body?.cancel().catch(() => {});
             if (!retryable) throw new Error(`RouterAI image HTTP ${response.status}`);
           } else {
             const envelope = await responseJson(response, controller.signal);
             const encoded = envelope.data?.length === 1 ? imageBase64(envelope.data[0]) : "";
             if (validJpegBase64(encoded)) return { path: `versions/${targetId}/${image.path}`, content: `base64:${encoded}` };
+            lastError = "Invalid RouterAI image response";
           }
         } catch (error) {
           if (controller.signal.aborted) throw error;
           if (error instanceof Error && /^RouterAI image HTTP 4(?!08|09|25|29)/.test(error.message)) throw error;
+          if (!(error instanceof Error && /^(Malformed|RouterAI response exceeds)/.test(error.message))) lastError = "RouterAI image request failed";
         }
-        if (attempt < 2) await new Promise(resolveDelay => setTimeout(resolveDelay, 250 * 2 ** attempt));
+        if (attempt < 4) {
+          const base = Number.isFinite(imageRetryBaseMs) ? Math.max(0, Math.min(10_000, imageRetryBaseMs)) : 2000;
+          await new Promise(resolveDelay => setTimeout(resolveDelay, Math.max(retryAfterMs, base * 2 ** attempt)));
+        }
       }
-      throw new Error("Invalid RouterAI image response");
+      throw new Error(lastError);
     };
     const operation = async () => {
       onPhase("foundation");
