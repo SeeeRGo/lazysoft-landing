@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, mkdir, readFile, writeFile, readdir, symlink, link, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, LIMITS, MAX_GENERATED_COLLECTIONS, routeraiConfig, generateRouterAI, repairRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration, writeImplementationRepair } from "../automation/routerai.mjs";
+import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, DEFAULT_ROUTERAI_FALLBACK_IMAGE_MODEL, LIMITS, MAX_GENERATED_COLLECTIONS, routeraiConfig, generateRouterAI, repairRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration, writeImplementationRepair } from "../automation/routerai.mjs";
 import { routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
 import { installDemoCms } from "../standalone/site-cms/package.mjs";
 import { checkCms } from "../automation/cms-check.mjs";
@@ -161,7 +161,7 @@ describe("RouterAI provider", () => {
     expect(generated.files.filter(file => file.path.endsWith(".jpg"))).toHaveLength(3);
   });
 
-  it("fails after five bounded invalid image responses", async () => {
+  it("fails after two bounded invalid responses from each image model", async () => {
     let imageCalls = 0;
     const fetchImpl = vi.fn(async (url, init) => {
       if (!url.endsWith("/images")) return response(phaseValue(generation(), init));
@@ -169,7 +169,19 @@ describe("RouterAI provider", () => {
       return Response.json({ data: [{ b64_json: "truncated" }] });
     });
     await expect(run(fetchImpl, { imageRetryBaseMs: 0 })).rejects.toThrow("Invalid RouterAI image response (base64)");
-    expect(imageCalls).toBe(5);
+    expect(imageCalls).toBe(4);
+  });
+
+  it("falls back to an independent image model after empty primary responses", async () => {
+    const models = [];
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (!url.endsWith("/images")) return response(phaseValue(generation(), init));
+      const model = JSON.parse(init.body).model; models.push(model);
+      return model === DEFAULT_ROUTERAI_IMAGE_MODEL ? Response.json({ data: [] }) : imageResponse();
+    });
+    await expect(run(fetchImpl, { imageRetryBaseMs: 0 })).resolves.toBeTruthy();
+    expect(models.filter(model => model === DEFAULT_ROUTERAI_IMAGE_MODEL)).toHaveLength(6);
+    expect(models.filter(model => model === DEFAULT_ROUTERAI_FALLBACK_IMAGE_MODEL)).toHaveLength(3);
   });
 
   it("backs off and recovers from retryable image HTTP failures", async () => {
