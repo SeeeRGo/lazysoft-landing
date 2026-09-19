@@ -6,7 +6,7 @@ import { mkdtemp, readFile, writeFile, mkdir, readdir, lstat, copyFile, cp } fro
 import { tmpdir } from "node:os";
 import { join, resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { routeraiConfig, generateRouterAI, writeGeneration } from "./routerai.mjs";
+import { routeraiConfig, generateRouterAI, repairRouterAI, writeGeneration, writeImplementationRepair } from "./routerai.mjs";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const required = ["CONVEX_SITE_URL", "AUTOMATION_WORKER_SECRET", "REQUEST_DEMO_BUCKET", "REQUEST_DEMO_ORIGIN", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"];
@@ -254,12 +254,26 @@ export async function runOnce({ requestId, jobId } = {}) {
     await validateDemo(join(versions, targetId));
     await installDemoCms(join(versions, targetId));
     await validateDemo(join(versions, targetId));
-    const cmsCheckTimeout = AbortSignal.timeout(5 * 60_000);
+    const runCmsCheck = async () => {
+      const cmsCheckTimeout = AbortSignal.timeout(5 * 60_000);
+      try {
+        await command(process.execPath, [join(here, "cms-check.mjs"), join(versions, targetId)], { signal: AbortSignal.any([controller.signal, cmsCheckTimeout]) });
+      } catch (error) {
+        if (cmsCheckTimeout.aborted && !controller.signal.aborted) throw new Error("CMS browser check timed out after 5 minutes");
+        throw cmsCheckFailure(error);
+      }
+    };
     try {
-      await command(process.execPath, [join(here, "cms-check.mjs"), join(versions, targetId)], { signal: AbortSignal.any([controller.signal, cmsCheckTimeout]) });
-    } catch (error) {
-      if (cmsCheckTimeout.aborted && !controller.signal.aborted) throw new Error("CMS browser check timed out after 5 minutes");
-      throw cmsCheckFailure(error);
+      await runCmsCheck();
+    } catch (firstFailure) {
+      controller.signal.throwIfAborted();
+      console.log(`RouterAI ${job.jobId}: browser-repair`);
+      const repaired = await repairRouterAI({ project, targetId, prompt: routeraiBrief(job), validationError: firstFailure.message, config, signal: controller.signal });
+      await writeImplementationRepair(project, targetId, repaired);
+      await validateDemo(join(versions, targetId));
+      await installDemoCms(join(versions, targetId));
+      await validateDemo(join(versions, targetId));
+      await runCmsCheck();
     }
     mark("cms-checked");
 

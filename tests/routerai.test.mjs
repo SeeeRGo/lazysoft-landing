@@ -2,10 +2,11 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, mkdir, readFile, writeFile, readdir, symlink, link, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, LIMITS, MAX_GENERATED_COLLECTIONS, routeraiConfig, generateRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration } from "../automation/routerai.mjs";
+import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, LIMITS, MAX_GENERATED_COLLECTIONS, routeraiConfig, generateRouterAI, repairRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration, writeImplementationRepair } from "../automation/routerai.mjs";
 import { routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
 import { installDemoCms } from "../standalone/site-cms/package.mjs";
 import { checkCms } from "../automation/cms-check.mjs";
+import sharp from "sharp";
 
 const roots = [];
 const config = { apiKey: "test-provider-credential-not-for-output", model: DEFAULT_ROUTERAI_MODEL, imageModel: DEFAULT_ROUTERAI_IMAGE_MODEL };
@@ -19,7 +20,11 @@ const generation = (id = "1") => ({ result: { title: "Мастерская", var
   { path: `versions/${id}/cms-content.json`, content: JSON.stringify({ values: { heading: "Мастерская", heroImage: "assets/hero.jpg", detailImage: "assets/detail.jpg", storyImage: "assets/story.jpg" }, items: {} }) },
 ] });
 const response = (value = generation(), finish = "stop") => Response.json({ choices: [{ finish_reason: finish, message: { content: typeof value === "string" ? value : JSON.stringify(value) } }] });
-const jpeg = (() => { const data = Buffer.alloc(12 * 1024, 1); data[0] = 0xff; data[1] = 0xd8; data[data.length - 2] = 0xff; data[data.length - 1] = 0xd9; return data.toString("base64"); })();
+const jpeg = await (async () => {
+  const width = 768, height = 512, pixels = Buffer.alloc(width * height * 3);
+  for (let index = 0; index < pixels.length; index += 1) pixels[index] = (index * 31 + Math.floor(index / width) * 17) % 256;
+  return (await sharp(pixels, { raw: { width, height, channels: 3 } }).jpeg({ quality: 82 }).toBuffer()).toString("base64");
+})();
 const imageResponse = () => Response.json({ data: [{ b64_json: jpeg }] });
 function phaseValue(value, init) {
   const name = JSON.parse(init.body).response_format.json_schema.name;
@@ -83,8 +88,8 @@ describe("RouterAI provider", () => {
     const project = await workspace();
     const value = generation();
     const catalogSchema = { ...schema, collections: [{ key: "products", label: "Товары", fields: [{ key: "name", label: "Название", type: "text" }, { key: "image", label: "Фото", type: "image" }] }] };
-    value.files[1].content = value.files[1].content.replace("<h1></h1>", '<h1></h1><section id="catalog"></section>');
-    value.files[2].content = "import {CMS} from './cms.js'; const {content} = await CMS.load(); document.querySelector('h1').textContent = content.values.heading; for (const product of content.items.products) { const item = document.createElement('article'); const name = document.createElement('h2'); name.textContent = product.name; item.append(name); if (product.image) { const image = document.createElement('img'); image.src = product.image; image.style.maxWidth = '100%'; item.append(image); } document.querySelector('#catalog').append(item); }";
+    value.files[1].content = value.files[1].content.replace("<h1></h1>", '<h1></h1><p>Демонстрационная мастерская показывает материалы, рабочий процесс, готовые изделия и возможности управления каталогом. Все данные вымышлены и служат для проверки адаптивного сайта с полноценным редактированием содержимого.</p><section id="catalog" style="padding:24px"></section>');
+    value.files[2].content = "import {CMS} from './cms.js'; const safeImage = value => /^(?:data:image\\/(?:png|jpeg|webp);base64,|[A-Za-z0-9_./-]+\\.(?:png|jpg|jpeg|webp)$)/i.test(value); try { const {content} = await CMS.load(); document.querySelector('h1').textContent = content.values.heading; for (const key of ['heroImage','detailImage','storyImage']) { if (safeImage(content.values[key])) { const image = document.createElement('img'); image.src = content.values[key]; image.style.maxWidth = '100%'; document.querySelector('#catalog').append(image); } } for (const product of content.items.products) { const item = document.createElement('article'); const name = document.createElement('h2'); name.textContent = product.name; item.append(name); if (safeImage(product.image)) { const image = document.createElement('img'); image.src = product.image; image.style.maxWidth = '100%'; item.append(image); } document.querySelector('#catalog').append(item); } } catch { document.querySelector('#catalog').textContent = 'Ошибка загрузки сайта'; }";
     value.files[3].content = JSON.stringify(catalogSchema);
     value.files[4].content = JSON.stringify({ values: { heading: "Мастерская", heroImage: "assets/hero.jpg", detailImage: "assets/detail.jpg", storyImage: "assets/story.jpg" }, items: { products: [] } });
     const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl: staged(value) });
@@ -138,6 +143,50 @@ describe("RouterAI provider", () => {
     const value = generation();
     const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl: staged(value) });
     expect(generated.files.map(file => file.path).sort()).toEqual([...value.files.map(file => file.path), "versions/1/assets/hero.jpg", "versions/1/assets/detail.jpg", "versions/1/assets/story.jpg"].sort());
+  });
+
+  it("retries an incomplete image response and accepts a safe JPEG data URI", async () => {
+    const project = await workspace();
+    const value = generation();
+    let imageCalls = 0;
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (!url.endsWith("/images")) return response(phaseValue(value, init));
+      imageCalls += 1;
+      if (imageCalls === 1) return Response.json({ data: [{}] });
+      if (imageCalls === 2) return Response.json({ data: [{ url: `data:image/jpeg;base64,${jpeg}` }] });
+      return imageResponse();
+    });
+    const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl });
+    expect(imageCalls).toBe(4);
+    expect(generated.files.filter(file => file.path.endsWith(".jpg"))).toHaveLength(3);
+  });
+
+  it("fails after three bounded invalid image responses", async () => {
+    let imageCalls = 0;
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (!url.endsWith("/images")) return response(phaseValue(generation(), init));
+      imageCalls += 1;
+      return Response.json({ data: [{ b64_json: "truncated" }] });
+    });
+    await expect(run(fetchImpl)).rejects.toThrow("Invalid RouterAI image response");
+    expect(imageCalls).toBe(3);
+  });
+
+  it("repairs only public text implementation files and preserves CMS data and raster assets", async () => {
+    const project = await workspace();
+    const value = generation();
+    const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl: staged(value) });
+    await writeGeneration(project, "1", generated);
+    const cmsBefore = await readFile(join(project, "versions", "1", "cms-content.json"));
+    const imageBefore = await readFile(join(project, "versions", "1", "assets", "hero.jpg"));
+    const implementation = phaseValue(value, { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) });
+    implementation.extra = implementation.extra.map(file => file.path.endsWith("app.js") ? { ...file, content: `${file.content}\n// browser repaired` } : file);
+    implementation.extra.push({ path: "versions/1/cms-content.json", content: "{}" });
+    const repaired = await repairRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), validationError: "initial raster images", config, fetchImpl: async () => response(implementation) });
+    await writeImplementationRepair(project, "1", repaired);
+    expect(await readFile(join(project, "versions", "1", "cms-content.json"))).toEqual(cmsBefore);
+    expect(await readFile(join(project, "versions", "1", "assets", "hero.jpg"))).toEqual(imageBefore);
+    expect(await readFile(join(project, "versions", "1", "app.js"), "utf8")).toContain("browser repaired");
   });
 
   it("normalizes duplicate and fixed paths returned by an implementation repair", async () => {
