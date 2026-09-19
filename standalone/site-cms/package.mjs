@@ -1,4 +1,4 @@
-import {readFile,writeFile,mkdir,cp,lstat,copyFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,cp,lstat,copyFile,readdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join,resolve} from 'node:path';
 import {randomBytes,createHash} from 'node:crypto';
@@ -9,6 +9,8 @@ export async function installDemoCms(site){
  const content=validateContent(schema,JSON.parse(await readFile(join(site,'cms-content.json'),'utf8')));
  await writeFile(join(site,'cms-content.json'),JSON.stringify(content));
  await cp(join(own,'public'),site,{recursive:true});await copyFile(join(own,'model.mjs'),join(site,'cms-model.mjs'));
+ const fallback='<script type="module" src="cms-fallback.js"></script>';
+ for(const name of await readdir(site))if(name!=='admin.html'&&name.endsWith('.html')){const path=join(site,name),html=await readFile(path,'utf8');if(!html.includes('cms-fallback.js'))await writeFile(path,html.includes('</body>')?html.replace('</body>',fallback+'</body>'):html+fallback)}
  return {schema,content};
 }
 function replaceRange(s,start,end,value){const a=s.indexOf(start),b=s.indexOf(end,a);if(a<0||b<0)throw Error('CMS backend adapter requires review');return s.slice(0,a)+value+'\n\n'+s.slice(b)}

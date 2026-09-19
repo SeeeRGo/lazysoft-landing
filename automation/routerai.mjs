@@ -11,7 +11,7 @@ export const MAX_GENERATED_COLLECTIONS = 8;
 const textExtensions = new Set([".html", ".css", ".js", ".mjs", ".json", ".svg", ".md"]);
 const generatedExtensions = new Set([...textExtensions, ".jpg", ".jpeg", ".png", ".webp"]);
 const assetExtensions = new Set([...textExtensions, ".png", ".jpg", ".webp", ".ico", ".woff2"]);
-const reserved = new Set(["admin.html", "cms-admin.css", "cms-admin.js", "cms-config.js", "cms.js", "cms-model.mjs"]);
+const reserved = new Set(["admin.html", "cms-admin.css", "cms-admin.js", "cms-config.js", "cms-fallback.js", "cms.js", "cms-model.mjs"]);
 const validId = id => ["1", "2", "3"].includes(id);
 const bytes = value => Buffer.byteLength(value, "utf8");
 const objectKeys = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
