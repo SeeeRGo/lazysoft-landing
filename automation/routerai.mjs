@@ -114,6 +114,7 @@ export function visualContractIssues(implementation) {
   if (!/(catch\s*\(|catch\s*\{)/.test(js) || !/(ошиб|error|не удалось|cannot load|failed to load)/i.test(js)) issues.push("show a clear visible CMS loading error");
   const normalizedJs = js.replaceAll("\\/", "/");
   if (!/data:image\//i.test(normalizedJs) || !/(png|jpeg|webp)/i.test(normalizedJs)) issues.push("render safe data:image PNG/JPEG/WebP values uploaded by the demo CMS");
+  if (/\b(?:localStorage|sessionStorage|indexedDB|serviceWorker)\b/.test(all)) issues.push("use only the trusted CMS module for browser storage and persistence");
   if (/font-family\s*:\s*(?:system-ui|Arial|Roboto|Inter|Segoe UI)(?:\s*[,;}])/i.test(css) && !/(fonts\.googleapis\.com|@font-face)/i.test(all)) issues.push("avoid system-font-only typography");
   return issues;
 }

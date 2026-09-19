@@ -230,6 +230,7 @@ describe("RouterAI provider", () => {
     expect(visualContractIssues({ index: "<html></html>", extra: [] })).toContain("add prefers-reduced-motion handling");
     expect(visualContractIssues(phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) }))).toEqual([]);
     expect(visualContractIssues({ index: '<section id="services"><div id="services"></div></section>', extra: [] })).toContain('use unique HTML ids; duplicates: services');
+    expect(visualContractIssues({ index: '<script>localStorage.setItem("catalog","fixed")</script>', extra: [] })).toContain('use only the trusted CMS module for browser storage and persistence');
   });
 
   it.each(["{", "```json\n{}\n```", "null", "[]"])("rejects malformed generated JSON %s", async content => {

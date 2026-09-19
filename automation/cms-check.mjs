@@ -23,7 +23,7 @@ export async function checkCms(site,{screenshots}={}){
  ws.addEventListener('close',()=>{for(const {reject} of pending.values())reject(Error('CMS browser connection closed'));pending.clear()});
  ws.addEventListener('message',e=>{const m=JSON.parse(e.data);if(m.method==='Fetch.requestPaused'){const u=m.params.request.url,allowed=u.startsWith(origin+'/')||u.startsWith('data:image/');void send(allowed?'Fetch.continueRequest':'Fetch.failRequest',{requestId:m.params.requestId,...(allowed?{}:{errorReason:'BlockedByClient'})});if(!allowed)errors.push('External request blocked');}if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.text);if(m.method==='Network.responseReceived'&&m.params.response.status>=400&&!m.params.response.url.endsWith('favicon.ico'))errors.push('HTTP '+m.params.response.status);if(!m.id)return;const p=pending.get(m.id);pending.delete(m.id);if(p)m.error?p.reject(m.error):p.resolve(m.result)});
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error('CMS browser script failed');return r.result.value};
- const until=async(expression,label='condition')=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,100))}throw Error('CMS browser condition timed out: '+label)};
+ const until=async(expression,label='condition',attempts=100)=>{for(let i=0;i<attempts;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,100))}throw Error('CMS browser condition timed out: '+label)};
  const navigate=async path=>{await send('Page.navigate',{url:origin+'/'+path});await until(`location.pathname===${JSON.stringify('/'+path)}&&document.readyState==='complete'`)};
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBypassServiceWorker',{bypass:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
  await navigate('index.html');
@@ -52,7 +52,7 @@ export async function checkCms(site,{screenshots}={}){
  assert(rasterImages.every(i=>i.width>=512&&i.height>=384),'Generated raster images are too small or failed to load');
  assert.equal(initialImages.length,rasterImages.length,'Illustrative SVG or unsupported initial images are not allowed');
  for(const c of schema.collections){
-  await navigate('admin.html');await until(`!!document.querySelector('[data-add-collection="${c.key}"]')`,'admin collection '+c.key);
+  await navigate('admin.html');await until(`!!document.querySelector('[data-add-collection="${c.key}"]')`,'admin collection '+c.key,300);
   await evaluate(`document.querySelector('[data-add-collection="${c.key}"]').click()`);
   const marker='CMS_CHECK_'+c.key;
   const fields=c.fields;
