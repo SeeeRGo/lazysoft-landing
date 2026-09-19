@@ -206,7 +206,7 @@ export const claim = internalMutation({
     }
     const targetDemoId = job.targetDemoId ?? (job.kind === "initial" ? "1" : state.selectedDemoId ?? "1");
     const baseDemoId = job.baseDemoId ?? (job.kind === "revision" ? state.selectedDemoId ?? "1" : undefined);
-    await ctx.db.patch(job._id, { targetDemoId, baseDemoId, status: "running", startedAt: job.startedAt ?? now, heartbeatAt: now, stage: "designing", attempts: job.attempts + 1, leaseToken, leaseUntil: now + 5 * 60_000 });
+    await ctx.db.patch(job._id, { targetDemoId, baseDemoId, status: "running", startedAt: job.startedAt ?? now, heartbeatAt: now, stage: "designing", attempts: job.attempts + 1, leaseToken, leaseUntil: now + 5 * 60_000, error: undefined });
     await ctx.db.patch(state._id, { phase: job.kind === "initial" ? "generating" : "revising", ...(job.kind === "initial" ? { revisionCount: 0 } : {}), updatedAt: now });
     await ctx.db.patch(request._id, { status: "in_progress", updatedAt: now });
     await event(ctx, job.requestId, "generation_started", job._id, `Началась работа над версией ${targetDemoId}. Обычно подготовка занимает до 15 минут.
@@ -333,7 +333,7 @@ export const retryFailedJob = internalMutation({
     const state = await getAutomation(ctx, args.requestId);
     const latest = await ctx.db.query("requestJobs").withIndex("by_request_id", q => q.eq("requestId", args.requestId)).order("desc").first();
     if (!job || job.requestId !== args.requestId || job.status !== "failed" || job.error !== args.expectedError || state?.phase !== "failed" || latest?._id !== job._id) return false;
-    await ctx.db.patch(job._id, { status: "queued", attempts: 2, availableAt: Date.now(), leaseToken: undefined, leaseUntil: undefined });
+    await ctx.db.patch(job._id, { status: "queued", attempts: 2, availableAt: Date.now(), leaseToken: undefined, leaseUntil: undefined, error: undefined });
     await ctx.db.patch(state._id, { phase: job.kind === "initial" ? "queued" : "revision_queued", updatedAt: Date.now() });
     const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", args.requestId)).unique();
     if (request) await ctx.db.patch(request._id, { status: "in_progress", updatedAt: Date.now() });

@@ -59,6 +59,7 @@ it('requires the exact failed job and error for one operator recovery attempt',a
  const resumed=await t.mutation(internal.automation.claim,{protocol:2,requestId:input.requestId,leaseToken:'e'.repeat(40)});
  expect(resumed?.jobId).toBe(job!.jobId);
  expect((await t.run(ctx=>ctx.db.get(job!.jobId)))?.attempts).toBe(3);
+ expect((await t.run(ctx=>ctx.db.get(job!.jobId)))?.error).toBeUndefined();
 });
 it('dispatches a queued generation immediately from a Convex action',async()=>{
  const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);

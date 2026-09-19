@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile, readFile, readdir, symlink } from 'node:fs/p
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { command, validateDemo, validateResult, completionMessage, generationPrompt, restoreSource, prepareRevisionWorkspace, assembleVersionBundle, ensureProjectReadme } from '../automation/worker.mjs';
+import { command, cmsCheckFailure, validateDemo, validateResult, completionMessage, generationPrompt, restoreSource, prepareRevisionWorkspace, assembleVersionBundle, ensureProjectReadme } from '../automation/worker.mjs';
 
 const brief = { title: "Сайт мастерской", variants: [
   { id: "1", title: "Спокойный каталог" },
@@ -20,6 +20,12 @@ describe('worker artifacts', () => {
   });
   it('captures output from commands that need no stdin', async () => {
     await expect(command(process.execPath, ['-e', 'process.stdout.write("ready")'])).resolves.toBe('ready');
+  });
+  it('keeps a bounded safe CMS diagnostic while preserving the private command output', () => {
+    const failure=cmsCheckFailure({diagnosticOutput:'client text and /tmp/private\nError: CMS browser condition timed out: public uploaded image products\nstack'});
+    expect(failure.message).toBe('CMS browser check failed: CMS browser condition timed out: public uploaded image products');
+    expect(failure.message).not.toContain('/tmp/private');
+    expect(failure.diagnosticOutput).toContain('/tmp/private');
   });
   it('packages a nested README but refuses a symlink instead of copying it', async () => {
     const project=await mkdtemp(join(tmpdir(),'readme-test-'));

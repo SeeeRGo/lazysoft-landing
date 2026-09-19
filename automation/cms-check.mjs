@@ -17,9 +17,9 @@ export async function checkCms(site,{screenshots}={}){
  let port;for(let i=0;i<100;i++){try{port=(await readFile(join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0];break}catch{}await new Promise(r=>setTimeout(r,100))}assert(port,'Chromium unavailable');
  const pages=await fetch(`http://127.0.0.1:${port}/json`).then(r=>r.json());ws=new WebSocket(pages[0].webSocketDebuggerUrl);await new Promise(r=>ws.addEventListener('open',r,{once:true}));let id=0;const pending=new Map(),errors=[];
  const send=(method,params={})=>new Promise((resolve,reject)=>{const call=++id;pending.set(call,{resolve,reject});ws.send(JSON.stringify({id:call,method,params}))});
- ws.addEventListener('message',e=>{const m=JSON.parse(e.data);if(m.method==='Fetch.requestPaused'){const u=m.params.request.url;void send(u.startsWith(origin+'/')?'Fetch.continueRequest':'Fetch.failRequest',{requestId:m.params.requestId,...(u.startsWith(origin+'/')?{}:{errorReason:'BlockedByClient'})});if(!u.startsWith(origin+'/')&&!u.startsWith('data:'))errors.push('External request blocked');}if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.text);if(m.method==='Network.responseReceived'&&m.params.response.status>=400&&!m.params.response.url.endsWith('favicon.ico'))errors.push('HTTP '+m.params.response.status);if(!m.id)return;const p=pending.get(m.id);pending.delete(m.id);if(p)m.error?p.reject(m.error):p.resolve(m.result)});
+ ws.addEventListener('message',e=>{const m=JSON.parse(e.data);if(m.method==='Fetch.requestPaused'){const u=m.params.request.url,allowed=u.startsWith(origin+'/')||u.startsWith('data:image/');void send(allowed?'Fetch.continueRequest':'Fetch.failRequest',{requestId:m.params.requestId,...(allowed?{}:{errorReason:'BlockedByClient'})});if(!allowed)errors.push('External request blocked');}if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.text);if(m.method==='Network.responseReceived'&&m.params.response.status>=400&&!m.params.response.url.endsWith('favicon.ico'))errors.push('HTTP '+m.params.response.status);if(!m.id)return;const p=pending.get(m.id);pending.delete(m.id);if(p)m.error?p.reject(m.error):p.resolve(m.result)});
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error('CMS browser script failed');return r.result.value};
- const until=async expression=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,100))}throw Error('CMS browser condition timed out: '+String(await evaluate("document.querySelector('#status')?.textContent||document.body.innerText.slice(0,160)")).slice(0,300))};
+ const until=async(expression,label='condition')=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,100))}throw Error('CMS browser condition timed out: '+label)};
  const navigate=async path=>{await send('Page.navigate',{url:origin+'/'+path});await until(`location.pathname===${JSON.stringify('/'+path)}&&document.readyState==='complete'`)};
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBypassServiceWorker',{bypass:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
  await navigate('index.html');
@@ -31,7 +31,7 @@ export async function checkCms(site,{screenshots}={}){
  // count keeps growing.
  for (let round = 0; round < 10; round += 1) {
   await evaluate(`(()=>{document.querySelectorAll('img').forEach(i=>{i.loading='eager'});window.scrollTo(0,document.body.scrollHeight)})()`);
-  await until(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).every(i=>i.complete)`);
+  await until(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).every(i=>i.complete)`,'initial images');
   const seen = await evaluate(`document.images.length`);
   await new Promise(r=>setTimeout(r,400));
   if (await evaluate(`document.images.length`) === seen) break;
@@ -48,7 +48,7 @@ export async function checkCms(site,{screenshots}={}){
  assert(rasterImages.every(i=>i.width>=512&&i.height>=384),'Generated raster images are too small or failed to load');
  assert.equal(initialImages.length,rasterImages.length,'Illustrative SVG or unsupported initial images are not allowed');
  for(const c of schema.collections){
-  await navigate('admin.html');await until(`!!document.querySelector('[data-add-collection="${c.key}"]')`);
+  await navigate('admin.html');await until(`!!document.querySelector('[data-add-collection="${c.key}"]')`,'admin collection '+c.key);
   await evaluate(`document.querySelector('[data-add-collection="${c.key}"]').click()`);
   const marker='CMS_CHECK_'+c.key;
   const fields=c.fields;
@@ -56,14 +56,14 @@ export async function checkCms(site,{screenshots}={}){
    const selector=`[data-collection="${c.key}"] .item:last-child [data-field="${f.key}"]`;
    if(f.type==='image'){
     const root=await send('DOM.getDocument');const input=await send('DOM.querySelector',{nodeId:root.root.nodeId,selector:`[data-collection="${c.key}"] .item:last-child [data-upload="${f.key}"]`});
-    await send('DOM.setFileInputFiles',{nodeId:input.nodeId,files:[png]});await until(`document.querySelector(${JSON.stringify(selector)}).value.startsWith('data:image/')`);
+    await send('DOM.setFileInputFiles',{nodeId:input.nodeId,files:[png]});await until(`document.querySelector(${JSON.stringify(selector)}).value.startsWith('data:image/')`,'admin image upload '+c.key+'.'+f.key);
    }else await evaluate(`(()=>{const i=document.querySelector(${JSON.stringify(selector)});i.value=${JSON.stringify(f.type==='number'?'123':f.type==='url'?'https://example.org':marker)};i.dispatchEvent(new Event('input',{bubbles:true}))})()`);
   }
-  await evaluate(`document.querySelector('#editor').requestSubmit()`);await until(`document.querySelector('#status').textContent.startsWith('Сохранено')`);
+  await evaluate(`document.querySelector('#editor').requestSubmit()`);await until(`document.querySelector('#status').textContent.startsWith('Сохранено')`,'admin save '+c.key);
   await navigate(c.page||'index.html');
-  try{await until(`document.documentElement.textContent.includes(${JSON.stringify(marker)})`)}catch{throw Error('CMS collection is not rendered: '+c.key)}
+  try{await until(`document.documentElement.textContent.includes(${JSON.stringify(marker)})`,'public collection '+c.key)}catch{throw Error('CMS collection is not rendered: '+c.key)}
   await evaluate(`Array.from(document.images).find(i=>i.src.startsWith('data:image/'))?.scrollIntoView({block:'center'})`);
-  try{await until(`Array.from(document.images).filter(i=>i.src.startsWith('data:image/')).some(i=>i.complete&&i.naturalWidth>0)`)}catch{throw Error('CMS uploaded image is not rendered: '+c.key)}
+  try{await until(`Array.from(document.images).filter(i=>i.src.startsWith('data:image/')).some(i=>i.complete&&i.naturalWidth>0)`,'public uploaded image '+c.key)}catch{throw Error('CMS uploaded image is not rendered: '+c.key)}
  }
  if(screenshots)await mkdir(screenshots,{recursive:true});
  const screenshot=async(name)=>{if(!screenshots)return;const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(join(screenshots,name+'.png'),Buffer.from(shot.data,'base64'))};

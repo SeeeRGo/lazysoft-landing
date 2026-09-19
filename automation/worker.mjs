@@ -50,6 +50,14 @@ export function command(file, args, { cwd, input, env = process.env, signal } = 
   });
 }
 
+export function cmsCheckFailure(error) {
+  const output = typeof error?.diagnosticOutput === "string" ? error.diagnosticOutput : "";
+  const lines = output.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  const source = [...lines].reverse().find(line => /(?:AssertionError|Error)(?: \[[^\]]+\])?: /.test(line)) ?? "";
+  const detail = source.replace(/^.*?(?:AssertionError|Error)(?: \[[^\]]+\])?: /, "").replace(/[^A-Za-z0-9 .:_-]/g, "").slice(0, 240);
+  return Object.assign(new Error(`CMS browser check failed${detail ? `: ${detail}` : ""}`), { diagnosticOutput: output });
+}
+
 export async function validateDemo(directory) {
   const directoryStat = await lstat(directory);
   if (directoryStat.isSymbolicLink() || !directoryStat.isDirectory()) throw new Error("Unsafe demo directory");
@@ -246,7 +254,11 @@ export async function runOnce({ requestId, jobId } = {}) {
     await validateDemo(join(versions, targetId));
     await installDemoCms(join(versions, targetId));
     await validateDemo(join(versions, targetId));
-    await command(process.execPath, [join(here, "cms-check.mjs"), join(versions, targetId)], { signal: controller.signal });
+    try {
+      await command(process.execPath, [join(here, "cms-check.mjs"), join(versions, targetId)], { signal: controller.signal });
+    } catch (error) {
+      throw cmsCheckFailure(error);
+    }
     mark("cms-checked");
 
     const admin = await readFile(join(versions, targetId, "admin.html"), "utf8");
