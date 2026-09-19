@@ -145,6 +145,21 @@ describe("RouterAI provider", () => {
     expect(generated.files.map(file => file.path).sort()).toEqual([...value.files.map(file => file.path), "versions/1/assets/hero.jpg", "versions/1/assets/detail.jpg", "versions/1/assets/story.jpg"].sort());
   });
 
+  it("allows two bounded foundation repairs to correct an invalid image plan", async () => {
+    let repairCalls = 0;
+    const value = generation();
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (url.endsWith("/images")) return imageResponse();
+      const name = JSON.parse(init.body).response_format.json_schema.name;
+      if (name === "site_implementation") return response(phaseValue(value, init));
+      const foundation = phaseValue(value, { ...init, body: JSON.stringify({ response_format: { json_schema: { name: "site_foundation" } } }) });
+      if (name === "site_foundation" || (name === "site_foundation_repair" && ++repairCalls === 1)) foundation.imagePlan[0].path = "assets/invalid.png";
+      return response(foundation);
+    });
+    await expect(run(fetchImpl, { imageRetryBaseMs: 0 })).resolves.toBeTruthy();
+    expect(repairCalls).toBe(2);
+  });
+
   it("retries an incomplete image response and accepts a safe JPEG data URI", async () => {
     const project = await workspace();
     const value = generation();

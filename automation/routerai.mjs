@@ -349,18 +349,26 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
       });
       if (!objectKeys(foundation, ["cmsSchema", "cmsContent", "designPlan", "imagePlan", "result"]) || typeof foundation.cmsSchema !== "string" || typeof foundation.cmsContent !== "string" || !Array.isArray(foundation.imagePlan)) throw new Error("Invalid RouterAI foundation");
       try { validateCmsStrings(foundation.cmsSchema, foundation.cmsContent); validateImagePlan(foundation); }
-      catch (error) {
-        onPhase("foundation-repair");
-        foundation = await phase({
-          name: "site_foundation_repair", schema: foundationSchema(targetId), maxTokens: 20000,
-          messages: [
-            { role: "system", content: "Repair the supplied CMS foundation so it strictly matches the supplied public contract. Preserve its result, content, designPlan and imagePlan and return cmsSchema, cmsContent, designPlan, imagePlan and result. Every important CMS image must reference an imagePlan .jpg path. Do not add HTML, code, SVG data or explanations." },
-            { role: "user", content: JSON.stringify({ context, invalidFoundation: foundation, validationError: error.message }) },
-          ],
-        });
-        if (!objectKeys(foundation, ["cmsSchema", "cmsContent", "designPlan", "imagePlan", "result"]) || typeof foundation.cmsSchema !== "string" || typeof foundation.cmsContent !== "string" || !Array.isArray(foundation.imagePlan)) throw new Error("Invalid RouterAI foundation repair");
-        validateCmsStrings(foundation.cmsSchema, foundation.cmsContent);
-        validateImagePlan(foundation);
+      catch (initialError) {
+        let repairError = initialError;
+        for (let repairAttempt = 0; repairAttempt < 2; repairAttempt += 1) {
+          onPhase("foundation-repair");
+          foundation = await phase({
+            name: "site_foundation_repair", schema: foundationSchema(targetId), maxTokens: 20000,
+            messages: [
+              { role: "system", content: "Repair the supplied CMS foundation so it strictly matches the supplied public contract. Preserve its result, content intent and designPlan, but correct cmsSchema, cmsContent and imagePlan as necessary. Every important CMS image must reference one of 3–4 distinct imagePlan .jpg paths, and every imagePlan path must be referenced by cmsContent. Do not add HTML, code, SVG data or explanations." },
+              { role: "user", content: JSON.stringify({ context, invalidFoundation: foundation, validationError: repairError.message }) },
+            ],
+          });
+          if (!objectKeys(foundation, ["cmsSchema", "cmsContent", "designPlan", "imagePlan", "result"]) || typeof foundation.cmsSchema !== "string" || typeof foundation.cmsContent !== "string" || !Array.isArray(foundation.imagePlan)) throw new Error("Invalid RouterAI foundation repair");
+          try {
+            validateCmsStrings(foundation.cmsSchema, foundation.cmsContent);
+            validateImagePlan(foundation);
+            repairError = null;
+            break;
+          } catch (error) { repairError = error; }
+        }
+        if (repairError) throw repairError;
       }
       onPhase("images");
       const imageFiles = [];
