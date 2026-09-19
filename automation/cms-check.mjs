@@ -23,8 +23,18 @@ export async function checkCms(site,{screenshots}={}){
  const navigate=async path=>{await send('Page.navigate',{url:origin+'/'+path});await until(`location.pathname===${JSON.stringify('/'+path)}&&document.readyState==='complete'`)};
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBypassServiceWorker',{bypass:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
  await navigate('index.html');
- await evaluate(`(()=>{document.querySelectorAll('img').forEach(i=>i.loading='eager');window.scrollTo(0,document.body.scrollHeight)})()`);
- await until(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).length>=3&&Array.from(document.images).filter(i=>!i.src.startsWith('data:')).every(i=>i.complete)`);
+ // App boot is async: rendered images may appear after readyState, and lazy
+ // images inserted later never become eager from a one-shot pass. Settle in
+ // rounds: force eager, scroll, wait for completion, repeat while the image
+ // count keeps growing.
+ for (let round = 0; round < 10; round += 1) {
+  await evaluate(`(()=>{document.querySelectorAll('img').forEach(i=>{i.loading='eager'});window.scrollTo(0,document.body.scrollHeight)})()`);
+  await until(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).every(i=>i.complete)`);
+  const seen = await evaluate(`document.images.length`);
+  await new Promise(r=>setTimeout(r,400));
+  if (await evaluate(`document.images.length`) === seen) break;
+  if (round === 9) throw Error('CMS images keep changing without settling');
+ }
  const initialImages=await evaluate(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).map(i=>({src:new URL(i.src,location.href).pathname,width:i.naturalWidth,height:i.naturalHeight}))`);
  const rasterImages=initialImages.filter(i=>/\.(?:jpe?g|png|webp)$/i.test(i.src));
  assert(rasterImages.length>=3,'At least three generated raster images are required');
