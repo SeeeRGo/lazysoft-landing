@@ -36,6 +36,10 @@ export const begin = internalAction({
         signal: AbortSignal.timeout(20_000),
       });
       if (response.status !== 202 && !response.ok) throw new Error(`Executor HTTP ${response.status}`);
+      // A Yandex async 202 acknowledges enqueueing, not execution. Keep a
+      // durable confirmation loop until the executor actually claims the job;
+      // dispatchPayload becomes null as soon as the job leaves `queued`.
+      await ctx.runMutation(internal.automation.retryDispatch, { jobId, expectedAttempts: payload.dispatchAttempts });
     } catch {
       await ctx.runMutation(internal.automation.retryDispatch, { jobId, expectedAttempts: payload.dispatchAttempts });
     }

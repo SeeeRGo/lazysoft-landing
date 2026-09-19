@@ -67,7 +67,7 @@ it('dispatches a queued generation immediately from a Convex action',async()=>{
  vi.stubEnv('REQUEST_GENERATION_EXECUTOR_URL','https://executor.example.test/generate');
  vi.stubEnv('AUTOMATION_WORKER_SECRET','worker-secret');
  const fetchMock=vi.fn().mockResolvedValue(new Response(null,{status:202}));vi.stubGlobal('fetch',fetchMock);
- await t.finishAllScheduledFunctions(()=>vi.runAllTimers());
+ await t.action(internal.generation.begin,{jobId:job!._id});
  expect(fetchMock).toHaveBeenCalledOnce();
  const [url,options]=fetchMock.mock.calls[0];
  expect(String(url)).toBe('https://executor.example.test/generate');
@@ -75,6 +75,7 @@ it('dispatches a queued generation immediately from a Convex action',async()=>{
  expect(options.headers['X-Ycf-Container-Integration-Type']).toBe('async');
  expect(JSON.parse(options.body)).toEqual({jobId:job!._id,requestId:input.requestId});
  expect((await t.run(ctx=>ctx.db.get(job!._id)))?.status).toBe('queued');
+ expect((await t.run(ctx=>ctx.db.get(job!._id)))?.dispatchAttempts).toBe(1);
 });
 it('claims only the exact job requested by a hosted executor',async()=>{
  const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);
