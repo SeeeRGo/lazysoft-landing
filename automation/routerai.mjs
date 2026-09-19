@@ -419,10 +419,18 @@ export async function repairRouterAI({ project, targetId, prompt, validationErro
 
 export async function writeImplementationRepair(project, targetId, implementation) {
   const normalized = normalizeImplementation(implementation, targetId);
+  const repairExtra = normalized.extra.map(file => ({
+    ...file,
+    path: file.path.startsWith("versions/") ? file.path : `versions/${targetId}/${file.path}`,
+  })).filter(file => ![
+    `versions/${targetId}/index.html`,
+    `versions/${targetId}/cms-schema.json`,
+    `versions/${targetId}/cms-content.json`,
+  ].includes(file.path.toLowerCase()));
   const files = [
     { path: "README.md", content: normalized.readme },
     { path: `versions/${targetId}/index.html`, content: normalized.index },
-    ...normalized.extra,
+    ...repairExtra,
   ];
   const seen = new Set();
   for (const file of files) {

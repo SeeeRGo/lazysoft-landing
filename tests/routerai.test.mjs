@@ -193,12 +193,13 @@ describe("RouterAI provider", () => {
     const imageBefore = await readFile(join(project, "versions", "1", "assets", "hero.jpg"));
     const implementation = phaseValue(value, { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) });
     implementation.extra = implementation.extra.map(file => file.path.endsWith("app.js") ? { ...file, content: `${file.content}\n// browser repaired` } : file);
-    implementation.extra.push({ path: "versions/1/cms-content.json", content: "{}" });
+    implementation.extra.push({ path: "versions/1/cms-content.json", content: "{}" }, { path: "repair.css", content: ".repaired{display:block}" });
     const repaired = await repairRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), validationError: "initial raster images", config, fetchImpl: async () => response(implementation) });
     await writeImplementationRepair(project, "1", repaired);
     expect(await readFile(join(project, "versions", "1", "cms-content.json"))).toEqual(cmsBefore);
     expect(await readFile(join(project, "versions", "1", "assets", "hero.jpg"))).toEqual(imageBefore);
     expect(await readFile(join(project, "versions", "1", "app.js"), "utf8")).toContain("browser repaired");
+    expect(await readFile(join(project, "versions", "1", "repair.css"), "utf8")).toContain("repaired");
   });
 
   it("normalizes duplicate and fixed paths returned by an implementation repair", async () => {
