@@ -11,7 +11,7 @@ export async function checkCms(site,{screenshots}={}){
  const png=join(profile,'upload.png');await writeFile(png,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZ5kAAAAASUVORK5CYII=','base64'));
  const server=createServer(async(req,res)=>{try{const path=resolve(directory,'.'+decodeURIComponent(new URL(req.url,'http://local').pathname));if(!path.startsWith(directory+sep))throw Error();const data=await readFile(path);res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp'})[extname(path)]||'application/octet-stream');res.end(data)}catch{res.writeHead(404);res.end()}});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
- const chrome=spawn('/usr/bin/chromium',['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe'],env:{PATH:process.env.PATH,LANG:'C.UTF-8',HOME:profile,TMPDIR:tmpdir()}});
+ const chrome=spawn('/usr/bin/chromium',['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe'],env:{PATH:process.env.PATH,LANG:'C.UTF-8',HOME:profile,TMPDIR:profile}});
  let chromeExit,chromeError='';
  chrome.once('exit',code=>{chromeExit=code});
  chrome.stderr.on('data',chunk=>{chromeError=(chromeError+chunk.toString()).slice(-2000)});
@@ -35,7 +35,7 @@ export async function checkCms(site,{screenshots}={}){
  // count keeps growing.
  for (let round = 0; round < 10; round += 1) {
   await evaluate(`(()=>{document.querySelectorAll('img').forEach(i=>{i.loading='eager'});window.scrollTo(0,document.body.scrollHeight)})()`);
-  await until(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).every(i=>i.complete)`,'initial images');
+  await until(`(()=>{const images=Array.from(document.images).filter(i=>/\\.(?:jpe?g|png|webp)(?:$|[?#])/i.test(i.src));return images.length>=3&&images.every(i=>i.complete&&i.naturalWidth>0)})()`,'initial raster images');
   const seen = await evaluate(`document.images.length`);
   await new Promise(r=>setTimeout(r,400));
   if (await evaluate(`document.images.length`) === seen) break;
