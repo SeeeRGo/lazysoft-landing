@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, mkdir, readFile, writeFile, readdir, symlink, link, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, LIMITS, routeraiConfig, generateRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration } from "../automation/routerai.mjs";
+import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, LIMITS, MAX_GENERATED_COLLECTIONS, routeraiConfig, generateRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration } from "../automation/routerai.mjs";
 import { routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
 import { installDemoCms } from "../standalone/site-cms/package.mjs";
 import { checkCms } from "../automation/cms-check.mjs";
@@ -45,6 +45,18 @@ async function run(fetchImpl, options = {}) { const project = await workspace();
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 
 describe("RouterAI provider", () => {
+  it("rejects generated CMS foundations that would make the browser gate unbounded", async () => {
+    const value = generation();
+    const tooMany = Array.from({ length: MAX_GENERATED_COLLECTIONS + 1 }, (_, index) => ({
+      key: `items${index}`,
+      label: `Items ${index}`,
+      fields: [{ key: "name", label: "Name", type: "text" }, { key: "image", label: "Image", type: "image" }],
+    }));
+    value.files[3].content = JSON.stringify({ ...schema, collections: tooMany });
+    value.files[4].content = JSON.stringify({ values: JSON.parse(value.files[4].content).values, items: Object.fromEntries(tooMany.map(item => [item.key, []])) });
+    expect(() => validateGeneration(value, "1")).toThrow("Invalid generated CMS data");
+  });
+
   it("completes an initial request without provider or model using the RouterAI default", async () => {
     vi.stubEnv("ROUTERAI_MODEL", undefined);
     vi.stubEnv("ROUTERAI_API_KEY", config.apiKey);

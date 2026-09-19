@@ -254,9 +254,11 @@ export async function runOnce({ requestId, jobId } = {}) {
     await validateDemo(join(versions, targetId));
     await installDemoCms(join(versions, targetId));
     await validateDemo(join(versions, targetId));
+    const cmsCheckTimeout = AbortSignal.timeout(5 * 60_000);
     try {
-      await command(process.execPath, [join(here, "cms-check.mjs"), join(versions, targetId)], { signal: controller.signal });
+      await command(process.execPath, [join(here, "cms-check.mjs"), join(versions, targetId)], { signal: AbortSignal.any([controller.signal, cmsCheckTimeout]) });
     } catch (error) {
+      if (cmsCheckTimeout.aborted && !controller.signal.aborted) throw new Error("CMS browser check timed out after 5 minutes");
       throw cmsCheckFailure(error);
     }
     mark("cms-checked");
