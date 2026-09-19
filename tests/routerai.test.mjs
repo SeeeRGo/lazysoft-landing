@@ -153,7 +153,7 @@ describe("RouterAI provider", () => {
       if (!url.endsWith("/images")) return response(phaseValue(value, init));
       imageCalls += 1;
       if (imageCalls === 1) return Response.json({ data: [{}] });
-      if (imageCalls === 2) return Response.json({ data: [{ url: `data:image/jpeg;base64,${jpeg}` }] });
+      if (imageCalls === 2) return Response.json({ data: [{ b64_json: `data:image/jpeg;base64,${jpeg}` }] });
       return imageResponse();
     });
     const generated = await generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl });
@@ -168,7 +168,7 @@ describe("RouterAI provider", () => {
       imageCalls += 1;
       return Response.json({ data: [{ b64_json: "truncated" }] });
     });
-    await expect(run(fetchImpl, { imageRetryBaseMs: 0 })).rejects.toThrow("Invalid RouterAI image response");
+    await expect(run(fetchImpl, { imageRetryBaseMs: 0 })).rejects.toThrow("Invalid RouterAI image response (base64)");
     expect(imageCalls).toBe(5);
   });
 

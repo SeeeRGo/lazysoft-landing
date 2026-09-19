@@ -255,12 +255,21 @@ async function requestPhase({ config, fetchImpl, signal, name, schema, maxTokens
 }
 
 function imageBase64(item) {
-  if (typeof item?.b64_json === "string" && item.b64_json.length) return item.b64_json;
-  if (typeof item?.url === "string") {
-    const match = item.url.match(/^data:image\/(?:jpeg|jpg);base64,([A-Za-z0-9+/=]+)$/i);
-    if (match) return match[1];
+  for (const candidate of [item?.b64_json, item?.url]) {
+    if (typeof candidate !== "string" || !candidate.length) continue;
+    const dataUrl = candidate.match(/^data:image\/(?:jpeg|jpg);base64,([A-Za-z0-9+/=\s]+)$/i);
+    if (dataUrl) return dataUrl[1].replace(/\s+/g, "");
+    if (/^[A-Za-z0-9+/=\s]+$/.test(candidate)) return candidate.replace(/\s+/g, "");
   }
   return "";
+}
+
+function imageResponseKind(item) {
+  if (!item || typeof item !== "object" || Array.isArray(item)) return "missing-item";
+  const value = typeof item.b64_json === "string" ? item.b64_json : typeof item.url === "string" ? item.url : "";
+  if (!value) return `keys-${Object.keys(item).sort().join("-").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80) || "none"}`;
+  if (value.startsWith("data:image/")) return "data-url";
+  return "base64";
 }
 
 function validJpegBase64(encoded) {
@@ -302,9 +311,10 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
             if (!retryable) throw new Error(`RouterAI image HTTP ${response.status}`);
           } else {
             const envelope = await responseJson(response, controller.signal);
-            const encoded = envelope.data?.length === 1 ? imageBase64(envelope.data[0]) : "";
+            const item = envelope.data?.length === 1 ? envelope.data[0] : null;
+            const encoded = imageBase64(item);
             if (validJpegBase64(encoded)) return { path: `versions/${targetId}/${image.path}`, content: `base64:${encoded}` };
-            lastError = "Invalid RouterAI image response";
+            lastError = `Invalid RouterAI image response (${imageResponseKind(item)})`;
           }
         } catch (error) {
           if (controller.signal.aborted) throw error;
