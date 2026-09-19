@@ -32,12 +32,13 @@ AWS_SECRET_ACCESS_KEY
 ROUTERAI_API_KEY
 ```
 
-Production запускается одноразовым GitHub Actions runner. Секреты находятся в
-GitHub Actions secrets; не печатай env целиком и не копируй их на рабочий
-компьютер. Генерация использует RouterAI API. Локальные Codex-авторизация,
-Docker-образ генератора, systemd, `flock` и постоянный worker не используются.
+Production запускается Convex action, который передаёт конкретный job постоянно
+размещённому HTTPS executor. Convex хранит `REQUEST_GENERATION_EXECUTOR_URL` и
+общий worker secret; ключи RouterAI и Object Storage находятся только у executor.
+Не печатай env целиком и не копируй секреты на рабочий компьютер. Локальные
+Codex-авторизация, systemd и `flock` не используются.
 
-Используются Node, Chromium, AWS CLI и zip/unzip на GitHub runner.
+Executor использует Node, Chromium, AWS CLI и zip/unzip.
 
 Без запуска очереди:
 
@@ -53,8 +54,8 @@ REQUEST_WORKER_REQUEST_ID=ACTUAL_REQUEST_ID npm run worker:once
 ```
 
 Не запускай общий worker без ID ради диагностики: он может захватить чужую заявку.
-Штатный ручной запуск выполняй через `workflow_dispatch`; локальный запуск — только
-диагностический и требует отдельного явного разрешения на конкретную заявку.
+Штатный запуск выполняет Convex. `workflow_dispatch` — только аварийный ручной
+fallback; локальный запуск диагностический и требует разрешения на конкретную заявку.
 
 ## Выполнение задачи
 
@@ -102,8 +103,8 @@ HTTPS-адресе хранилища не требует ручного вып�
 
 Сначала проверь изменения, сборку и backend-контракт. Учти: push в `main` запускает
 production workflow с деплоем Convex, сборкой контейнера и выпуском в Яндекс.
-Проверка dev Convex не заменяет production-деплой; GitHub runner всегда использует
-worker из выбранного коммита. Согласуй версии worker и backend перед включением
+Проверка dev Convex не заменяет production-деплой; hosted executor должен использовать
+worker совместимого коммита. Согласуй версии executor и backend перед включением
 нового формата результатов. После выпуска проверь фактическую страницу и API.
 
 Для отката демо используй предыдущий проверенный URL. Для отката лендинга —

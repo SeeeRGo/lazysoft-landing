@@ -78,6 +78,7 @@ export default defineSchema({
     leaseUntil: v.optional(v.number()),
     error: v.optional(v.string()),
     completedAt: v.optional(v.number()),
+    dispatchAttempts: v.optional(v.number()),
   }).index("by_status_and_available_at", ["status", "availableAt"])
     .index("by_status_and_lease_until", ["status", "leaseUntil"])
     .index("by_request_id", ["requestId"]),

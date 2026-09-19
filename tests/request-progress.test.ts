@@ -60,3 +60,37 @@ it('requires the exact failed job and error for one operator recovery attempt',a
  expect(resumed?.jobId).toBe(job!.jobId);
  expect((await t.run(ctx=>ctx.db.get(job!.jobId)))?.attempts).toBe(3);
 });
+it('dispatches a queued generation immediately from a Convex action',async()=>{
+ const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);
+ const job=await t.run(ctx=>ctx.db.query('requestJobs').first());
+ vi.stubEnv('REQUEST_GENERATION_EXECUTOR_URL','https://executor.example.test/generate');
+ vi.stubEnv('AUTOMATION_WORKER_SECRET','worker-secret');
+ const fetchMock=vi.fn().mockResolvedValue(new Response(null,{status:202}));vi.stubGlobal('fetch',fetchMock);
+ await t.finishAllScheduledFunctions(()=>vi.runAllTimers());
+ expect(fetchMock).toHaveBeenCalledOnce();
+ const [url,options]=fetchMock.mock.calls[0];
+ expect(String(url)).toBe('https://executor.example.test/generate');
+ expect(options.headers['X-Lazysoft-Executor-Token']).toBe('worker-secret');
+ expect(options.headers['X-Ycf-Container-Integration-Type']).toBe('async');
+ expect(JSON.parse(options.body)).toEqual({jobId:job!._id,requestId:input.requestId});
+ expect((await t.run(ctx=>ctx.db.get(job!._id)))?.status).toBe('queued');
+});
+it('claims only the exact job requested by a hosted executor',async()=>{
+ const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);
+ await t.mutation(internal.requests.store,{...input,requestId:'#other-job',accessTokenHash:'c'.repeat(64),adminTokenHash:'d'.repeat(64)});
+ const jobs=await t.run(ctx=>ctx.db.query('requestJobs').take(10));
+ const target=jobs.find(job=>job.requestId===input.requestId)!;
+ const claimed=await t.mutation(internal.automation.claim,{protocol:2,jobId:target._id,requestId:input.requestId,leaseToken:'e'.repeat(40)});
+ expect(claimed?.jobId).toBe(target._id);
+ expect(claimed?.requestId).toBe(input.requestId);
+ expect((await t.run(ctx=>ctx.db.get(jobs.find(job=>job.requestId==='#other-job')!._id)))?.status).toBe('queued');
+});
+it('keeps a queued job durable and schedules another dispatch after executor failure',async()=>{
+ const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);
+ const job=await t.run(ctx=>ctx.db.query('requestJobs').first());
+ vi.stubEnv('REQUEST_GENERATION_EXECUTOR_URL','https://executor.example.test/generate');
+ vi.stubEnv('AUTOMATION_WORKER_SECRET','worker-secret');
+ vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new Error('offline')));
+ await t.action(internal.generation.begin,{jobId:job!._id});
+ expect((await t.run(ctx=>ctx.db.get(job!._id)))?.dispatchAttempts).toBe(1);
+});

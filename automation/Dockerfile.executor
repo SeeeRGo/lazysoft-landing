@@ -1,0 +1,16 @@
+FROM node:24-bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends awscli ca-certificates chromium python3 zip \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY automation ./automation
+COPY skills ./skills
+COPY standalone ./standalone
+
+ENV NODE_ENV=production
+ENV PORT=8080
+USER node
+EXPOSE 8080
+CMD ["node", "automation/executor-server.mjs"]

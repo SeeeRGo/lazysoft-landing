@@ -13,6 +13,7 @@ import type * as automationModel from "../automationModel.js";
 import type * as automationNotifications from "../automationNotifications.js";
 import type * as clientDelivery from "../clientDelivery.js";
 import type * as deliveries from "../deliveries.js";
+import type * as generation from "../generation.js";
 import type * as http from "../http.js";
 import type * as payments from "../payments.js";
 import type * as portfolio from "../portfolio.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   automationNotifications: typeof automationNotifications;
   clientDelivery: typeof clientDelivery;
   deliveries: typeof deliveries;
+  generation: typeof generation;
   http: typeof http;
   payments: typeof payments;
   portfolio: typeof portfolio;

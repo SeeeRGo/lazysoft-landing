@@ -16,13 +16,20 @@
 
 ## Исполнитель
 
-Публикацию выполняет одноразовый GitHub Actions runner. Сохранённая авторизация, CLI и фоновые процессы конкретного рабочего компьютера в production-цепочке не используются. Для ручной диагностики можно создать локальный `.env.automation`, но это не штатный способ запуска.
+Convex немедленно передаёт job постоянно размещённому HTTPS executor. Executor выполняет генерацию, браузерную проверку, упаковку и публикацию. Сохранённая авторизация, CLI и фоновые процессы конкретного рабочего компьютера в production-цепочке не используются. Для ручной диагностики можно создать локальный `.env.automation`, но это не штатный способ запуска.
+
+Production executor: Serverless Container `lazysoft-generation-executor`
+(`bba36tbq8k96cghbhu2f`), образ в registry `crp9ahlalqaspg7tfd5v`, 2 vCPU,
+2 ГиБ RAM, `concurrency=1`, timeout 3600 секунд. Асинхронный вызов настроен через
+`lazysoft-runtime`; endpoint `/generate` дополнительно проверяет
+`X-Lazysoft-Executor-Token`.
 
 ## Convex
 
-В **dev** `notable-buffalo-804` настроены `AUTOMATION_WORKER_SECRET`, `REQUEST_DEMO_ORIGIN`, `PUBLIC_SITE_URL=https://lazysoft.ru`, `REQUEST_AUTOMATION_ENABLED=false`. Существующий `REQUEST_INGEST_SECRET` не изменён. Секрет и origin сверены с локальной конфигурацией без вывода значений.
-
-Перед запуском реальных заявок нужны отдельная проверка dev, перенос настроек в production и настройка доставки (ключ шифрования ссылки на лендинге и в Convex, SMTP или привязанные мессенджеры). Ключи RouterAI и Яндекс Object Storage хранятся только в GitHub Actions secrets, не в Convex и не на рабочем компьютере.
+В **dev** `notable-buffalo-804` автоматическая обработка выключена. В production
+`fearless-gnu-184` заданы `REQUEST_GENERATION_EXECUTOR_URL`,
+`AUTOMATION_WORKER_SECRET` и `REQUEST_AUTOMATION_ENABLED=true`. Ключи RouterAI и
+Яндекс Object Storage находятся только в окружении hosted executor, не в Convex.
 
 Существующие `TELEGRAM_BOT_TOKEN` и `TELEGRAM_CHAT_ID` перенесены из локального `.env` в dev Convex. Токен проверен запросом `getMe`. Сообщения не отправлялись; webhook и клиентские привязки не менялись.
 
@@ -31,8 +38,8 @@
 - Страница `_system-check/index.html` загружена **новым ограниченным ключом**, а не пользовательским аккаунтом администратора.
 - HTTPS GET страницы: 200, `Content-Type: text/html`, без принудительного скачивания.
 - Анонимный запрос списка файлов: 403.
-- `npm run worker:once -- --check-config`: проверяет наличие настроек при ручной диагностике; штатный запуск выполняется в GitHub Actions.
-- Совпадение dev-секрета/origin и выключенное состояние очереди проверены чтением настроек.
-- Захват реальной заявки и автоматическое расписание не запускались. Защита остановила попытку проверки claim, поэтому вместо неё выполнена немутирующая сверка конфигурации.
+- `npm run worker:once -- --check-config`: проверяет наличие настроек при ручной диагностике; штатный запуск инициирует Convex.
+- Async `/health` возвращает 202; `/generate` без executor-токена возвращает 401, с правильным токеном и пустым payload — 400.
+- Реальная заявка `#1f029af4` точечно запущена после production deploy и перешла в `running`; heartbeat executor обновился.
 
-Следующий этап: отдельная искусственная заявка в dev → генерация → публикация → PDF/чат → уведомление владельцу. После успешной проверки включать production.
+Следующий этап: подтвердить terminal status и опубликованное демо заявки `#1f029af4`, затем проверить revision job тем же маршрутом.

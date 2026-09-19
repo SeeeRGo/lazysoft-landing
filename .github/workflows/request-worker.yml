@@ -1,9 +1,7 @@
-name: Process MVP request
+name: Emergency manual MVP worker
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *'
 
 permissions:
   contents: read

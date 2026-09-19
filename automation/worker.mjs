@@ -179,9 +179,10 @@ export async function assembleVersionBundle(previous, project, bundle, job) {
   await copyFile(join(project, "README.md"), join(bundle, "README.md"));
 }
 
-export async function runOnce() {
+export async function runOnce({ requestId, jobId } = {}) {
   const config = await checkConfig();
-  const { job } = await api("claim", { protocol: 2, leaseToken: randomBytes(32).toString("hex"), ...(process.env.REQUEST_WORKER_REQUEST_ID ? { requestId: process.env.REQUEST_WORKER_REQUEST_ID } : {}) });
+  const scopedRequestId = requestId || process.env.REQUEST_WORKER_REQUEST_ID;
+  const { job } = await api("claim", { protocol: 2, leaseToken: randomBytes(32).toString("hex"), ...(scopedRequestId ? { requestId: scopedRequestId } : {}), ...(jobId ? { jobId } : {}) });
   if (!job) return false;
   const work = await mkdtemp(join(tmpdir(), "lazysoft-request-"));
   console.log(`Started ${job.jobId} (${job.kind}); artifacts: ${work}`);

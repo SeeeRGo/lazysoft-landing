@@ -23,9 +23,10 @@ export async function enqueueInitial(ctx: MutationCtx, requestId: string) {
     requestId, phase: "queued", revisionUsed: false, revisionCount: 0, accepted: false, paid: false,
     developmentRequested: false, updatedAt: now,
   });
-  await ctx.db.insert("requestJobs", {
+  const jobId = await ctx.db.insert("requestJobs", {
     requestId, kind: "initial", targetDemoId: "1", status: "queued", instructions: "", attempts: 0, availableAt: now,
   });
+  await ctx.scheduler.runAfter(0, internal.generation.begin, { jobId });
 }
 
 export const summary = internalQuery({
@@ -86,6 +87,7 @@ export const clientAction = internalMutation({
       const count = revisionCount(state) + 1;
       await ctx.db.patch(state._id, { phase: "revision_queued", revisionUsed: true, ...(sequential ? { revisionCount: count } : {}), updatedAt: now });
       const jobId = await ctx.db.insert("requestJobs", { requestId: request.requestId, kind: "revision", targetDemoId, baseDemoId, status: "queued", instructions: text, attempts: 0, availableAt: now });
+      await ctx.scheduler.runAfter(0, internal.generation.begin, { jobId });
       eventKey = jobId;
       eventText = `Доработки ${count} из ${sequential ? 2 : 1}, версия ${baseDemoId} → ${targetDemoId}:\n${text}`;
       await ctx.db.insert("mvpRequestMessages", { requestId: request.requestId, sender: "visitor", text: eventText, createdAt: now });
@@ -166,8 +168,8 @@ export const previousSource = internalQuery({
   },
 });
 export const claim = internalMutation({
-  args: { leaseToken: v.string(), requestId: v.optional(v.string()), protocol: v.optional(v.number()) }, returns: v.union(v.null(), claimResult),
-  handler: async (ctx, { leaseToken, requestId, protocol }) => {
+  args: { leaseToken: v.string(), requestId: v.optional(v.string()), jobId: v.optional(v.id("requestJobs")), protocol: v.optional(v.number()) }, returns: v.union(v.null(), claimResult),
+  handler: async (ctx, { leaseToken, requestId, jobId, protocol }) => {
     if (protocol !== 2) return null;
     if (process.env.REQUEST_AUTOMATION_ENABLED !== "true") return null;
     if (process.env.REQUEST_AUTOMATION_ALLOWED_REQUEST_ID && requestId !== process.env.REQUEST_AUTOMATION_ALLOWED_REQUEST_ID) return null;
@@ -175,7 +177,13 @@ export const claim = internalMutation({
     const now = Date.now();
     // Reclaim only expired leases, preserving the revision budget and previous artifact.
     let job;
-    if (requestId) {
+    if (jobId) {
+      const candidate = await ctx.db.get(jobId);
+      const claimable = candidate && (!requestId || candidate.requestId === requestId)
+        && ((candidate.status === "running" && (candidate.leaseUntil ?? Infinity) < now)
+          || (candidate.status === "queued" && candidate.availableAt <= now));
+      job = claimable ? candidate : null;
+    } else if (requestId) {
       // A request has the initial job and up to two revision jobs; never claim another request.
       const jobs = await ctx.db.query("requestJobs").withIndex("by_request_id", q => q.eq("requestId", requestId)).take(3);
       job = jobs.find(row => row.status === "running" && (row.leaseUntil ?? Infinity) < now)
@@ -210,6 +218,28 @@ export const claim = internalMutation({
       ...(state.selectedDemoId ? { selectedDemoId: state.selectedDemoId } : {}),
       ...(state.demoOptions ? { demoOptions: state.demoOptions } : {}),
     };
+  },
+});
+
+export const dispatchPayload = internalQuery({
+  args: { jobId: v.id("requestJobs") },
+  returns: v.union(v.null(), v.object({ jobId: v.id("requestJobs"), requestId: v.string(), dispatchAttempts: v.number() })),
+  handler: async (ctx, { jobId }) => {
+    const job = await ctx.db.get(jobId);
+    if (!job || job.status !== "queued" || job.availableAt > Date.now()) return null;
+    return { jobId: job._id, requestId: job.requestId, dispatchAttempts: job.dispatchAttempts ?? 0 };
+  },
+});
+
+export const retryDispatch = internalMutation({
+  args: { jobId: v.id("requestJobs"), expectedAttempts: v.number() }, returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.jobId);
+    if (!job || job.status !== "queued" || (job.dispatchAttempts ?? 0) !== args.expectedAttempts) return false;
+    const attempts = args.expectedAttempts + 1;
+    await ctx.db.patch(job._id, { dispatchAttempts: attempts });
+    await ctx.scheduler.runAfter(Math.min(5 * 60_000, 15_000 * 2 ** Math.min(attempts, 5)), internal.generation.begin, { jobId: job._id });
+    return true;
   },
 });
 
@@ -283,6 +313,7 @@ export const fail = internalMutation({
     const now = Date.now();
     const state = await getAutomation(ctx, job.requestId);
     if (state) await ctx.db.patch(state._id, { phase: terminal ? "failed" : job.kind === "initial" ? "queued" : "revision_queued", updatedAt: now });
+    if (!terminal) await ctx.scheduler.runAfter(60_000 * job.attempts, internal.generation.begin, { jobId: job._id });
     if (terminal) {
       const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", job.requestId)).unique();
       if (request) await ctx.db.patch(request._id, { status: "failed", updatedAt: now });
@@ -306,6 +337,7 @@ export const retryFailedJob = internalMutation({
     await ctx.db.patch(state._id, { phase: job.kind === "initial" ? "queued" : "revision_queued", updatedAt: Date.now() });
     const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", args.requestId)).unique();
     if (request) await ctx.db.patch(request._id, { status: "in_progress", updatedAt: Date.now() });
+    await ctx.scheduler.runAfter(0, internal.generation.begin, { jobId: job._id });
     return true;
   },
 });
