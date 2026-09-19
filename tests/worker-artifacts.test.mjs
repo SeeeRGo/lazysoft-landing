@@ -3,12 +3,20 @@ import { mkdtemp, mkdir, writeFile, readFile, readdir, symlink } from 'node:fs/p
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { command, cmsCheckFailure, validateDemo, validateResult, completionMessage, generationPrompt, restoreSource, prepareRevisionWorkspace, assembleVersionBundle, ensureProjectReadme } from '../automation/worker.mjs';
+import { command, cmsCheckFailure, retryOperation, validateDemo, validateResult, completionMessage, generationPrompt, restoreSource, prepareRevisionWorkspace, assembleVersionBundle, ensureProjectReadme } from '../automation/worker.mjs';
 
 const brief = { title: "Сайт мастерской", variants: [
   { id: "1", title: "Спокойный каталог" },
 ] };
 describe('worker artifacts', () => {
+  it('retries bounded transient publishing operations', async () => {
+    let attempts=0;
+    await expect(retryOperation(async()=>{if(++attempts<3)throw Error('fetch failed');return 'ready'},{baseDelayMs:0})).resolves.toBe('ready');
+    expect(attempts).toBe(3);
+    attempts=0;
+    await expect(retryOperation(async()=>{attempts+=1;throw Error('still unavailable')},{attempts:2,baseDelayMs:0})).rejects.toThrow('still unavailable');
+    expect(attempts).toBe(2);
+  });
   it('publishes through the bundled AWS CLI even when PATH lacks it (production failure of #2547a43f)', async () => {
     await expect(command('aws', ['--version'], { env: { ...process.env, PATH: '/usr/bin:/bin' } })).resolves.toContain('aws-cli/');
   });

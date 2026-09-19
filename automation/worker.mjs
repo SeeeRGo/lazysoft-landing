@@ -17,7 +17,8 @@ async function checkConfig() { for (const key of required) if (!process.env[key]
 
 async function api(operation, args = {}) {
   let response;
-  for (let attempt = 0; attempt < (operation === "heartbeat" ? 3 : 1); attempt += 1) {
+  const attempts = ["heartbeat", "upload", "complete"].includes(operation) ? 3 : 1;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       response = await fetch(`${process.env.CONVEX_SITE_URL.replace(/\/$/, "")}/automation-worker`, {
         method: "POST", headers: { Authorization: `Bearer ${process.env.AUTOMATION_WORKER_SECRET}`, "Content-Type": "application/json" },
@@ -26,12 +27,24 @@ async function api(operation, args = {}) {
       break;
     } catch (error) {
       const code = /^[A-Z0-9_]+$/.test(error?.cause?.code || "") ? error.cause.code : "NETWORK_ERROR";
-      if (operation !== "heartbeat" || attempt === 2) throw new Error(`Worker API ${operation}: ${code}`);
+      if (attempt === attempts - 1) throw new Error(`Worker API ${operation}: ${code}`);
       await new Promise(resolveDelay => setTimeout(resolveDelay, 300 * (attempt + 1)));
     }
   }
   if (!response.ok) throw new Error(`Worker API ${operation}: HTTP ${response.status}`);
   return response.json();
+}
+
+export async function retryOperation(operation, { attempts = 3, baseDelayMs = 1000 } = {}) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try { return await operation(attempt); }
+    catch (error) {
+      lastError = error;
+      if (attempt < attempts - 1) await new Promise(resolveDelay => setTimeout(resolveDelay, Math.max(0, baseDelayMs) * 2 ** attempt));
+    }
+  }
+  throw lastError;
 }
 export function command(file, args, { cwd, input, env = process.env, signal } = {}) {
   const localAws = resolve(here, "../.local/aws-cli/bin/aws");
@@ -96,10 +109,13 @@ export function completionMessage(result, kind) {
 }
 
 async function upload(job, path, type) {
-  const { url } = await api("upload", { jobId: job.jobId, leaseToken: job.leaseToken });
-  const response = await fetch(url, { method: "POST", headers: { "Content-Type": type }, body: await readFile(path), signal: AbortSignal.timeout(60_000) });
-  if (!response.ok) throw new Error("Artifact upload failed");
-  return (await response.json()).storageId;
+  const data = await readFile(path);
+  return retryOperation(async () => {
+    const { url } = await api("upload", { jobId: job.jobId, leaseToken: job.leaseToken });
+    const response = await fetch(url, { method: "POST", headers: { "Content-Type": type }, body: data, signal: AbortSignal.timeout(60_000) });
+    if (!response.ok) throw new Error("Artifact upload failed");
+    return (await response.json()).storageId;
+  });
 }
 
 export function generationPrompt(job) {
@@ -308,8 +324,10 @@ export async function runOnce({ requestId, jobId } = {}) {
     await command("aws", ["--endpoint-url=https://storage.yandexcloud.net", "s3", "cp", join(project, "versions", targetId), `s3://${process.env.REQUEST_DEMO_BUCKET}/${prefix}/${targetId}/`, "--recursive", "--cache-control", "public,max-age=3600"], { signal: controller.signal });
     const demoOptions = result.variants.map(variant => ({ ...variant, demoUrl: `${process.env.REQUEST_DEMO_ORIGIN.replace(/\/$/, "")}/${prefix}/${variant.id}/index.html` }));
     for (const option of demoOptions) {
-      const check = await fetch(option.demoUrl, { signal: AbortSignal.timeout(20_000) });
-      if (!check.ok || !(await check.text()).includes("<html")) throw new Error(`Published demo ${option.id} verification failed`);
+      await retryOperation(async () => {
+        const check = await fetch(option.demoUrl, { signal: AbortSignal.timeout(20_000) });
+        if (!check.ok || !(await check.text()).includes("<html")) throw new Error(`Published demo ${option.id} verification failed`);
+      });
     }
     const sourceStorageId = await upload(job, archive, "application/zip");
     const sourceVariants = [];
