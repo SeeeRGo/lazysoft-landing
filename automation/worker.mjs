@@ -6,20 +6,12 @@ import { mkdtemp, readFile, writeFile, mkdir, readdir, lstat, copyFile, cp } fro
 import { tmpdir } from "node:os";
 import { join, resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { codexAuth, assertAuthOutsideWorkspace } from "./codex-auth.mjs";
-import { nestedContainerArgs, sandboxConfigArgs } from "./isolation.mjs";
 import { routeraiConfig, generateRouterAI, writeGeneration } from "./routerai.mjs";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const required = ["CONVEX_SITE_URL", "AUTOMATION_WORKER_SECRET", "REQUEST_DEMO_BUCKET", "REQUEST_DEMO_ORIGIN", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"];
-export function generationProvider(env = process.env) {
-  const provider = env.REQUEST_GENERATION_PROVIDER || (env.ROUTERAI_API_KEY?.trim() ? "routerai" : "codex");
-  if (!["routerai", "codex"].includes(provider)) throw new Error("Invalid REQUEST_GENERATION_PROVIDER");
-  return provider;
-}
 async function providerConfig() {
-  const provider = generationProvider();
-  return { provider, config: provider === "routerai" ? routeraiConfig() : await codexAuth() };
+  return routeraiConfig();
 }
 async function checkConfig() { for (const key of required) if (!process.env[key]) throw new Error(`Missing ${key}`); return providerConfig(); }
 
@@ -188,7 +180,7 @@ export async function assembleVersionBundle(previous, project, bundle, job) {
 }
 
 export async function runOnce() {
-  const { provider, config } = await checkConfig();
+  const config = await checkConfig();
   const { job } = await api("claim", { protocol: 2, leaseToken: randomBytes(32).toString("hex"), ...(process.env.REQUEST_WORKER_REQUEST_ID ? { requestId: process.env.REQUEST_WORKER_REQUEST_ID } : {}) });
   if (!job) return false;
   const work = await mkdtemp(join(tmpdir(), "lazysoft-request-"));
@@ -212,9 +204,6 @@ export async function runOnce() {
     try { if (!(await api("heartbeat", { ...lease, stage })).ok) { leaseLost = true; controller.abort(); } }
     catch { leaseLost = true; controller.abort(); }
   }, 45_000);
-  const container = `lazysoft-${job.jobId}-${randomBytes(4).toString("hex")}`;
-  const uid = process.getuid?.() ?? 1000;
-  const gid = process.getgid?.() ?? 1000;
   try {
     if (job.kind === "revision") {
       const { url } = await api("source", lease);
@@ -239,18 +228,12 @@ export async function runOnce() {
       if (!process.env.REQUEST_WORKER_REQUEST_ID || process.env.REQUEST_WORKER_RESUME_JOB_ID !== String(job.jobId) || !resume.startsWith(join(tmpdir(), "lazysoft-request-"))) throw new Error("Invalid artifact recovery scope");
       await cp(join(resume, "project"), project, { recursive: true });
       await copyFile(join(resume, "output", "result.json"), join(output, "result.json"));
-    } else if (provider === "routerai") {
+    } else {
       const generated = await generateRouterAI({ project, targetId, prompt: routeraiBrief(job), config, signal: controller.signal, onPhase: phase => console.log(`RouterAI ${job.jobId}: ${phase}`) });
       controller.signal.throwIfAborted();
       validateResult(generated.result, targetId);
       await writeGeneration(project, targetId, generated);
       await writeFile(join(output, "result.json"), JSON.stringify(generated.result), { mode: 0o600 });
-    } else {
-      const auth = config;
-      assertAuthOutsideWorkspace(auth, project, output);
-      const skillDirectory = resolve(here, "../skills/prompt-site-yandex");
-      const agentEnv = { PATH: process.env.PATH, ...auth.env, ...(process.env.DOCKER_API_VERSION ? { DOCKER_API_VERSION: process.env.DOCKER_API_VERSION } : {}) };
-      await command("docker", ["run", "--rm", "-i", "--name", container, "--user", `${uid}:${gid}`, "--cap-drop=ALL", "--security-opt=no-new-privileges", ...nestedContainerArgs, "--pids-limit=256", "--memory=2g", "--cpus=2", "--read-only", "--tmpfs", "/tmp", ...auth.dockerArgs, "-v", `${skillDirectory}:/opt/skills/prompt-site-yandex:ro`, "-v", `${project}:/workspace`, "-v", `${output}:/output`, process.env.CODEX_WORKER_IMAGE || "lazysoft-codex-worker:0.153.4", "exec", "--model", "gpt-5.6-luna", "--strict-config", "--ignore-user-config", "--ignore-rules", "--ephemeral", "--skip-git-repo-check", ...sandboxConfigArgs, "-c", 'approval_policy="never"', "-c", 'cli_auth_credentials_store="file"', "--output-schema", "/output/schema.json", "-o", "/output/result.json", "-"], { input: prompt, env: agentEnv, signal: controller.signal });
     }
     if (leaseLost) throw new Error("Lease lost");
     mark("generated");
@@ -315,7 +298,6 @@ export async function runOnce() {
         console.error(`Private worker diagnostic: ${diagnostic}`);
       } catch { /* Diagnostic failures must not prevent releasing the job. */ }
     }
-    if (provider === "codex") await command("docker", ["stop", container]).catch(() => {});
     await api("fail", { ...lease, error: error instanceof Error ? error.message : "Worker failed" }).catch(() => {});
     throw error;
   } finally {

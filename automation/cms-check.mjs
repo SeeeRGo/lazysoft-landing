@@ -23,6 +23,8 @@ export async function checkCms(site,{screenshots}={}){
  const navigate=async path=>{await send('Page.navigate',{url:origin+'/'+path});await until(`location.pathname===${JSON.stringify('/'+path)}&&document.readyState==='complete'`)};
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBypassServiceWorker',{bypass:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
  await navigate('index.html');
+ const duplicateIds=await evaluate(`(()=>{const ids=Array.from(document.querySelectorAll('[id]'),e=>e.id);return [...new Set(ids.filter((value,index)=>ids.indexOf(value)!==index))]})()`);
+ assert.deepEqual(duplicateIds,[],'Public page contains duplicate HTML ids');
  // App boot is async: rendered images may appear after readyState, and lazy
  // images inserted later never become eager from a one-shot pass. Settle in
  // rounds: force eager, scroll, wait for completion, repeat while the image
@@ -35,6 +37,10 @@ export async function checkCms(site,{screenshots}={}){
   if (await evaluate(`document.images.length`) === seen) break;
   if (round === 9) throw Error('CMS images keep changing without settling');
  }
+ const visibleText=await evaluate(`document.body.innerText.replace(/\\s+/g,' ').trim().length`);
+ assert(visibleText>=200,'Public page has too little rendered text');
+ const hiddenContent=await evaluate(`Array.from(document.querySelectorAll('main h1,main h2,main h3,main p,main img')).filter(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&(s.visibility==='hidden'||Number(s.opacity)<0.1)}).length`);
+ assert.equal(hiddenContent,0,'Public content remains hidden after rendering');
  const initialImages=await evaluate(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).map(i=>({src:new URL(i.src,location.href).pathname,width:i.naturalWidth,height:i.naturalHeight}))`);
  const rasterImages=initialImages.filter(i=>/\.(?:jpe?g|png|webp)$/i.test(i.src));
  assert(rasterImages.length>=3,'At least three generated raster images are required');
@@ -61,7 +67,7 @@ export async function checkCms(site,{screenshots}={}){
  }
  if(screenshots)await mkdir(screenshots,{recursive:true});
  const screenshot=async(name)=>{if(!screenshots)return;const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(join(screenshots,name+'.png'),Buffer.from(shot.data,'base64'))};
- for(const width of [390,1440]){await send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:width<500});await navigate('index.html');await until(`document.readyState==='complete'`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Public layout overflows');assert(await evaluate(`(()=>{const image=document.querySelector('.hero img,[class*="hero"] img');return !image||image.getBoundingClientRect().height>=80})()`),'Hero image collapsed');assert(await evaluate(`Array.from(document.querySelectorAll('a')).some(a=>new URL(a.href,location.href).pathname.endsWith('/admin.html'))`),'Public demo admin link is missing');await new Promise(r=>setTimeout(r,500));await screenshot('site-'+width);await navigate('admin.html');await until(`!document.querySelector('#editor').hidden`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Admin layout overflows');await screenshot('admin-'+width)}
+ for(const width of [390,1440]){await send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:width<500});await navigate('index.html');await until(`document.readyState==='complete'`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Public layout overflows');assert(await evaluate(`(()=>{const image=document.querySelector('.hero img,[class*="hero"] img');return !image||image.getBoundingClientRect().height>=80})()`),'Hero image collapsed');const flushImages=await evaluate(`(()=>{const gutter=innerWidth<500?16:24;return Array.from(document.images).filter(image=>{const r=image.getBoundingClientRect();const hero=image.closest('header,[class*="hero"],[id*="hero"]');return !hero&&r.width>innerWidth*.72&&(r.left<gutter-1||innerWidth-r.right<gutter-1)}).map(image=>image.getAttribute('src')||image.alt||'image')})()`);assert.deepEqual(flushImages,[],'Ordinary content images must keep viewport gutters');assert(await evaluate(`Array.from(document.querySelectorAll('a')).some(a=>new URL(a.href,location.href).pathname.endsWith('/admin.html'))`),'Public demo admin link is missing');await new Promise(r=>setTimeout(r,500));await screenshot('site-'+width);await navigate('admin.html');await until(`!document.querySelector('#editor').hidden`);assert(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Admin layout overflows');await screenshot('admin-'+width)}
  assert.deepEqual(errors,[]);return {collections:schema.collections.length,admin:true,images:true,widths:[390,1440]};
  }finally{ws?.close();chrome.kill('SIGTERM');await new Promise(r=>server.close(r));await rm(profile,{recursive:true,force:true}).catch(()=>{})}
 }

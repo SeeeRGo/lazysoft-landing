@@ -25,15 +25,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Build isolated Codex image
-        run: docker build -t lazysoft-codex-worker:0.153.4 automation
       - name: Process one request
         run: node automation/worker.mjs
         env:
           CONVEX_SITE_URL: ${{ vars.CONVEX_SITE_URL }}
           AUTOMATION_WORKER_SECRET: ${{ secrets.AUTOMATION_WORKER_SECRET }}
-          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
-          REQUEST_GENERATION_PROVIDER: routerai
           ROUTERAI_API_KEY: ${{ secrets.ROUTERAI_API_KEY }}
           ROUTERAI_MODEL: anthropic/claude-opus-5
           ROUTERAI_IMAGE_MODEL: black-forest-labs/flux.2-pro

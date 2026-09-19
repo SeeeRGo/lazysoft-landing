@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, writeFile, readdir, symlink, link, rm } from 
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, LIMITS, routeraiConfig, generateRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration } from "../automation/routerai.mjs";
-import { generationProvider, routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
+import { routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
 import { installDemoCms } from "../standalone/site-cms/package.mjs";
 import { checkCms } from "../automation/cms-check.mjs";
 
@@ -46,7 +46,6 @@ afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, {
 
 describe("RouterAI provider", () => {
   it("completes an initial request without provider or model using the RouterAI default", async () => {
-    vi.stubEnv("REQUEST_GENERATION_PROVIDER", undefined);
     vi.stubEnv("ROUTERAI_MODEL", undefined);
     vi.stubEnv("ROUTERAI_API_KEY", config.apiKey);
     const project = await workspace();
@@ -57,7 +56,6 @@ describe("RouterAI provider", () => {
       return response(phaseValue(generation(), init));
     });
     try {
-      expect(generationProvider()).toBe("routerai");
       const generated = await generateRouterAI({ project, targetId: job.targetDemoId, prompt: routeraiBrief(job), fetchImpl });
       await writeGeneration(project, job.targetDemoId, generated);
       await installDemoCms(join(project, "versions", job.targetDemoId));
@@ -83,14 +81,8 @@ describe("RouterAI provider", () => {
     expect(await checkCms(join(project, "versions", "1"))).toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
   }, 30_000);
 
-  it("uses configured RouterAI while preserving existing unconfigured workers", () => {
-    expect(generationProvider({})).toBe("codex");
-    expect(generationProvider({ ROUTERAI_API_KEY: " " })).toBe("codex");
-    expect(generationProvider({ ROUTERAI_API_KEY: config.apiKey })).toBe("routerai");
-    expect(generationProvider({ REQUEST_GENERATION_PROVIDER: "routerai" })).toBe("routerai");
-    expect(generationProvider({ REQUEST_GENERATION_PROVIDER: "codex" })).toBe("codex");
-    expect(() => generationProvider({ REQUEST_GENERATION_PROVIDER: "other" })).toThrow("Invalid REQUEST_GENERATION_PROVIDER");
-    expect(() => routeraiConfig({ CODEX_API_KEY: "not-routerai" })).toThrow("Missing ROUTERAI_API_KEY");
+  it("requires RouterAI configuration and has no local Codex fallback", () => {
+    expect(() => routeraiConfig({ OTHER_API_KEY: "not-routerai" })).toThrow("Missing ROUTERAI_API_KEY");
     expect(routeraiConfig({ ROUTERAI_API_KEY: config.apiKey }).model).toBe(DEFAULT_ROUTERAI_MODEL);
     expect(routeraiConfig({ ROUTERAI_API_KEY: config.apiKey, ROUTERAI_MODEL: "test/model" }).model).toBe("test/model");
   });
@@ -163,6 +155,7 @@ describe("RouterAI provider", () => {
   it("detects missing visual quality requirements before publishing", () => {
     expect(visualContractIssues({ index: "<html></html>", extra: [] })).toContain("add prefers-reduced-motion handling");
     expect(visualContractIssues(phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) }))).toEqual([]);
+    expect(visualContractIssues({ index: '<section id="services"><div id="services"></div></section>', extra: [] })).toContain('use unique HTML ids; duplicates: services');
   });
 
   it.each(["{", "```json\n{}\n```", "null", "[]"])("rejects malformed generated JSON %s", async content => {
