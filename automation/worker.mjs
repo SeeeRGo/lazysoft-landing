@@ -144,7 +144,7 @@ export function routeraiBrief(job) {
       "If CMS loading fails, show a clear visible error message instead of silently rendering empty content.",
       "Show a prominent site-wide label that this is a demonstration with fictional data.",
       "Use realistic local raster photographs for the main subject, catalog and story; never substitute abstract SVG drawings for requested photography. Do not claim unconnected payments, orders or integrations work.",
-      "Include clear empty states, working navigation and an admin link on every public page.",
+      "Include clear empty states, working navigation and an admin link on every public page. Every same-page #fragment link, including URLs stored in CMS fields, must exactly match an element id on that page.",
     ],
   });
 }

@@ -49,6 +49,8 @@ export async function checkCms(site,{screenshots,forbidFallback=false}={}){
  if(forbidFallback)assert.equal(await evaluate(`document.querySelectorAll('[data-lazysoft-cms-fallback]').length`),0,'CMS fallback duplicated content already rendered by the generated app');
  const hiddenContent=await evaluate(`Array.from(document.querySelectorAll('main h1,main h2,main h3,main p,main img')).filter(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&(s.visibility==='hidden'||Number(s.opacity)<0.1)}).length`);
  assert.equal(hiddenContent,0,'Public content remains hidden after rendering');
+ const brokenFragments=await evaluate(`Array.from(document.querySelectorAll('a[href]')).flatMap(anchor=>{try{const url=new URL(anchor.getAttribute('href'),location.href);if(url.origin!==location.origin||url.pathname!==location.pathname||!url.hash||url.hash==='#')return[];const id=decodeURIComponent(url.hash.slice(1));return document.getElementById(id)?[]:[anchor.getAttribute('href')]}catch{return[anchor.getAttribute('href')]}})`);
+ assert.deepEqual(brokenFragments,[],'Public page contains links to missing fragment targets');
  const initialImages=await evaluate(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).map(i=>({src:new URL(i.src,location.href).pathname,width:i.naturalWidth,height:i.naturalHeight}))`);
  const rasterImages=initialImages.filter(i=>/\.(?:jpe?g|png|webp)$/i.test(i.src));
  assert(rasterImages.length>=3,'At least three generated raster images are required');
