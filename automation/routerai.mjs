@@ -30,13 +30,18 @@ function validateCmsStrings(schemaText, contentText) {
 
 function validateImagePlan(foundation) {
   if (!Array.isArray(foundation.imagePlan) || foundation.imagePlan.length < 3 || foundation.imagePlan.length > 4) throw new Error("Invalid RouterAI image plan");
-  const content = foundation.cmsContent;
+  const schema = validateSchema(JSON.parse(foundation.cmsSchema));
+  const content = validateContent(schema, JSON.parse(foundation.cmsContent));
+  const cmsImages = new Set([
+    ...schema.fields.filter(field => field.type === "image").map(field => content.values[field.key]),
+    ...schema.collections.flatMap(collection => content.items[collection.key].flatMap(row => collection.fields.filter(field => field.type === "image").map(field => row[field.key]))),
+  ].filter(Boolean));
   const seen = new Set();
   for (const image of foundation.imagePlan) {
-    if (!objectKeys(image, ["path", "prompt", "aspectRatio"]) || !/^assets\/[a-z0-9][a-z0-9-]{0,50}\.jpg$/.test(image.path) || typeof image.prompt !== "string" || image.prompt.length < 40 || image.prompt.length > 1200 || !["1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "21:9"].includes(image.aspectRatio) || seen.has(image.path) || !content.includes(image.path)) throw new Error("Invalid RouterAI image plan");
+    if (!objectKeys(image, ["path", "prompt", "aspectRatio"]) || !/^assets\/[a-z0-9][a-z0-9-]{0,50}\.jpg$/.test(image.path) || typeof image.prompt !== "string" || image.prompt.length < 40 || image.prompt.length > 1200 || !["1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "21:9"].includes(image.aspectRatio) || seen.has(image.path) || !cmsImages.has(image.path)) throw new Error("Invalid RouterAI image plan");
     seen.add(image.path);
   }
-  if (/\.svg(?:["'])/i.test(content)) throw new Error("Invalid RouterAI image plan");
+  if (cmsImages.size < 3 || /\.svg(?:["'])/i.test(foundation.cmsContent)) throw new Error("Invalid RouterAI image plan");
 }
 
 export function routeraiConfig(env = process.env) {
@@ -114,9 +119,6 @@ export function visualContractIssues(implementation) {
   if (!/(aspect-ratio|min-height\s*:|height\s*:\s*clamp\()/i.test(css)) issues.push("give hero media a stable aspect ratio or responsive height");
   if (!/(focus-visible|:focus\b)/i.test(css)) issues.push("add visible keyboard focus styles");
   if (!/(демо|демонстрац|demo)/i.test(all)) issues.push("show a prominent site-wide demo label");
-  if (!/(catch\s*\(|catch\s*\{)/.test(js) || !/(ошиб|error|не удалось|cannot load|failed to load)/i.test(js)) issues.push("show a clear visible CMS loading error");
-  const normalizedJs = js.replaceAll("\\/", "/");
-  if (!/data:image\//i.test(normalizedJs) || !/(png|jpeg|webp)/i.test(normalizedJs)) issues.push("render safe data:image PNG/JPEG/WebP values uploaded by the demo CMS");
   if (/\b(?:localStorage|sessionStorage|indexedDB|serviceWorker)\b/.test(all)) issues.push("use only the trusted CMS module for browser storage and persistence");
   if (/font-family\s*:\s*(?:system-ui|Arial|Roboto|Inter|Segoe UI)(?:\s*[,;}])/i.test(css) && !/(fonts\.googleapis\.com|@font-face)/i.test(all)) issues.push("avoid system-font-only typography");
   return issues;

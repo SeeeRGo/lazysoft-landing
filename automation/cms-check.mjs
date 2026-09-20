@@ -25,6 +25,7 @@ export async function checkCms(site,{screenshots}={}){
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error('CMS browser script failed');return r.result.value};
  const until=async(expression,label='condition',attempts=100)=>{for(let i=0;i<attempts;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,100))}throw Error('CMS browser condition timed out: '+label)};
  const navigate=async path=>{await send('Page.navigate',{url:origin+'/'+path});await until(`location.pathname===${JSON.stringify('/'+path)}&&document.readyState==='complete'`)};
+ const navigateAdminCollection=async key=>{for(let attempt=0;attempt<2;attempt++){await navigate('admin.html');try{await until(`!!document.querySelector('[data-add-collection="${key}"]')`,'admin collection '+key,150);return}catch(error){if(attempt===1)throw error}}};
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBypassServiceWorker',{bypass:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
  await navigate('index.html');
  const duplicateIds=await evaluate(`(()=>{const ids=Array.from(document.querySelectorAll('[id]'),e=>e.id);return [...new Set(ids.filter((value,index)=>ids.indexOf(value)!==index))]})()`);
@@ -52,7 +53,7 @@ export async function checkCms(site,{screenshots}={}){
  assert(rasterImages.every(i=>i.width>=512&&i.height>=384),'Generated raster images are too small or failed to load');
  assert.equal(initialImages.length,rasterImages.length,'Illustrative SVG or unsupported initial images are not allowed');
  for(const c of schema.collections){
-  await navigate('admin.html');await until(`!!document.querySelector('[data-add-collection="${c.key}"]')`,'admin collection '+c.key,300);
+  await navigateAdminCollection(c.key);
   await evaluate(`document.querySelector('[data-add-collection="${c.key}"]').click()`);
   const marker='CMS_CHECK_'+c.key;
   const fields=c.fields;

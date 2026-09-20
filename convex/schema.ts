@@ -83,6 +83,16 @@ export default defineSchema({
     .index("by_status_and_lease_until", ["status", "leaseUntil"])
     .index("by_request_id", ["requestId"]),
 
+  requestJobAttempts: defineTable({
+    requestId: v.string(),
+    jobId: v.id("requestJobs"),
+    attempt: v.number(),
+    stage: v.optional(workStage),
+    error: v.string(),
+    failedAt: v.number(),
+  }).index("by_job_id", ["jobId"])
+    .index("by_request_id", ["requestId"]),
+
   requestEvents: defineTable({
     requestId: v.string(),
     kind: clientEvent,

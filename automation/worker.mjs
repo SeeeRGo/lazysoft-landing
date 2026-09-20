@@ -17,7 +17,7 @@ async function checkConfig() { for (const key of required) if (!process.env[key]
 
 async function api(operation, args = {}) {
   let response;
-  const attempts = ["heartbeat", "upload", "complete"].includes(operation) ? 3 : 1;
+  const attempts = ["heartbeat", "upload", "complete", "fail"].includes(operation) ? 3 : 1;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       response = await fetch(`${process.env.CONVEX_SITE_URL.replace(/\/$/, "")}/automation-worker`, {

@@ -206,6 +206,11 @@ export const claim = internalMutation({
     }
     const targetDemoId = job.targetDemoId ?? (job.kind === "initial" ? "1" : state.selectedDemoId ?? "1");
     const baseDemoId = job.baseDemoId ?? (job.kind === "revision" ? state.selectedDemoId ?? "1" : undefined);
+    if (job.status === "running") await ctx.db.insert("requestJobAttempts", {
+      requestId: job.requestId, jobId: job._id, attempt: job.attempts,
+      ...(job.stage ? { stage: job.stage } : {}),
+      error: "Lease expired before worker reported an error", failedAt: now,
+    });
     await ctx.db.patch(job._id, { targetDemoId, baseDemoId, status: "running", startedAt: job.startedAt ?? now, heartbeatAt: now, stage: "designing", attempts: job.attempts + 1, leaseToken, leaseUntil: now + 5 * 60_000, error: undefined });
     await ctx.db.patch(state._id, { phase: job.kind === "initial" ? "generating" : "revising", ...(job.kind === "initial" ? { revisionCount: 0 } : {}), updatedAt: now });
     await ctx.db.patch(request._id, { status: "in_progress", updatedAt: now });
@@ -309,8 +314,10 @@ export const fail = internalMutation({
     const job = await ctx.db.get(args.jobId);
     if (!job || job.status !== "running" || job.leaseToken !== args.leaseToken || (job.leaseUntil ?? 0) < Date.now()) return false;
     const terminal = job.attempts >= 3;
-    await ctx.db.patch(job._id, { status: terminal ? "failed" : "queued", availableAt: Date.now() + 60_000 * job.attempts, error: args.error.slice(0, 1000), leaseUntil: undefined, leaseToken: undefined });
     const now = Date.now();
+    const error = args.error.slice(0, 1000);
+    await ctx.db.insert("requestJobAttempts", { requestId: job.requestId, jobId: job._id, attempt: job.attempts, ...(job.stage ? { stage: job.stage } : {}), error, failedAt: now });
+    await ctx.db.patch(job._id, { status: terminal ? "failed" : "queued", availableAt: now + 60_000 * job.attempts, error, leaseUntil: undefined, leaseToken: undefined });
     const state = await getAutomation(ctx, job.requestId);
     if (state) await ctx.db.patch(state._id, { phase: terminal ? "failed" : job.kind === "initial" ? "queued" : "revision_queued", updatedAt: now });
     if (!terminal) await ctx.scheduler.runAfter(60_000 * job.attempts, internal.generation.begin, { jobId: job._id });
@@ -338,6 +345,25 @@ export const retryFailedJob = internalMutation({
     const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", args.requestId)).unique();
     if (request) await ctx.db.patch(request._id, { status: "in_progress", updatedAt: Date.now() });
     await ctx.scheduler.runAfter(0, internal.generation.begin, { jobId: job._id });
+    return true;
+  },
+});
+
+// Operator-only migration for failures that predate durable attempt history.
+export const backfillAttemptErrors = internalMutation({
+  args: {
+    requestId: v.string(),
+    jobId: v.id("requestJobs"),
+    expectedError: v.string(),
+    errors: v.array(v.object({ attempt: v.number(), stage: v.optional(workStage), error: v.string(), failedAt: v.number() })),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.jobId);
+    if (!job || job.requestId !== args.requestId || job.status !== "failed" || job.error !== args.expectedError || args.errors.length < 1 || args.errors.length > 20) return false;
+    if (await ctx.db.query("requestJobAttempts").withIndex("by_job_id", q => q.eq("jobId", job._id)).first()) return false;
+    if (args.errors.some(item => !Number.isInteger(item.attempt) || item.attempt < 1 || item.attempt > job.attempts || !item.error || item.error.length > 1000 || !Number.isFinite(item.failedAt))) return false;
+    for (const item of args.errors) await ctx.db.insert("requestJobAttempts", { requestId: job.requestId, jobId: job._id, ...item });
     return true;
   },
 });

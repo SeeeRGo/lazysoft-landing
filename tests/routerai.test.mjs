@@ -237,7 +237,7 @@ describe("RouterAI provider", () => {
       const name = JSON.parse(init.body).response_format.json_schema.name;
       if (name === "site_foundation") return response(phaseValue(value, init));
       const implementation = phaseValue(value, init);
-      if (name === "site_implementation") implementation.extra = implementation.extra.map(file => ({ ...file, content: file.content.replace("data:image", "uploaded-image") }));
+      if (name === "site_implementation") implementation.index = implementation.index.replace(":focus-visible{outline:2px solid}", "");
       implementation.extra.push(
         { path: "versions/1/theme.css", content: "old" },
         { path: "versions/1/theme.css", content: "new" },
@@ -258,6 +258,7 @@ describe("RouterAI provider", () => {
     expect(visualContractIssues(phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) }))).toEqual([]);
     expect(visualContractIssues({ index: '<section id="services"><div id="services"></div></section>', extra: [] })).toContain('use unique HTML ids; duplicates: services');
     expect(visualContractIssues({ index: '<script>localStorage.setItem("catalog","fixed")</script>', extra: [] })).toContain('use only the trusted CMS module for browser storage and persistence');
+    expect(visualContractIssues({ index: '<html><style>@font-face{font-family:x}.hero{aspect-ratio:1}a:focus{outline:1px solid}@media(prefers-reduced-motion:reduce){*{animation:none}}</style><body>Демо</body></html>', extra: [] })).not.toContain('show a clear visible CMS loading error');
   });
 
   it.each(["{", "```json\n{}\n```", "null", "[]"])("rejects malformed generated JSON %s", async content => {

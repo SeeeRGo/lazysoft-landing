@@ -25,6 +25,8 @@ it('reports real stages, heartbeats and one start notification even after reclai
  expect(await t.mutation(internal.automation.heartbeat,{...lease,leaseToken:'x'.repeat(40),stage:'publishing'})).toBe(false);
  await t.run(ctx=>ctx.db.patch(job!.jobId,{leaseUntil:Date.now()-1}));
  await t.mutation(internal.automation.claim,{protocol:2,leaseToken:'e'.repeat(40)});
+ const reclaimed=await t.run(ctx=>ctx.db.query('requestJobAttempts').withIndex('by_job_id',q=>q.eq('jobId',job!.jobId)).take(10));
+ expect(reclaimed.map(({attempt,stage,error,failedAt})=>({attempt,stage,error,failedAt}))).toEqual([{attempt:1,stage:'checking',error:'Lease expired before worker reported an error',failedAt:expect.any(Number)}]);
  const events=await t.run(ctx=>ctx.db.query('requestEvents').take(10));expect(events.filter(e=>e.kind==='generation_started')).toHaveLength(1);
 });
 it('keeps bot notifications owner-only, including previously queued client deliveries',async()=>{
@@ -48,6 +50,8 @@ it('requires the exact failed job and error for one operator recovery attempt',a
  const job=await t.mutation(internal.automation.claim,{protocol:2,leaseToken:'d'.repeat(40)});
  await t.run(ctx=>ctx.db.patch(job!.jobId,{attempts:3}));
  await t.mutation(internal.automation.fail,{jobId:job!.jobId,leaseToken:job!.leaseToken,error:'Missing README'});
+ const failures=await t.run(ctx=>ctx.db.query('requestJobAttempts').withIndex('by_job_id',q=>q.eq('jobId',job!.jobId)).take(10));
+ expect(failures.map(({attempt,stage,error,failedAt})=>({attempt,stage,error,failedAt}))).toEqual([{attempt:3,stage:'designing',error:'Missing README',failedAt:expect.any(Number)}]);
  expect((await t.query(internal.requests.getVisitorThread,{accessTokenHash:input.accessTokenHash}))?.status).toBe('failed');
  expect((await t.query(internal.requests.getVisitorThread,{accessTokenHash:input.accessTokenHash}))?.messages.at(-1)?.text).toContain('Повторно отправлять заявку не нужно');
  const args={requestId:input.requestId,jobId:job!.jobId,expectedError:'Missing README'};
@@ -60,6 +64,20 @@ it('requires the exact failed job and error for one operator recovery attempt',a
  expect(resumed?.jobId).toBe(job!.jobId);
  expect((await t.run(ctx=>ctx.db.get(job!.jobId)))?.attempts).toBe(3);
  expect((await t.run(ctx=>ctx.db.get(job!.jobId)))?.error).toBeUndefined();
+ expect(await t.run(ctx=>ctx.db.query('requestJobAttempts').withIndex('by_job_id',q=>q.eq('jobId',job!.jobId)).take(10))).toHaveLength(1);
+});
+it('backfills pre-history attempt errors once for the exact failed job',async()=>{
+ const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);
+ const job=await t.mutation(internal.automation.claim,{protocol:2,leaseToken:'d'.repeat(40)});
+ await t.run(ctx=>ctx.db.patch(job!.jobId,{status:'failed',attempts:3,error:'Final error',leaseToken:undefined,leaseUntil:undefined}));
+ const args={requestId:input.requestId,jobId:job!.jobId,expectedError:'Final error',errors:[
+  {attempt:1,stage:'checking' as const,error:'First error',failedAt:1},
+  {attempt:2,stage:'checking' as const,error:'Second error',failedAt:2},
+  {attempt:3,stage:'designing' as const,error:'Final error',failedAt:3},
+ ]};
+ expect(await t.mutation(internal.automation.backfillAttemptErrors,args)).toBe(true);
+ expect(await t.mutation(internal.automation.backfillAttemptErrors,args)).toBe(false);
+ expect(await t.run(ctx=>ctx.db.query('requestJobAttempts').withIndex('by_job_id',q=>q.eq('jobId',job!.jobId)).take(10))).toHaveLength(3);
 });
 it('dispatches a queued generation immediately from a Convex action',async()=>{
  const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);

@@ -40,4 +40,9 @@ try{
    else card({title:texts[0]||collection.label,text:texts.slice(1).join(' · ')});
   }
  }
-}catch{/* The generated application and visible CMS error remain authoritative. */}
+}catch{
+ if(!/(ошиб|не удалось|error|failed|cannot load)/i.test(document.body.innerText)){
+  const notice=document.createElement('p');notice.dataset.lazysoftCmsError='';notice.setAttribute('role','alert');notice.textContent='Не удалось загрузить содержимое сайта. Обновите страницу или попробуйте позже.';
+  Object.assign(notice.style,{margin:'16px',padding:'16px',border:'1px solid currentColor',borderRadius:'8px'});document.body.prepend(notice);
+ }
+}
