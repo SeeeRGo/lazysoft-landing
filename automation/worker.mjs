@@ -283,6 +283,7 @@ export async function runOnce({ requestId, jobId } = {}) {
       await runCmsCheck();
     } catch (firstFailure) {
       controller.signal.throwIfAborted();
+      if (/CMS browser condition timed out: admin collection/.test(firstFailure.message)) throw firstFailure;
       console.log(`RouterAI ${job.jobId}: browser-repair`);
       const repaired = await repairRouterAI({ project, targetId, prompt: routeraiBrief(job), validationError: firstFailure.message, config, signal: controller.signal });
       await writeImplementationRepair(project, targetId, repaired);

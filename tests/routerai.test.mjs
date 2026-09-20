@@ -60,6 +60,11 @@ describe("RouterAI provider", () => {
     value.files[3].content = JSON.stringify({ ...schema, collections: tooMany });
     value.files[4].content = JSON.stringify({ values: JSON.parse(value.files[4].content).values, items: Object.fromEntries(tooMany.map(item => [item.key, []])) });
     expect(() => validateGeneration(value, "1")).toThrow("Invalid generated CMS data");
+    const oversized = generation();
+    const catalogSchema = { ...schema, collections: [{ key: "products", label: "Товары", fields: [{ key: "name", label: "Название", type: "text" }, { key: "image", label: "Фото", type: "image" }] }] };
+    oversized.files[3].content = JSON.stringify(catalogSchema);
+    oversized.files[4].content = JSON.stringify({ values: JSON.parse(oversized.files[4].content).values, items: { products: Array.from({ length: 41 }, (_, index) => ({ id: `item-${index}`, name: `Товар ${index}`, image: "assets/hero.jpg" })) } });
+    expect(() => validateGeneration(oversized, "1")).toThrow("Invalid generated CMS data");
   });
 
   it("completes an initial request without provider or model using the RouterAI default", async () => {

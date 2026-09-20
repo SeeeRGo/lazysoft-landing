@@ -24,7 +24,9 @@ function validateCmsStrings(schemaText, contentText) {
   try {
     const schema = validateSchema(JSON.parse(schemaText));
     if (schema.collections.length > MAX_GENERATED_COLLECTIONS) throw new Error("Too many generated CMS collections");
-    validateContent(schema, JSON.parse(contentText));
+    const content = validateContent(schema, JSON.parse(contentText));
+    const counts = schema.collections.map(collection => content.items[collection.key].length);
+    if (counts.some(count => count > 40) || counts.reduce((sum, count) => sum + count, 0) > 120) throw new Error("Too many initial CMS records");
   } catch (error) { throw new Error(`Invalid generated CMS data (${cmsError(error)})`); }
 }
 
