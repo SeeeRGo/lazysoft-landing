@@ -254,7 +254,8 @@ function normalizeImplementation(implementation, targetId) {
     const key = file.path.toLowerCase();
     if (!fixed.has(key)) byPath.set(key, file);
   }
-  return { ...implementation, extra: [...byPath.values()] };
+  const readme = implementation.readme.trim() || "# Демонстрационный сайт\n\nОткройте `index.html` через локальный HTTP-сервер. Содержимое и изображения редактируются через `admin.html`. Все данные демонстрационные; внешние интеграции не подключены.\n";
+  return { ...implementation, readme, extra: [...byPath.values()] };
 }
 
 function ensureBrowserRepairWebfont(implementation) {

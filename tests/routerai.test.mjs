@@ -284,6 +284,16 @@ describe("RouterAI provider", () => {
     expect(generated.files.find(file => file.path === "versions/1/cms-schema.json").content).toBe(JSON.stringify(schema));
   });
 
+  it("restores a useful README when the implementation model returns it empty", async () => {
+    const value = generation();
+    const generated = await run(async (url, init) => {
+      const responseValue = url.endsWith("/images") ? null : phaseValue(value, init);
+      if (responseValue && JSON.parse(init.body).response_format.json_schema.name === "site_implementation") responseValue.readme = "  ";
+      return url.endsWith("/images") ? imageResponse() : response(responseValue);
+    });
+    expect(generated.files.find(file => file.path === "README.md").content).toContain("Демонстрационный сайт");
+  });
+
   it("restores a deliberate webfont when a browser repair drops it", async () => {
     const project = await workspace();
     const implementation = phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) });
