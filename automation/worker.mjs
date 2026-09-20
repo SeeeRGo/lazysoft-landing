@@ -145,6 +145,8 @@ export function routeraiBrief(job) {
       "Show a prominent site-wide label that this is a demonstration with fictional data.",
       "Use realistic local raster photographs for the main subject, catalog and story; never substitute abstract SVG drawings for requested photography. Do not claim unconnected payments, orders or integrations work.",
       "Include clear empty states, working navigation and an admin link on every public page. Every same-page #fragment link, including URLs stored in CMS fields, must exactly match an element id on that page.",
+      "Every element that looks actionable must work with mouse and keyboard and produce a visible state change. Exercises, puzzles, quizzes, accordions, tabs and selectable cards may not be static articles with hover styling.",
+      "Interactive boards and grids must declare both rows and columns explicitly and keep identical cell and container geometry before, during and after interaction.",
     ],
   });
 }

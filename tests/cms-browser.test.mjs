@@ -48,4 +48,21 @@ describe("CMS browser gate", () => {
     await writeFile(join(site, "index.html"), index.replace("<main", '<a href="#missing-contact">Контакты</a><main'));
     await expect(checkCms(site)).rejects.toThrow("missing fragment targets");
   }, 30_000);
+
+  it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("rejects puzzle cards that look interactive but have no control", async () => {
+    const site = await mkdtemp(join(tmpdir(), "cms-browser-inert-puzzle-")); roots.push(site);
+    await createCmsFixture(site);
+    const index = await readFile(join(site, "index.html"), "utf8");
+    await writeFile(join(site, "index.html"), index.replace("<main", '<article class="puzzle">Решите задачу</article><main'));
+    await expect(checkCms(site)).rejects.toThrow("real keyboard control");
+  }, 30_000);
+
+  it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("rejects an 8x8 board whose cell geometry changes with its pieces", async () => {
+    const site = await mkdtemp(join(tmpdir(), "cms-browser-unstable-grid-")); roots.push(site);
+    await createCmsFixture(site);
+    const index = await readFile(join(site, "index.html"), "utf8");
+    const cells = Array.from({ length: 64 }, (_, index) => `<button>${index < 16 || index >= 48 ? "♟" : ""}</button>`).join("");
+    await writeFile(join(site, "index.html"), index.replace("</style>", '.board{display:grid;grid-template-columns:repeat(8,1fr);width:480px;aspect-ratio:1}</style>').replace("<main", `<div class="board" role="grid">${cells}</div><main`));
+    await expect(checkCms(site)).rejects.toThrow("grid cells must remain equal");
+  }, 30_000);
 });
