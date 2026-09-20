@@ -30,6 +30,8 @@ it('builds independent server packages and never overwrites an existing installa
  expect(await readFile(join(site,'index.html'),'utf8')).toContain('cms-fallback.js');
  expect(await readFile(join(site,'cms-fallback.js'),'utf8')).toContain('lazysoftCmsFallback');
  expect(await readFile(join(site,'cms-fallback.js'),'utf8')).toContain('Не удалось загрузить содержимое сайта');
+ expect(await readFile(join(site,'cms-fallback.js'),'utf8')).toContain('prefers-reduced-motion:reduce');
+ expect(await readFile(join(site,'cms-fallback.js'),'utf8')).toContain(':focus-visible');
  const admin=await readFile(join(site,'cms-admin.js'),'utf8');
  for(const folder of ['cloudflare/public','hostiman/public_html']){
   expect(await readFile(join(out,folder,'cms-config.js'),'utf8')).toContain("mode:'server'");

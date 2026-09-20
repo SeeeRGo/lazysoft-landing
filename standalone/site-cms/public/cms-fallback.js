@@ -1,5 +1,7 @@
 import {CMS} from './cms.js';
 
+const trustedStyle=document.createElement('style');trustedStyle.textContent=':where(a,button,input,textarea,select):focus-visible{outline:3px solid currentColor;outline-offset:3px}:where(.hero,[class*="hero"],[id*="hero"]) img{min-height:80px;aspect-ratio:16/9;object-fit:cover}@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.lazysoft-cms-fallback-inner{box-sizing:border-box;width:min(100%,1200px);margin:0 auto;padding:clamp(32px,6vw,80px) 24px}.lazysoft-cms-fallback-inner h2{margin:0 0 24px;font:inherit;font-size:clamp(1.5rem,3vw,2.5rem)}.lazysoft-cms-fallback-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:24px}.lazysoft-cms-fallback-card{min-width:0}.lazysoft-cms-fallback-card img{display:block;width:100%;max-width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:inherit}.lazysoft-cms-fallback-card h3,.lazysoft-cms-fallback-card p{overflow-wrap:anywhere}@media(max-width:500px){.lazysoft-cms-fallback-inner{padding:32px 16px}.lazysoft-cms-fallback-grid{gap:16px}}';document.head.append(trustedStyle);
+
 const safeImage=value=>typeof value==='string'&&(
  /^data:image\/(?:png|jpeg|webp);base64,/i.test(value)||
  (/^(?:\.?\.?\/|\/)?[A-Za-z0-9][A-Za-z0-9_./?=&%-]*$/.test(value)&&!value.split(/[/?#]/).includes('..'))
@@ -13,8 +15,7 @@ function gallery(){
  if(root)return root;
  root=document.createElement('section');root.dataset.lazysoftCmsFallback='';root.setAttribute('aria-label','Дополнительные материалы');
  root.innerHTML='<div class="lazysoft-cms-fallback-inner"><h2>Материалы</h2><div class="lazysoft-cms-fallback-grid"></div></div>';
- const style=document.createElement('style');style.textContent='.lazysoft-cms-fallback-inner{box-sizing:border-box;width:min(100%,1200px);margin:0 auto;padding:clamp(32px,6vw,80px) 24px}.lazysoft-cms-fallback-inner h2{margin:0 0 24px;font:inherit;font-size:clamp(1.5rem,3vw,2.5rem)}.lazysoft-cms-fallback-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:24px}.lazysoft-cms-fallback-card{min-width:0}.lazysoft-cms-fallback-card img{display:block;width:100%;max-width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:inherit}.lazysoft-cms-fallback-card h3,.lazysoft-cms-fallback-card p{overflow-wrap:anywhere}@media(max-width:500px){.lazysoft-cms-fallback-inner{padding:32px 16px}.lazysoft-cms-fallback-grid{gap:16px}}';
- document.head.append(style);document.body.append(root);return root.querySelector('.lazysoft-cms-fallback-grid');
+ document.body.append(root);return root.querySelector('.lazysoft-cms-fallback-grid');
 }
 function card({title,text,image}){
  const article=document.createElement('article');article.className='lazysoft-cms-fallback-card';

@@ -77,7 +77,10 @@ it('backfills pre-history attempt errors once for the exact failed job',async()=
  ]};
  expect(await t.mutation(internal.automation.backfillAttemptErrors,args)).toBe(true);
  expect(await t.mutation(internal.automation.backfillAttemptErrors,args)).toBe(false);
- expect(await t.run(ctx=>ctx.db.query('requestJobAttempts').withIndex('by_job_id',q=>q.eq('jobId',job!.jobId)).take(10))).toHaveLength(3);
+ await t.run(ctx=>ctx.db.insert('requestJobAttempts',{requestId:input.requestId,jobId:job!.jobId,attempt:3,stage:'checking',error:'Recovery error',failedAt:4}));
+ expect(await t.mutation(internal.automation.renumberAttemptErrors,{requestId:input.requestId,jobId:job!.jobId,expectedError:'Final error'})).toBe(4);
+ const history=await t.run(ctx=>ctx.db.query('requestJobAttempts').withIndex('by_job_id',q=>q.eq('jobId',job!.jobId)).order('asc').take(10));
+ expect(history.map(item=>item.attempt)).toEqual([1,2,3,4]);
 });
 it('dispatches a queued generation immediately from a Convex action',async()=>{
  const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);

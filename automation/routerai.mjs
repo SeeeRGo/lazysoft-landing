@@ -115,9 +115,6 @@ export function visualContractIssues(implementation) {
   const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
   if (duplicateIds.length) issues.push(`use unique HTML ids; duplicates: ${duplicateIds.slice(0, 8).join(", ")}`);
   if (!/(fonts\.googleapis\.com|@font-face)/i.test(all)) issues.push("use a deliberate non-system webfont or local @font-face");
-  if (!/@media\s*\([^)]*prefers-reduced-motion\s*:\s*reduce/i.test(css)) issues.push("add prefers-reduced-motion handling");
-  if (!/(aspect-ratio|min-height\s*:|height\s*:\s*clamp\()/i.test(css)) issues.push("give hero media a stable aspect ratio or responsive height");
-  if (!/(focus-visible|:focus\b)/i.test(css)) issues.push("add visible keyboard focus styles");
   if (!/(демо|демонстрац|demo)/i.test(all)) issues.push("show a prominent site-wide demo label");
   if (/\b(?:localStorage|sessionStorage|indexedDB|serviceWorker)\b/.test(all)) issues.push("use only the trusted CMS module for browser storage and persistence");
   if (/font-family\s*:\s*(?:system-ui|Arial|Roboto|Inter|Segoe UI)(?:\s*[,;}])/i.test(css) && !/(fonts\.googleapis\.com|@font-face)/i.test(all)) issues.push("avoid system-font-only typography");

@@ -237,7 +237,7 @@ describe("RouterAI provider", () => {
       const name = JSON.parse(init.body).response_format.json_schema.name;
       if (name === "site_foundation") return response(phaseValue(value, init));
       const implementation = phaseValue(value, init);
-      if (name === "site_implementation") implementation.index = implementation.index.replace(":focus-visible{outline:2px solid}", "");
+      if (name === "site_implementation") implementation.index = implementation.index.replace('<link href="https://fonts.googleapis.com/css2?family=Manrope" rel="stylesheet">', "");
       implementation.extra.push(
         { path: "versions/1/theme.css", content: "old" },
         { path: "versions/1/theme.css", content: "new" },
@@ -254,10 +254,11 @@ describe("RouterAI provider", () => {
   });
 
   it("detects missing visual quality requirements before publishing", () => {
-    expect(visualContractIssues({ index: "<html></html>", extra: [] })).toContain("add prefers-reduced-motion handling");
+    expect(visualContractIssues({ index: "<html></html>", extra: [] })).toContain("use a deliberate non-system webfont or local @font-face");
     expect(visualContractIssues(phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) }))).toEqual([]);
     expect(visualContractIssues({ index: '<section id="services"><div id="services"></div></section>', extra: [] })).toContain('use unique HTML ids; duplicates: services');
     expect(visualContractIssues({ index: '<script>localStorage.setItem("catalog","fixed")</script>', extra: [] })).toContain('use only the trusted CMS module for browser storage and persistence');
+    expect(visualContractIssues({ index: '<html><link href="https://fonts.googleapis.com/css2?family=Manrope"><body>Демо</body></html>', extra: [] })).not.toContain('add prefers-reduced-motion handling');
     expect(visualContractIssues({ index: '<html><style>@font-face{font-family:x}.hero{aspect-ratio:1}a:focus{outline:1px solid}@media(prefers-reduced-motion:reduce){*{animation:none}}</style><body>Демо</body></html>', extra: [] })).not.toContain('show a clear visible CMS loading error');
   });
 

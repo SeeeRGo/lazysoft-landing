@@ -206,11 +206,14 @@ export const claim = internalMutation({
     }
     const targetDemoId = job.targetDemoId ?? (job.kind === "initial" ? "1" : state.selectedDemoId ?? "1");
     const baseDemoId = job.baseDemoId ?? (job.kind === "revision" ? state.selectedDemoId ?? "1" : undefined);
-    if (job.status === "running") await ctx.db.insert("requestJobAttempts", {
-      requestId: job.requestId, jobId: job._id, attempt: job.attempts,
-      ...(job.stage ? { stage: job.stage } : {}),
-      error: "Lease expired before worker reported an error", failedAt: now,
-    });
+    if (job.status === "running") {
+      const previous = await ctx.db.query("requestJobAttempts").withIndex("by_job_id", q => q.eq("jobId", job._id)).order("desc").first();
+      await ctx.db.insert("requestJobAttempts", {
+        requestId: job.requestId, jobId: job._id, attempt: Math.max(job.attempts, (previous?.attempt ?? 0) + 1),
+        ...(job.stage ? { stage: job.stage } : {}),
+        error: "Lease expired before worker reported an error", failedAt: now,
+      });
+    }
     await ctx.db.patch(job._id, { targetDemoId, baseDemoId, status: "running", startedAt: job.startedAt ?? now, heartbeatAt: now, stage: "designing", attempts: job.attempts + 1, leaseToken, leaseUntil: now + 5 * 60_000, error: undefined });
     await ctx.db.patch(state._id, { phase: job.kind === "initial" ? "generating" : "revising", ...(job.kind === "initial" ? { revisionCount: 0 } : {}), updatedAt: now });
     await ctx.db.patch(request._id, { status: "in_progress", updatedAt: now });
@@ -316,7 +319,8 @@ export const fail = internalMutation({
     const terminal = job.attempts >= 3;
     const now = Date.now();
     const error = args.error.slice(0, 1000);
-    await ctx.db.insert("requestJobAttempts", { requestId: job.requestId, jobId: job._id, attempt: job.attempts, ...(job.stage ? { stage: job.stage } : {}), error, failedAt: now });
+    const previous = await ctx.db.query("requestJobAttempts").withIndex("by_job_id", q => q.eq("jobId", job._id)).order("desc").first();
+    await ctx.db.insert("requestJobAttempts", { requestId: job.requestId, jobId: job._id, attempt: Math.max(job.attempts, (previous?.attempt ?? 0) + 1), ...(job.stage ? { stage: job.stage } : {}), error, failedAt: now });
     await ctx.db.patch(job._id, { status: terminal ? "failed" : "queued", availableAt: now + 60_000 * job.attempts, error, leaseUntil: undefined, leaseToken: undefined });
     const state = await getAutomation(ctx, job.requestId);
     if (state) await ctx.db.patch(state._id, { phase: terminal ? "failed" : job.kind === "initial" ? "queued" : "revision_queued", updatedAt: now });
@@ -365,5 +369,17 @@ export const backfillAttemptErrors = internalMutation({
     if (args.errors.some(item => !Number.isInteger(item.attempt) || item.attempt < 1 || item.attempt > job.attempts || !item.error || item.error.length > 1000 || !Number.isFinite(item.failedAt))) return false;
     for (const item of args.errors) await ctx.db.insert("requestJobAttempts", { requestId: job.requestId, jobId: job._id, ...item });
     return true;
+  },
+});
+
+export const renumberAttemptErrors = internalMutation({
+  args: { requestId: v.string(), jobId: v.id("requestJobs"), expectedError: v.string() },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.jobId);
+    if (!job || job.requestId !== args.requestId || job.status !== "failed" || job.error !== args.expectedError) return 0;
+    const errors = await ctx.db.query("requestJobAttempts").withIndex("by_job_id", q => q.eq("jobId", job._id)).order("asc").take(100);
+    for (const [index, item] of errors.entries()) if (item.attempt !== index + 1) await ctx.db.patch(item._id, { attempt: index + 1 });
+    return errors.length;
   },
 });
