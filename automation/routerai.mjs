@@ -257,6 +257,16 @@ function normalizeImplementation(implementation, targetId) {
   return { ...implementation, extra: [...byPath.values()] };
 }
 
+function ensureBrowserRepairWebfont(implementation) {
+  const all = [implementation.index, ...implementation.extra.map(file => file.content)].join("\n");
+  if (/(fonts\.googleapis\.com|@font-face)/i.test(all)) return implementation;
+  const font = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"><style>html{font-family:"Manrope",sans-serif}</style>';
+  const index = /<\/head\s*>/i.test(implementation.index)
+    ? implementation.index.replace(/<\/head\s*>/i, `${font}</head>`)
+    : `${font}${implementation.index}`;
+  return { ...implementation, index };
+}
+
 async function responseJson(response, signal) {
   if (Number(response.headers.get("content-length")) > LIMITS.responseBytes) throw new Error("RouterAI response exceeds size limit");
   if (!response.body) throw new Error("Empty RouterAI response");
@@ -484,13 +494,13 @@ export async function repairRouterAI({ project, targetId, prompt, validationErro
   let timedOut = false;
   const timer = setTimeout(() => { timedOut = true; abort(); }, Math.min(timeoutMs, LIMITS.timeoutMs));
   try {
-    const implementation = normalizeImplementation(await requestPhase({
+    const implementation = ensureBrowserRepairWebfont(normalizeImplementation(await requestPhase({
       config, fetchImpl, signal: controller.signal, name: "site_browser_repair", schema: implementationSchema(), maxTokens: 40000, retryBaseMs: chatRetryBaseMs,
       messages: [
         { role: "system", content: `Repair one generated site's public implementation after its trusted browser acceptance gate failed. Preserve its CMS schema, CMS content, image paths, generated raster assets, result and visual direction. Return the complete README, index and public text implementation files. Fix the supplied validation error, including asynchronous CMS rendering, every initial image field, missing same-page fragment targets, inert action-looking controls and interactive grid layout shifts. Every public page must use cms-config.js and import {CMS} from './cms.js'. Render at least the three existing local raster image values from CMS, plus every image field on newly added collection items, including safe data:image PNG/JPEG/WebP uploads. Keep ordinary images inside viewport gutters. Do not return cms-schema.json, cms-content.json, raster data, SVG illustrations or worker-owned files: ${[...reserved].join(", ")}.` },
         { role: "user", content: JSON.stringify({ context, validationError: String(validationError || "CMS browser acceptance failed").slice(0, 240) }) },
       ],
-    }), targetId);
+    }), targetId));
     const issues = visualContractIssues(implementation);
     if (issues.length) throw new Error(`Invalid RouterAI browser repair (${issues.join("; ")})`);
     return implementation;

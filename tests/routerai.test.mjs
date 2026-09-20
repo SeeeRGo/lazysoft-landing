@@ -284,6 +284,15 @@ describe("RouterAI provider", () => {
     expect(generated.files.find(file => file.path === "versions/1/cms-schema.json").content).toBe(JSON.stringify(schema));
   });
 
+  it("restores a deliberate webfont when a browser repair drops it", async () => {
+    const project = await workspace();
+    const implementation = phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) });
+    implementation.index = implementation.index.replace(/<link href="https:\/\/fonts\.googleapis\.com[^>]+>/, "");
+    const repaired = await repairRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), validationError: "broken interaction", config, fetchImpl: async () => response(implementation) });
+    expect(repaired.index).toContain("fonts.googleapis.com/css2?family=Manrope");
+    expect(visualContractIssues(repaired)).toEqual([]);
+  });
+
   it("detects missing visual quality requirements before publishing", () => {
     expect(visualContractIssues({ index: "<html></html>", extra: [] })).toContain("use a deliberate non-system webfont or local @font-face");
     expect(visualContractIssues(phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_implementation" } } }) }))).toEqual([]);
