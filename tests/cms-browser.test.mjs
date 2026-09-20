@@ -55,6 +55,15 @@ describe("CMS browser gate", () => {
     await expect(checkCms(site)).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
   }, 30_000);
 
+  it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("waits for fallback when generated markup repeats one raster path", async () => {
+    const site = await mkdtemp(join(tmpdir(), "cms-browser-repeated-image-")); roots.push(site);
+    await createCmsFixture(site);
+    const index = await readFile(join(site, "index.html"), "utf8");
+    await writeFile(join(site, "index.html"), index.replace("<main", '<div class="hero"><img src="assets/hero.png"><img src="assets/hero.png"><img src="assets/hero.png"></div><main'));
+    await writeFile(join(site, "app.js"), `import {CMS} from './cms.js';try{const {content}=await CMS.load();document.querySelector('h1').textContent=content.values.heading;document.querySelectorAll('img').forEach(image=>image.src=content.values.heroImage)}catch{document.body.insertAdjacentHTML('afterbegin','<p>Ошибка загрузки сайта</p>')}`);
+    await expect(checkCms(site)).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
+  }, 30_000);
+
   it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("adds viewport gutters to ordinary full-bleed generated images", async () => {
     const site = await mkdtemp(join(tmpdir(), "cms-browser-gutters-")); roots.push(site);
     await createCmsFixture(site);
