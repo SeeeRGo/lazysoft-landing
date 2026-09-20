@@ -45,6 +45,9 @@ const adminThread = v.object({
   status: requestStatus,
   receivedAt: v.number(),
   updatedAt: v.number(),
+  clientNotificationPending: v.boolean(),
+  clientNotificationJobId: v.optional(v.id("requestJobs")),
+  clientNotifiedAt: v.optional(v.number()),
   messages: v.array(message),
 });
 
@@ -140,6 +143,20 @@ export const getVisitorThread = internalQuery({
   },
 });
 
+export const markClientNotified = internalMutation({
+  args: { adminTokenHash: v.string(), jobId: v.id("requestJobs"), createdAt: v.number() },
+  returns: v.object({ ok: v.boolean(), error: v.optional(v.string()) }),
+  handler: async (ctx, args) => {
+    const request = await ctx.db.query("mvpRequests").withIndex("by_admin_token_hash", q => q.eq("adminTokenHash", args.adminTokenHash)).unique();
+    if (!request) return { ok: false, error: "Заявка не найдена" };
+    if (request.contactMethod === "none") return { ok: false, error: "Контакт клиента не указан" };
+    if (request.clientNotificationJobId !== args.jobId) return { ok: false, error: "Версия заявки уже изменилась. Обновите страницу" };
+    if (request.clientNotifiedAt) return { ok: true };
+    await ctx.db.patch(request._id, { clientNotifiedAt: args.createdAt, updatedAt: args.createdAt });
+    return { ok: true };
+  },
+});
+
 export const addVisitorMessage = internalMutation({
   args: { accessTokenHash: v.string(), text: v.string(), createdAt: v.number() },
   returns: v.object({ sent: v.boolean(), requestId: v.optional(v.string()) }),
@@ -183,6 +200,9 @@ export const getAdminThread = internalQuery({
       status: request.status ?? "received",
       receivedAt: request.receivedAt,
       updatedAt: request.updatedAt ?? request.receivedAt,
+      clientNotificationPending: request.contactMethod !== "none" && Boolean(request.clientNotificationJobId) && !request.clientNotifiedAt,
+      ...(request.clientNotificationJobId ? { clientNotificationJobId: request.clientNotificationJobId } : {}),
+      ...(request.clientNotifiedAt ? { clientNotifiedAt: request.clientNotifiedAt } : {}),
       messages: await Promise.all(messages.map(async row => ({ ...publicMessage(row), ...(row.pdfStorageId ? { pdfUrl: (await ctx.storage.getUrl(row.pdfStorageId)) ?? undefined } : {}) }))),
     };
   },

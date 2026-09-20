@@ -20,6 +20,9 @@ interface AdminThread {
   status: RequestStatus;
   receivedAt: number;
   updatedAt: number;
+  clientNotificationPending: boolean;
+  clientNotificationJobId?: string;
+  clientNotifiedAt?: number;
   messages: RequestMessage[];
 }
 
@@ -67,6 +70,10 @@ const demoList = document.querySelector<HTMLUListElement>("[data-admin-demos]");
 const demoEmpty = document.querySelector<HTMLElement>("[data-admin-demo-empty]");
 const demoCount = document.querySelector<HTMLElement>("[data-admin-demo-count]");
 const statusSelect = form?.elements.namedItem("status") as HTMLSelectElement | null;
+const notification = document.querySelector<HTMLElement>("[data-admin-notification]");
+const notificationStatus = document.querySelector<HTMLElement>("[data-admin-notification-status]");
+const notificationNote = document.querySelector<HTMLElement>("[data-admin-notification-note]");
+const markNotifiedButton = document.querySelector<HTMLButtonElement>("[data-admin-mark-notified]");
 
 let adminToken = "";
 let pollTimer: number | undefined;
@@ -75,6 +82,8 @@ let messageSignature = "";
 let statusEdited = false;
 let statusEdits = 0;
 let sending = false;
+let markingNotified = false;
+let currentNotificationJobId = "";
 let threadController: AbortController | undefined;
 
 statusSelect?.addEventListener("change", () => {
@@ -188,6 +197,18 @@ function renderThread(thread: AdminThread) {
   }
   if (contact) contact.textContent = thread.contactMethod === "none" ? "Не указан — общение на странице заявки" : thread.contact || "Не указан";
   if (contactMethod) contactMethod.textContent = contactLabels[thread.contactMethod];
+  currentNotificationJobId = thread.clientNotificationJobId ?? "";
+  if (notification) notification.hidden = thread.contactMethod === "none" || !thread.clientNotificationJobId;
+  if (thread.contactMethod !== "none" && thread.clientNotificationJobId) {
+    if (notificationStatus) notificationStatus.textContent = thread.clientNotifiedAt ? `Уведомлён ${formatDate(thread.clientNotifiedAt)}` : "Ждёт сообщения";
+    if (notificationNote) notificationNote.textContent = thread.clientNotifiedAt
+      ? "Отметка сохранена для текущей версии сайта."
+      : `Напишите клиенту через ${contactLabels[thread.contactMethod]} и отметьте отправку.`;
+    if (markNotifiedButton) {
+      markNotifiedButton.disabled = Boolean(thread.clientNotifiedAt) || markingNotified;
+      markNotifiedButton.textContent = thread.clientNotifiedAt ? "Отмечено" : "Пользователь уведомлён";
+    }
+  }
   if (idea) idea.textContent = thread.idea;
   if (statusSelect && !statusEdited) statusSelect.value = thread.status;
   const nextMessageSignature = JSON.stringify(thread.messages);
@@ -340,6 +361,30 @@ form?.addEventListener("submit", async (event) => {
 });
 
 refreshButton?.addEventListener("click", () => void fetchThread({ quiet: true }));
+markNotifiedButton?.addEventListener("click", async () => {
+  if (!adminToken || !currentNotificationJobId || markingNotified) return;
+  markingNotified = true;
+  markNotifiedButton.disabled = true;
+  markNotifiedButton.textContent = "Сохраняю…";
+  showSync("Сохраняю отметку об уведомлении…");
+  try {
+    const response = await fetch("/api/request-admin/notified", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminToken, jobId: currentNotificationJobId }),
+    });
+    const result = (await response.json().catch(() => ({}))) as AdminResponse;
+    if (!response.ok) throw new Error(result.error || "Не удалось сохранить отметку");
+    renderedSignature = "";
+    await fetchThread({ quiet: true });
+  } catch (error) {
+    showSync(error instanceof Error ? error.message : "Не удалось сохранить отметку", true);
+    markNotifiedButton.disabled = false;
+    markNotifiedButton.textContent = "Пользователь уведомлён";
+  } finally {
+    markingNotified = false;
+  }
+});
 retryButton?.addEventListener("click", () => void fetchThread());
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") void fetchThread({ quiet: true });

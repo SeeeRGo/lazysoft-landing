@@ -238,6 +238,13 @@
 .request-admin-page .request-admin-meta { gap: 1px; overflow: hidden; border: 1px solid rgba(23, 61, 57, .13); border-radius: 10px; background: rgba(23, 61, 57, .13); }
 .request-admin-page .request-admin-meta > div { border-radius: 0; }
 .request-admin-page .request-admin-meta p { white-space: pre-wrap; }
+.request-admin-page .request-admin-notification { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0 0; padding: 1rem; border: 1px solid rgba(33, 111, 104, .22); border-radius: 10px; background: #f6faf8; }
+.request-admin-page .request-admin-notification[hidden] { display: none; }
+.request-admin-page .request-admin-notification > div { min-width: 0; }
+.request-admin-page .request-admin-notification span { display: block; color: var(--ink-soft); font-size: .62rem; text-transform: uppercase; letter-spacing: .07em; }
+.request-admin-page .request-admin-notification strong { display: block; margin-top: .25rem; color: var(--request-accent-dark); font-size: .9rem; }
+.request-admin-page .request-admin-notification p { margin: .3rem 0 0; color: var(--ink-soft); font-size: .72rem; line-height: 1.5; }
+.request-admin-page .request-admin-notification button { flex: 0 0 auto; }
 .request-admin-page .request-admin-demos { margin: 1.5rem 0; padding: 1rem; border-left: 3px solid var(--request-accent); background: #edf4f0; }
 .request-admin-page .request-admin-demos > div { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .request-admin-page .request-admin-demos h2,
@@ -279,6 +286,7 @@
   .request-admin-page .request-intro h1 { font-size: 2.65rem; }
   .request-admin-page .request-admin-guide { margin-top: 1.25rem; }
   .request-admin-page .request-result-fields { grid-template-columns: 1fr; }
+  .request-admin-page .request-admin-notification { align-items: stretch; flex-direction: column; }
   .request-admin-page .request-admin-sync { gap: .5rem; }
   .request-admin-page .request-status-badge { white-space: normal; }
   .request-admin-page .request-message { max-width: 100%; }

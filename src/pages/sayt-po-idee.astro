@@ -24,11 +24,11 @@ const description = "Опишите идею — ИИ через OpenRouter со
         <p class="generator-hint" id="idea-hint">Для кого сайт, что на нём должно быть и какое настроение передать?</p>
         <label class="generator-notify-toggle">
           <input type="checkbox" data-notify-toggle />
-          <span><strong>Прислать мне уведомление, когда будет готова версия</strong><small>Необязательно. Статус и результат в любом случае останутся на странице заявки.</small></span>
+          <span><strong>Оставьте контакт — я лично напишу, когда версия будет готова</strong><small>Необязательно. Статус и результат в любом случае останутся на странице заявки.</small></span>
         </label>
         <div class="generator-contact" data-notify-fields hidden>
           <fieldset class="mvp-contact-choice">
-            <legend>Куда прислать уведомление?</legend>
+            <legend>Куда вам написать?</legend>
             <div>
               <label><input type="radio" name="contactMethod" value="email" checked /><span>Почта</span></label>
               <label><input type="radio" name="contactMethod" value="telegram" /><span>Telegram</span></label>
@@ -38,9 +38,9 @@ const description = "Опишите идею — ИИ через OpenRouter со
           <label class="mvp-request-field mvp-contact-field">
             <span data-contact-label>Ваша почта <b>*</b></span>
             <input type="email" name="contact" minlength="3" maxlength="200" autocomplete="email" placeholder="name@example.ru" data-contact-input />
-            <small data-contact-hint>На этот адрес придёт ссылка на готовую версию.</small>
+            <small data-contact-hint>Напишу на этот адрес, когда версия будет готова.</small>
           </label>
-          <p class="generator-contact-note">Для Telegram и MAX оставьте свой username, телефон или ссылку на профиль — контакт увидит специалист Lazysoft.</p>
+          <p class="generator-contact-note">Для Telegram и MAX оставьте username, телефон или ссылку на профиль — я напишу вручную после проверки результата.</p>
         </div>
         <button class="mvp-request-submit" type="submit"><span>Сгенерировать сайт →</span></button>
         <p class="generator-note">Первое демо бесплатно · без регистрации · обычно до 15 минут</p>

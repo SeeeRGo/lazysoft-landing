@@ -300,18 +300,42 @@ export const complete = internalMutation({
     const finished = state.revisionCount === undefined ? job.kind === "revision" : state.revisionCount >= 2;
     await ctx.db.patch(state._id, { phase: finished ? "complete" : "review", pdfStorageId: args.pdfStorageId, sourceStorageId: args.sourceStorageId, sourceVariants: mergedSources, demoUrl: options[0].demoUrl, demoOptions: mergedOptions, selectedDemoId: state.selectedDemoId ?? options[0].id, updatedAt: now });
     await ctx.db.patch(job._id, { status: "succeeded", completedAt: now, error: undefined, leaseUntil: undefined });
-    await ctx.db.patch(request._id, { status: "ready", updatedAt: now });
+    await ctx.db.patch(request._id, {
+      status: "ready",
+      updatedAt: now,
+      clientNotificationJobId: request.contactMethod === "none" ? undefined : job._id,
+      clientNotifiedAt: undefined,
+    });
     await ctx.db.insert("mvpRequestMessages", { requestId: job.requestId, sender: "owner", text: args.text, demoUrl: options[0].demoUrl, pdfStorageId: args.pdfStorageId, createdAt: now });
     const contactLabels = { telegram: "Telegram", email: "почта", max: "MAX" } as const;
     const contactNotice = request.contactMethod === "none"
       ? ""
       : `\nУведомить клиента (${contactLabels[request.contactMethod]}): ${request.contact}`;
     await event(ctx, job.requestId, "result_ready", job._id, `Версия ${options[0].id} готова\n${options.map(option => `${option.id}. ${option.title}: ${option.demoUrl}`).join("\n")}${contactNotice}`);
-    const emailDeliveryConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD && process.env.SMTP_FROM;
-    if (request.contactMethod === "email" && request.deliveryTokenCiphertext && emailDeliveryConfigured) {
-      const deliveryId = await ctx.db.insert("requestDeliveries", { requestId: job.requestId, jobId: job._id, status: "pending", attempts: 0 });
-      await ctx.scheduler.runAfter(0, internal.clientDelivery.send, { deliveryId });
+    if (request.contactMethod !== "none") {
+      await ctx.scheduler.runAfter(60 * 60_000, internal.automation.remindClientNotification, { requestId: job.requestId, jobId: job._id });
     }
+    return true;
+  },
+});
+
+export const remindClientNotification = internalMutation({
+  args: { requestId: v.string(), jobId: v.id("requestJobs") },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const request = await ctx.db.query("mvpRequests").withIndex("by_request_id", q => q.eq("requestId", args.requestId)).unique();
+    if (!request || request.contactMethod === "none" || request.clientNotificationJobId !== args.jobId || request.clientNotifiedAt) return false;
+    const job = await ctx.db.get(args.jobId);
+    if (!job || job.status !== "succeeded") return false;
+    const state = await getAutomation(ctx, args.requestId);
+    const contactLabels = { telegram: "Telegram", email: "почта", max: "MAX" } as const;
+    await event(
+      ctx,
+      args.requestId,
+      "client_notification_reminder",
+      args.jobId,
+      `Версия готова больше часа назад, но ещё не отмечена как отправленная клиенту.\nУведомить (${contactLabels[request.contactMethod]}): ${request.contact}${state?.demoUrl ? `\nДемо: ${state.demoUrl}` : ""}`,
+    );
     return true;
   },
 });

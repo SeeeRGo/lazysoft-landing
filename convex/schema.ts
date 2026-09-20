@@ -28,6 +28,8 @@ export default defineSchema({
     deliveryTokenCiphertext: v.optional(v.string()),
     telegramChatId: v.optional(v.string()),
     maxUserId: v.optional(v.string()),
+    clientNotificationJobId: v.optional(v.id("requestJobs")),
+    clientNotifiedAt: v.optional(v.number()),
     status: v.optional(
       v.union(
         v.literal("received"),

@@ -30,6 +30,13 @@ interface ThreadResponse {
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const STORAGE_KEY = "lazysoft:request-token";
 const POLL_INTERVAL_MS = 15_000;
+const pageTitles: Record<RequestStatus, string> = {
+  received: "⏳ Заявка принята — Lazysoft",
+  in_progress: "⏳ Сайт создаётся — Lazysoft",
+  ready: "✅ Сайт готов — Lazysoft",
+  failed: "⚠️ Нужна проверка — Lazysoft",
+  closed: "Заявка закрыта — Lazysoft",
+};
 
 const statusLabels: Record<RequestStatus, string> = {
   received: "Заявка получена",
@@ -152,6 +159,7 @@ function renderThread(thread: RequestThread) {
   const signature = `${thread.status}:${thread.updatedAt}:${thread.messages.map((message) => message._id).join(",")}`;
   if (signature === renderedSignature) return;
   renderedSignature = signature;
+  document.title = pageTitles[thread.status];
 
   if (requestId) requestId.textContent = `Заявка ${thread.requestId}`;
   if (idea) idea.textContent = thread.idea;

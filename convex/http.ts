@@ -102,6 +102,22 @@ http.route({
 });
 
 http.route({
+  path: "/request-admin/notified",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!isAuthorized(request)) return json({ error: "Unauthorized" }, 401);
+    try {
+      const payload = await request.json();
+      const result = await ctx.runMutation(internal.requests.markClientNotified, payload);
+      return result.ok ? json({ ok: true }) : json({ error: result.error }, 409);
+    } catch (error) {
+      console.error("Client notification acknowledgement failed", error);
+      return json({ error: "Invalid request" }, 400);
+    }
+  }),
+});
+
+http.route({
   path: "/request-automation", method: "POST",
   handler: httpAction(async (ctx, request) => {
     if (!isAuthorized(request)) return json({ error: "Unauthorized" }, 401);

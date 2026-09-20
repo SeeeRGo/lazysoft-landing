@@ -39,6 +39,15 @@ const description = "Закрытая страница ответа на зая�
           <div class="request-admin-idea"><span>Идея</span><p data-admin-idea></p></div>
         </div>
 
+        <section class="request-admin-notification" data-admin-notification hidden aria-labelledby="admin-notification-title">
+          <div>
+            <span id="admin-notification-title">Уведомление клиента</span>
+            <strong data-admin-notification-status>Ждёт сообщения</strong>
+            <p data-admin-notification-note>Напишите клиенту по указанному контакту и отметьте отправку.</p>
+          </div>
+          <button type="button" class="request-secondary-button" data-admin-mark-notified>Пользователь уведомлён</button>
+        </section>
+
         <section class="request-admin-demos" aria-labelledby="admin-demos-title">
           <div><h2 id="admin-demos-title">Опубликованные демо</h2><span data-admin-demo-count></span></div>
           <p data-admin-demo-empty>В переписке пока нет ссылок на демо.</p>

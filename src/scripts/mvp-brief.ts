@@ -36,7 +36,7 @@ if (form) {
     email: {
       label: "Ваша почта",
       placeholder: "name@example.ru",
-      hint: "На этот адрес придёт результат по вашей заявке.",
+      hint: "Напишу на этот адрес, когда версия будет готова.",
       type: "email",
       autocomplete: "email",
     },

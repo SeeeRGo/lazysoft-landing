@@ -21,6 +21,7 @@ export const clientEvent = v.union(
   v.literal("checkout_started"), v.literal("payment_succeeded"), v.literal("source_downloaded"),
   v.literal("request_received"), v.literal("generation_started"),
   v.literal("result_ready"), v.literal("generation_failed"),
+  v.literal("client_notification_reminder"),
   v.literal("delivery_failed"), v.literal("messenger_connected"),
 );
 export const automationSummary = v.object({

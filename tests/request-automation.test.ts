@@ -56,6 +56,13 @@ describe("request lifecycle", () => {
     const readyEvents = await t.run(ctx => ctx.db.query("requestEvents").take(10));
     expect(readyEvents.find(event => event.kind === "result_ready")?.text).toContain("Уведомить клиента (почта): test@example.com");
     expect(await t.run(ctx => ctx.db.query("requestDeliveries").take(10))).toHaveLength(0);
+    const firstAdminThread = await t.query(internal.requests.getAdminThread, { adminTokenHash: "b".repeat(64) });
+    expect(firstAdminThread).toMatchObject({ clientNotificationPending: true, clientNotificationJobId: initial!.jobId });
+    expect(await t.mutation(internal.automation.remindClientNotification, { requestId: "#test0001", jobId: initial!.jobId })).toBe(true);
+    expect((await t.run(ctx => ctx.db.query("requestEvents").take(20))).filter(event => event.kind === "client_notification_reminder")).toHaveLength(1);
+    expect((await t.mutation(internal.requests.markClientNotified, { adminTokenHash: "b".repeat(64), jobId: initial!.jobId, createdAt: Date.now() })).ok).toBe(true);
+    expect((await t.query(internal.requests.getAdminThread, { adminTokenHash: "b".repeat(64) }))?.clientNotificationPending).toBe(false);
+    expect(await t.mutation(internal.automation.remindClientNotification, { requestId: "#test0001", jobId: initial!.jobId })).toBe(false);
     const purchase = { accessTokenHash: token, kind: "offer_purchase_requested" as const, hosting: "cloudflare" as const, purchase: "source" as const, offerVariant: "standard" as const };
     expect((await t.mutation(internal.automation.clientAction, { ...purchase, demoId: "1" })).ok).toBe(true);
     const revision = { accessTokenHash: token, kind: "revision_requested" as const, text: "Добавьте цены на ремонт велосипедов" };
@@ -66,6 +73,7 @@ describe("request lifecycle", () => {
     expect(second).toMatchObject({ targetDemoId: "2", baseDemoId: "1" });
     const source2 = await completeVersion(second!);
     expect(await t.query(internal.automation.summary, { accessTokenHash: token })).toMatchObject({ phase: "review", revisionCount: 1, canRevise: true, canBuy: true });
+    expect(await t.query(internal.requests.getAdminThread, { adminTokenHash: "b".repeat(64) })).toMatchObject({ clientNotificationPending: true, clientNotificationJobId: second!.jobId });
     await t.mutation(internal.automation.clientAction, { accessTokenHash: token, kind: "demo_selected", demoId: "1" });
     expect((await t.mutation(internal.automation.clientAction, { ...revision, text: "Сделайте контакты и кнопку записи крупнее" })).ok).toBe(true);
     const third = await t.mutation(internal.automation.claim, { protocol: 2, leaseToken: "c".repeat(40) });

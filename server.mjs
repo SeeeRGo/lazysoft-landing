@@ -680,6 +680,30 @@ async function handleRequestAdminMessageApi(request, response) {
   }
 }
 
+async function handleRequestAdminNotifiedApi(request, response) {
+  if (request.method !== "POST") {
+    response.setHeader("Allow", "POST");
+    return sendJson(response, 405, { error: "Метод не поддерживается" });
+  }
+  if (!allowedRequestOrigin(request)) return sendJson(response, 403, { error: "Запрос с другого сайта отклонён" });
+  if (!checkRateLimit(request)) return sendJson(response, 429, { error: "Слишком много запросов. Попробуйте немного позже." });
+  if (!String(request.headers["content-type"] || "").startsWith("application/json")) return sendJson(response, 415, { error: "Ожидается JSON" });
+  try {
+    const body = await readJsonBody(request);
+    const adminToken = cleanSecretToken(body.adminToken);
+    const jobId = cleanText(body.jobId, 100);
+    if (!adminToken || !jobId) return sendJson(response, 400, { error: "Некорректные данные версии" });
+    await postToConvex("/request-admin/notified", { adminTokenHash: tokenHash(adminToken), jobId, createdAt: Date.now() });
+    return sendJson(response, 200, { ok: true });
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    if (status >= 500) console.error("Admin client notification API error", error?.message || error);
+    return sendJson(response, status === 409 ? 409 : status === 404 ? 404 : 500, {
+      error: status === 409 ? "Версия заявки изменилась. Обновите страницу" : status === 404 ? "Заявка не найдена или ссылка устарела" : "Не удалось сохранить отметку",
+    });
+  }
+}
+
 async function findStaticFile(pathname) {
   let decoded;
   try {
@@ -817,6 +841,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/request-thread/message") return handleRequestThreadMessageApi(request, response);
     if (url.pathname === "/api/request-admin/thread") return handleRequestAdminThreadApi(request, response);
     if (url.pathname === "/api/request-admin/message") return handleRequestAdminMessageApi(request, response);
+    if (url.pathname === "/api/request-admin/notified") return handleRequestAdminNotifiedApi(request, response);
     if (!['GET', 'HEAD'].includes(request.method || "")) {
       response.writeHead(405, { Allow: "GET, HEAD" });
       return response.end();

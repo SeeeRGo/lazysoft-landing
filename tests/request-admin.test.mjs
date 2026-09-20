@@ -25,6 +25,8 @@ it("explains sequential generation and manual replies without a PDF composer", a
   expect(page).toContain("не запускают ИИ");
   expect(page).toContain('data-admin-sync role="status"');
   expect(page).toContain('role="alert"');
+  expect(page).toContain("Пользователь уведомлён");
+  expect(page).toContain("data-admin-notification");
 });
 
 it("keeps historical PDFs while sending only the supported manual reply fields", async () => {
@@ -33,6 +35,15 @@ it("keeps historical PDFs while sending only the supported manual reply fields",
   expect(script).toContain("JSON.stringify({ adminToken, text, demoUrl, status })");
   expect(script).not.toContain('formData.get("pdfUrl")');
   expect(script).not.toMatch(/targetDemoId|versionId|generationStage/);
+  expect(script).toContain('fetch("/api/request-admin/notified"');
+  expect(script).toContain("currentNotificationJobId");
+});
+
+it("signals generation state in the client browser tab", async () => {
+  const script = await readFile(join(root, "src/scripts/request-thread.ts"), "utf8");
+  expect(script).toContain('in_progress: "⏳ Сайт создаётся — Lazysoft"');
+  expect(script).toContain('ready: "✅ Сайт готов — Lazysoft"');
+  expect(script).toContain("document.title = pageTitles[thread.status]");
 });
 
 it("scopes the editorial layout additions to the admin page", async () => {
@@ -104,6 +115,10 @@ describe.runIf(process.env.RUN_ADMIN_BROWSER_TESTS === "1")("isolated admin Chro
             if (mock.holdThread) await new Promise(resolve => mock.releaseThread = resolve);
             return Response.json(mock.failThread ? {error:'Временная ошибка сервера'} : {ok:true,thread:mock.thread}, {status:mock.failThread ? 503 : 200});
           }
+          if (String(url).endsWith('/notified')) {
+            mock.thread = {...mock.thread,clientNotificationPending:false,clientNotifiedAt:Date.now(),updatedAt:Date.now()};
+            return Response.json({ok:true});
+          }
           if (mock.holdSend) await new Promise(resolve => mock.releaseSend = resolve);
           if (mock.failSend) return Response.json({error:'Ответ не опубликован'}, {status:503});
           mock.thread = {...mock.thread,status:payload.status,updatedAt:Date.now(),messages:[...mock.thread.messages,{_id:'sent'+mock.calls.length,sender:'owner',text:payload.text,demoUrl:payload.demoUrl,createdAt:Date.now()}]};
@@ -121,6 +136,13 @@ describe.runIf(process.env.RUN_ADMIN_BROWSER_TESTS === "1")("isolated admin Chro
       await navigate();
       await until("!document.querySelector('[data-admin-content]').hidden");
       expect(await evaluate("document.querySelector('[data-admin-contact]').textContent")).toContain("общение на странице заявки");
+      expect(await evaluate("document.querySelector('[data-admin-notification]').hidden")).toBe(true);
+      await evaluate("mock.thread={...mock.thread,contactMethod:'email',contact:'client@example.test',clientNotificationPending:true,clientNotificationJobId:'job123',updatedAt:Date.now()}; mock.poll()");
+      await until("!document.querySelector('[data-admin-notification]').hidden");
+      expect(await evaluate("document.querySelector('[data-admin-notification-status]').textContent")).toBe("Ждёт сообщения");
+      await evaluate("document.querySelector('[data-admin-mark-notified]').click()");
+      await until("document.querySelector('[data-admin-mark-notified]').textContent==='Отмечено'");
+      expect(await evaluate("mock.calls.filter(c=>c.url.endsWith('/notified')).at(-1).payload")).toEqual({ adminToken: token, jobId: "job123" });
       expect(await evaluate("document.querySelectorAll('[data-admin-demos] a').length")).toBe(2);
       expect(await evaluate("document.querySelector('[data-admin-demos] a').href")).toBe("https://example.test/revised/");
       expect(await evaluate("document.querySelectorAll('a[href=\"https://example.test/archive.pdf\"]').length")).toBe(1);

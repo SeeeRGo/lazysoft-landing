@@ -30,6 +30,7 @@ const labels: Record<string, string> = {
   checkout_started: "Начата оплата исходников — 5 000 ₽",
   payment_succeeded: "Оплачены исходники — 5 000 ₽", source_downloaded: "Скачаны исходники",
   result_ready: "Новая версия сайта готова", generation_failed: "Ошибка подготовки заявки",
+  client_notification_reminder: "Клиент ещё не уведомлён",
   delivery_failed: "Не удалось доставить результат клиенту", messenger_connected: "Подключён канал связи",
 };
 
