@@ -4,7 +4,7 @@ import "../styles/mvp.css";
 import "../styles/waiting.css";
 import "../styles/site-generator.css";
 const title = "Генератор сайтов по идее с ИИ | Lazysoft";
-const description = "Опишите идею — ИИ через OpenRouter создаст первую версию сайта. Демо публикуется в Яндекс Облаке. Без регистрации, контакт для уведомления — по желанию.";
+const description = "Опишите идею и оставьте контакт — ИИ через OpenRouter создаст первую версию сайта, а мы пришлём ссылку на готовое демо в Яндекс Облаке.";
 ---
 <BaseLayout title={title} description={description} canonicalPath="/sayt-po-idee/">
   <header class="generator-header">
@@ -26,13 +26,9 @@ const description = "Опишите идею — ИИ через OpenRouter со
         </label>
         <label class="mvp-honeypot" aria-hidden="true"><span>Сайт</span><input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
         <p class="generator-hint" id="idea-hint">Для кого сайт, что на нём должно быть и какое настроение передать?</p>
-        <label class="generator-notify-toggle">
-          <input type="checkbox" data-notify-toggle />
-          <span><strong>Оставьте контакт — я лично напишу, когда версия будет готова</strong><small>Необязательно. Статус и результат в любом случае останутся на странице заявки.</small></span>
-        </label>
-        <div class="generator-contact" data-notify-fields hidden>
+        <div class="generator-contact" data-notify-fields>
           <fieldset class="mvp-contact-choice">
-            <legend>Куда вам написать?</legend>
+            <legend>Куда прислать готовую версию? <b>*</b></legend>
             <div>
               <label><input type="radio" name="contactMethod" value="email" checked /><span>Почта</span></label>
               <label><input type="radio" name="contactMethod" value="telegram" /><span>Telegram</span></label>
@@ -41,10 +37,10 @@ const description = "Опишите идею — ИИ через OpenRouter со
           </fieldset>
           <label class="mvp-request-field mvp-contact-field">
             <span data-contact-label>Ваша почта <b>*</b></span>
-            <input type="email" name="contact" minlength="3" maxlength="200" autocomplete="email" placeholder="name@example.ru" data-contact-input />
+            <input type="email" name="contact" minlength="3" maxlength="200" autocomplete="email" placeholder="name@example.ru" data-contact-input required />
             <small data-contact-hint>Напишу на этот адрес, когда версия будет готова.</small>
           </label>
-          <p class="generator-contact-note">Для Telegram и MAX оставьте username, телефон или ссылку на профиль — я напишу вручную после проверки результата.</p>
+          <p class="generator-contact-note">Контакт нужен для запуска генерации. Для Telegram и MAX оставьте username, телефон или ссылку на профиль — я напишу после проверки результата.</p>
         </div>
         <button class="mvp-request-submit" type="submit"><span>Сгенерировать сайт →</span></button>
         <p class="generator-note">Первое демо бесплатно · без регистрации · обычно до 15 минут</p>

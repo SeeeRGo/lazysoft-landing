@@ -5,9 +5,11 @@ import { internal } from "../convex/_generated/api";
 const modules = import.meta.glob("../convex/**/*.ts");
 beforeEach(() => { vi.useFakeTimers(); vi.stubEnv("REQUEST_AUTOMATION_ENABLED", "true"); });
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllEnvs(); });
-test("anonymous generation is resumable; purchase atomically adds contact and notifies only the owner", async () => {
+test("generation requires contact; resumable purchase reuses it and notifies only the owner", async () => {
   const t = convexTest(schema, modules);
-  const input = { requestId: "#anonymous", requestType: "mvp" as const, idea: "Сайт магазина инструментов", contactMethod: "none" as const, contact: "", accessTokenHash: "a".repeat(64), adminTokenHash: "b".repeat(64), receivedAt: Date.now(), source: { utmSource: "test", utmCampaign: "", utmContent: "", utmTerm: "", referrer: "" }, ownerNotificationText: "LOCAL TEST anonymous request" };
+  const input = { requestId: "#with-contact", requestType: "mvp" as const, idea: "Сайт магазина инструментов", contactMethod: "telegram" as const, contact: "@local_test", accessTokenHash: "a".repeat(64), adminTokenHash: "b".repeat(64), receivedAt: Date.now(), source: { utmSource: "test", utmCampaign: "", utmContent: "", utmTerm: "", referrer: "" }, ownerNotificationText: "LOCAL TEST request with contact" };
+  await expect(t.mutation(internal.requests.store, { ...input, requestId: "#anonymous", contactMethod: "none", contact: "" })).rejects.toThrow("Contact is required");
+  await expect(t.mutation(internal.requests.store, { ...input, requestId: "#bad-email", contactMethod: "email", contact: "invalid" })).rejects.toThrow("Invalid contact email");
   expect((await t.mutation(internal.requests.store, input)).created).toBe(true);
   expect((await t.mutation(internal.requests.store, { ...input, requestId: "#retry" })).created).toBe(false);
   expect(await t.query(internal.automation.summary, { accessTokenHash: input.accessTokenHash })).toMatchObject({ phase: "queued", canBuy: false });
@@ -16,13 +18,11 @@ test("anonymous generation is resumable; purchase atomically adds contact and no
   expect(await t.run(ctx => ctx.db.query("requestJobs").take(10))).toHaveLength(1);
   await t.run(async ctx => { const state = await ctx.db.query("requestAutomations").first(); await ctx.db.patch(state!._id, { phase: "review", demoOptions: [{ id: "1", title: "Магазин", demoUrl: "https://demo.example.org/1/" }] }); });
   const buy = { accessTokenHash: input.accessTokenHash, kind: "offer_purchase_requested" as const, demoId: "1" as const, hosting: "cloudflare" as const, purchase: "source" as const, offerVariant: "standard" as const };
-  expect((await t.mutation(internal.automation.clientAction, buy)).ok).toBe(false);
   expect((await t.mutation(internal.automation.clientAction, { ...buy, contactMethod: "email", contact: "invalid" })).ok).toBe(false);
   expect((await t.mutation(internal.automation.clientAction, { ...buy, accessTokenHash: "wrong", contactMethod: "telegram", contact: "@local_test" })).ok).toBe(false);
-  expect(await t.run(ctx => ctx.db.query("mvpRequests").first())).toMatchObject({ contactMethod: "none", contact: "" });
-  const valid = { ...buy, contactMethod: "telegram" as const, contact: " @local_test " };
-  expect((await t.mutation(internal.automation.clientAction, valid)).ok).toBe(true);
-  expect((await t.mutation(internal.automation.clientAction, valid)).ok).toBe(true);
+  expect((await t.mutation(internal.automation.clientAction, buy)).ok).toBe(true);
+  expect(await t.run(ctx => ctx.db.query("mvpRequests").first())).toMatchObject({ contactMethod: "telegram", contact: "@local_test" });
+  expect((await t.mutation(internal.automation.clientAction, buy)).ok).toBe(true);
   expect(await t.query(internal.automation.summary, { accessTokenHash: input.accessTokenHash })).toMatchObject({ sourcePurchaseRequested: true, purchaseContact: { method: "telegram", value: "@local_test" } });
   const events = await t.run(ctx => ctx.db.query("requestEvents").take(10));
   expect(events.filter(e => e.kind === "offer_purchase_requested")).toHaveLength(1);

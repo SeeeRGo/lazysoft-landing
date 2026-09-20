@@ -10,4 +10,7 @@ it("explains self-editing and the demo/server persistence boundary on the first 
   expect(page).toContain("демо-редактор для текстов, фото, цен и каталога");
   expect(page).toContain("полноценная CMS с сохранением на сервере");
   expect(page).toContain("Демо-редактор хранит изменения в вашем браузере");
+  expect(page).toContain("Контакт нужен для запуска генерации");
+  expect(page).not.toContain("data-notify-toggle");
+  expect(page).toMatch(/name="contact"[^>]+required/);
 });

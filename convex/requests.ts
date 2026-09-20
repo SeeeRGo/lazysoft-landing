@@ -87,6 +87,14 @@ export const store = internalMutation({
   },
   returns: v.object({ created: v.boolean(), requestId: v.string() }),
   handler: async (ctx, args) => {
+    const isNewMvpRequest = args.requestType === "mvp" && Boolean(args.accessTokenHash && args.adminTokenHash);
+    const trimmedContact = args.contact.trim();
+    if (isNewMvpRequest && (args.contactMethod === "none" || trimmedContact.length < 3 || trimmedContact.length > 200)) {
+      throw new Error("Contact is required before generation");
+    }
+    if (isNewMvpRequest && args.contactMethod === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedContact)) {
+      throw new Error("Invalid contact email");
+    }
     if (args.accessTokenHash) {
       const prior = await ctx.db.query("mvpRequests").withIndex("by_access_token_hash", q => q.eq("accessTokenHash", args.accessTokenHash)).unique();
       if (prior) return { created: false, requestId: prior.requestId };

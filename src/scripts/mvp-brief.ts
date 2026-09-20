@@ -11,7 +11,6 @@ if (form) {
       : "mvp";
   const idea = form.elements.namedItem("idea") as HTMLTextAreaElement;
   const contact = form.elements.namedItem("contact") as HTMLInputElement;
-  const notifyToggle = form.querySelector<HTMLInputElement>("[data-notify-toggle]");
   const notifyFields = form.querySelector<HTMLElement>("[data-notify-fields]");
   const website = form.elements.namedItem("website") as HTMLInputElement;
   const submit = form.querySelector<HTMLButtonElement>("[type='submit']")!;
@@ -49,9 +48,8 @@ if (form) {
     },
   };
 
-  function selectedMethod(): ContactMethod | "none" {
-    if (requestType === "mvp" && notifyToggle && !notifyToggle.checked) return "none";
-    return (form!.querySelector<HTMLInputElement>("[name='contactMethod']:checked")?.value || (requestType === "mvp" ? "none" : "telegram")) as ContactMethod | "none";
+  function selectedMethod(): ContactMethod {
+    return (form!.querySelector<HTMLInputElement>("[name='contactMethod']:checked")?.value || (requestType === "mvp" ? "email" : "telegram")) as ContactMethod;
   }
 
   function trackGoal(goal: string, params: Record<string, unknown> = {}) {
@@ -78,15 +76,9 @@ if (form) {
   function setContactMode(shouldTrack = true) {
     if (!contact || !contactLabel || !contactHint) return;
     const method = selectedMethod();
-    const wantsNotification = method !== "none";
-    if (notifyFields) notifyFields.hidden = !wantsNotification;
-    contact.required = wantsNotification;
-    contact.disabled = !wantsNotification;
-    if (!wantsNotification) {
-      contact.setCustomValidity("");
-      if (shouldTrack) trackGoal("mvp_request_notification_toggled", { enabled: false });
-      return;
-    }
+    if (notifyFields) notifyFields.hidden = false;
+    contact.required = true;
+    contact.disabled = false;
     const settings = contactSettings[method];
     contactLabel.innerHTML = `${settings.label} <b>*</b>`;
     contact.placeholder = settings.placeholder;
@@ -117,11 +109,6 @@ if (form) {
 
   form.querySelectorAll<HTMLInputElement>("[name='contactMethod']").forEach((radio) => {
     radio.addEventListener("change", () => setContactMode());
-  });
-  notifyToggle?.addEventListener("change", () => {
-    setContactMode(false);
-    trackGoal("mvp_request_notification_toggled", { enabled: notifyToggle.checked });
-    if (notifyToggle.checked) contact?.focus();
   });
   document.querySelectorAll<HTMLElement>("[data-direct-contact]").forEach((link) => {
     link.addEventListener("click", () => trackGoal("mvp_direct_contact_clicked", { channel: link.dataset.directContact || "unknown" }));
@@ -173,7 +160,7 @@ if (form) {
     event.preventDefault();
     status.hidden = true;
     idea.setCustomValidity(idea.value.trim().length < (requestType === "mvp" ? 10 : 20) ? "Расскажите об идее чуть подробнее — хотя бы одним-двумя предложениями." : "");
-    contact?.setCustomValidity(selectedMethod() !== "none" && contact.value.trim().length < 3 ? "Укажите контакт, на который можно прислать результат." : "");
+    contact?.setCustomValidity(contact.value.trim().length < 3 ? "Укажите контакт, на который можно прислать результат." : "");
     if (!form.reportValidity()) {
       trackGoal("mvp_request_validation_error", { method: selectedMethod() });
       return;

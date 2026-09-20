@@ -321,7 +321,7 @@ function formatMvpRequest({ requestId, requestType, idea, contactMethod, contact
     `${requestHeadings[requestType] || requestHeadings.mvp} · ${requestId}`,
     "",
     `Канал ответа: ${methodNames[contactMethod]}`,
-    `Контакт: ${contact || "Пока не запрошен — первая генерация без контактов"}`,
+    `Контакт: ${contact || "Не указан"}`,
     `Ответить на странице заявки: ${adminUrl}`,
     "",
     ideaHeadings[requestType] || ideaHeadings.mvp,
@@ -481,11 +481,11 @@ async function handleMvpRequestApi(request, response) {
     const requestType = ["crm", "mobile"].includes(body.requestType) ? body.requestType : "mvp";
     const resumable = requestType === "mvp" && body.submissionToken !== undefined;
     if (resumable && (typeof body.submissionToken !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(body.submissionToken))) return sendJson(response, 400, { error: "Некорректный ключ отправки" });
-    const anonymous = resumable && (!body.contactMethod || body.contactMethod === "none");
-    const contactMethod = anonymous ? "none" : ["telegram", "email", "max"].includes(body.contactMethod) ? body.contactMethod : "telegram";
-    const contact = anonymous ? "" : cleanText(body.contact, 200);
+    if (!["telegram", "email", "max"].includes(body.contactMethod)) return sendJson(response, 400, { error: "Выберите способ связи." });
+    const contactMethod = body.contactMethod;
+    const contact = cleanText(body.contact, 200);
     if (idea.length < (resumable ? 10 : 20)) return sendJson(response, 400, { error: "Опишите идею чуть подробнее." });
-    const contactError = anonymous ? "" : validateRequestContact(contactMethod, contact);
+    const contactError = validateRequestContact(contactMethod, contact);
     if (contactError) return sendJson(response, 400, { error: contactError });
     const rawSource = body.source && typeof body.source === "object" ? body.source : {};
     const source = {

@@ -9,6 +9,10 @@ import { checkCms } from "../automation/cms-check.mjs";
 import sharp from "sharp";
 
 const roots = [];
+it("uses Sonnet 5 for site code and keeps FLUX.2 Pro for images", () => {
+  expect(DEFAULT_ROUTERAI_MODEL).toBe("anthropic/claude-sonnet-5");
+  expect(DEFAULT_ROUTERAI_IMAGE_MODEL).toBe("black-forest-labs/flux.2-pro");
+});
 const config = { apiKey: "test-provider-credential-not-for-output", model: DEFAULT_ROUTERAI_MODEL, imageModel: DEFAULT_ROUTERAI_IMAGE_MODEL };
 const job = { kind: "initial", targetDemoId: "1", idea: "Мастерская", instructions: "" };
 const schema = { format: "lazysoft-cms-v1", fields: [{ key: "heading", label: "Заголовок", type: "text" }, { key: "heroImage", label: "Hero", type: "image" }, { key: "detailImage", label: "Detail", type: "image" }, { key: "storyImage", label: "Story", type: "image" }], collections: [] };

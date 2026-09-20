@@ -198,6 +198,18 @@ document.querySelector("[data-show-purchase]")?.addEventListener("click", () => 
 document.querySelector("[data-hide-purchase]")?.addEventListener("click", () => {
   purchaseOpen = false; render(); document.querySelector<HTMLElement>("[data-show-purchase]")?.focus();
 });
+document.querySelector<HTMLButtonElement>("[data-show-no-budget]")?.addEventListener("click", event => {
+  const button = event.currentTarget as HTMLButtonElement;
+  const details = document.querySelector<HTMLElement>("[data-no-budget-details]");
+  if (!details) return;
+  const opening = details.hidden;
+  details.hidden = !opening;
+  button.setAttribute("aria-expanded", String(opening));
+  if (opening) {
+    details.querySelector<HTMLAnchorElement>("a")?.focus();
+    trackPurchaseGoal("mvp_free_options_opened");
+  }
+});
 contactForm?.addEventListener("submit", event => {
   event.preventDefault();
   const button = (event as SubmitEvent).submitter as HTMLButtonElement | null;

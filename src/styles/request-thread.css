@@ -155,6 +155,14 @@
 .request-next-steps .purchase-card p { flex: 1; margin: .65rem 0 .9rem; font-size: .7rem; line-height: 1.5; }
 .request-next-steps .purchase-card button { width: 100%; min-height: 48px; padding: .65rem .7rem; font-size: .72rem; white-space: normal; }
 .purchase-card:not(.purchase-card-featured) button { background: transparent; color: var(--request-accent-dark); }
+.no-budget-offer { display: grid; gap: .7rem; margin-top: .2rem; padding: 1rem; border: 1px solid rgba(23, 61, 57, .22); border-radius: 16px; background: rgba(255, 255, 255, .7); }
+.no-budget-button { width: 100%; min-height: 48px; padding: .7rem .9rem; white-space: normal; }
+.no-budget-offer [data-no-budget-details] { display: grid; gap: .55rem; }
+.no-budget-offer [data-no-budget-details][hidden] { display: none; }
+.no-budget-offer strong { color: var(--request-accent-dark); font-size: .78rem; }
+.request-next-steps .no-budget-offer p { margin: 0; color: var(--ink-soft); font-size: .7rem; line-height: 1.55; }
+.no-budget-contacts { display: flex; flex-wrap: wrap; gap: .45rem .8rem; }
+.no-budget-contacts a { color: var(--request-accent-dark); font-size: .7rem; font-weight: 800; }
 .development-offer { display: grid; gap: .8rem; margin-top: .9rem; padding: 1rem; border: 1px dashed rgba(23, 61, 57, .35); border-radius: 16px; background: rgba(255, 255, 255, .55); }
 .development-offer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; }
 .development-offer-head .site-offer-kicker { margin-bottom: .3rem; }
