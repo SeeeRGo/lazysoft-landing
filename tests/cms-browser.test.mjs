@@ -74,12 +74,12 @@ describe("CMS browser gate", () => {
     await expect(checkCms(site, { forbidFallback: true })).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
   }, 30_000);
 
-  it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("rejects links whose fragment target is missing", async () => {
+  it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("repairs links whose generated fragment target is missing", async () => {
     const site = await mkdtemp(join(tmpdir(), "cms-browser-fragment-")); roots.push(site);
     await createCmsFixture(site);
     const index = await readFile(join(site, "index.html"), "utf8");
     await writeFile(join(site, "index.html"), index.replace("<main", '<a href="#missing-contact">Контакты</a><main'));
-    await expect(checkCms(site)).rejects.toThrow("missing fragment targets");
+    await expect(checkCms(site)).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
   }, 30_000);
 
   it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("rejects puzzle cards that look interactive but have no control", async () => {
