@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, mkdir, readFile, writeFile, readdir, symlink, link, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, DEFAULT_ROUTERAI_FALLBACK_IMAGE_MODEL, LIMITS, MAX_GENERATED_COLLECTIONS, routeraiConfig, generateRouterAI, repairRouterAI, generationContext, validateGeneration, visualContractIssues, writeGeneration, writeImplementationRepair } from "../automation/routerai.mjs";
+import { DEFAULT_ROUTERAI_MODEL, DEFAULT_ROUTERAI_IMAGE_MODEL, DEFAULT_ROUTERAI_FALLBACK_IMAGE_MODEL, LIMITS, MAX_GENERATED_COLLECTIONS, routeraiConfig, generateRouterAI, repairRouterAI, generationContext, normalizeCmsFoundation, validateGeneration, visualContractIssues, writeGeneration, writeImplementationRepair } from "../automation/routerai.mjs";
 import { routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionBundle } from "../automation/worker.mjs";
 import { installDemoCms } from "../standalone/site-cms/package.mjs";
 import { checkCms } from "../automation/cms-check.mjs";
@@ -54,6 +54,28 @@ async function run(fetchImpl, options = {}) { const project = await workspace();
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 
 describe("RouterAI provider", () => {
+  it("normalizes model collections missing editable text or image fields", () => {
+    const foundation = phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_foundation" } } }) });
+    const generatedSchema = JSON.parse(foundation.cmsSchema);
+    const generatedContent = JSON.parse(foundation.cmsContent);
+    generatedSchema.collections = [
+      { key: "trips", label: "Путешествия", fields: [{ key: "duration", label: "Длительность", type: "number" }] },
+      { key: "gallery", label: "Галерея", fields: [{ key: "photo", label: "Фото", type: "image" }] },
+    ];
+    generatedContent.items = {
+      trips: [{ id: "trip-one", duration: 7 }],
+      gallery: [{ id: "photo-one", photo: "assets/detail.jpg" }],
+    };
+    const normalized = normalizeCmsFoundation({ ...foundation, cmsSchema: JSON.stringify(generatedSchema), cmsContent: JSON.stringify(generatedContent) });
+    const normalizedSchema = JSON.parse(normalized.cmsSchema);
+    const normalizedContent = JSON.parse(normalized.cmsContent);
+    expect(normalizedSchema.collections[0].fields.map(field => field.type)).toEqual(["number", "text", "image"]);
+    expect(normalizedSchema.collections[1].fields.map(field => field.type)).toEqual(["image", "text"]);
+    expect(normalizedContent.items.trips[0]).toMatchObject({ title: "Путешествия", image: "assets/hero.jpg" });
+    expect(normalizedContent.items.gallery[0]).toMatchObject({ title: "Галерея", photo: "assets/detail.jpg" });
+    expect(() => validateGeneration({ result: foundation.result, files: generation().files.map(file => file.path.endsWith("cms-schema.json") ? { ...file, content: normalized.cmsSchema } : file.path.endsWith("cms-content.json") ? { ...file, content: normalized.cmsContent } : file) }, "1")).not.toThrow();
+  });
+
   it("rejects generated CMS foundations that would make the browser gate unbounded", async () => {
     const value = generation();
     const tooMany = Array.from({ length: MAX_GENERATED_COLLECTIONS + 1 }, (_, index) => ({

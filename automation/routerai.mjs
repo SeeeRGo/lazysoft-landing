@@ -30,6 +30,43 @@ function validateCmsStrings(schemaText, contentText) {
   } catch (error) { throw new Error(`Invalid generated CMS data (${cmsError(error)})`); }
 }
 
+export function normalizeCmsFoundation(foundation) {
+  let schema, content;
+  try { schema = JSON.parse(foundation.cmsSchema); content = JSON.parse(foundation.cmsContent); }
+  catch { return foundation; }
+  if (!schema || !Array.isArray(schema.collections) || !content?.items || Array.isArray(content.items)) return foundation;
+  const fallbackImage = schema.fields?.find(field => field?.type === "image" && typeof content.values?.[field.key] === "string")
+    ? content.values[schema.fields.find(field => field?.type === "image" && typeof content.values?.[field.key] === "string").key]
+    : foundation.imagePlan?.find(image => typeof image?.path === "string")?.path ?? "";
+  const uniqueKey = (fields, preferred) => {
+    const used = new Set(fields.map(field => field?.key));
+    if (!used.has(preferred)) return preferred;
+    for (let index = 2; index < 100; index += 1) if (!used.has(`${preferred}${index}`)) return `${preferred}${index}`;
+    return "";
+  };
+  let changed = false;
+  for (const collection of schema.collections) {
+    if (!Array.isArray(collection?.fields) || collection.fields.length > 78 || !Array.isArray(content.items[collection.key])) continue;
+    if (!collection.fields.some(field => field?.type === "text" || field?.type === "textarea")) {
+      const key = uniqueKey(collection.fields, "title");
+      if (key) {
+        collection.fields.push({ key, label: "Название", type: "text" });
+        for (const row of content.items[collection.key]) if (row && typeof row === "object" && !Array.isArray(row)) row[key] = String(collection.label || "Раздел").slice(0, 160);
+        changed = true;
+      }
+    }
+    if (!collection.fields.some(field => field?.type === "image")) {
+      const key = uniqueKey(collection.fields, "image");
+      if (key) {
+        collection.fields.push({ key, label: "Изображение", type: "image" });
+        for (const row of content.items[collection.key]) if (row && typeof row === "object" && !Array.isArray(row)) row[key] = typeof fallbackImage === "string" ? fallbackImage : "";
+        changed = true;
+      }
+    }
+  }
+  return changed ? { ...foundation, cmsSchema: JSON.stringify(schema), cmsContent: JSON.stringify(content) } : foundation;
+}
+
 function validateImagePlan(foundation) {
   if (!Array.isArray(foundation.imagePlan) || foundation.imagePlan.length < 3 || foundation.imagePlan.length > 4) throw new Error("Invalid RouterAI image plan");
   const schema = validateSchema(JSON.parse(foundation.cmsSchema));
@@ -368,6 +405,7 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
         ],
       });
       if (!objectKeys(foundation, ["cmsSchema", "cmsContent", "designPlan", "imagePlan", "result"]) || typeof foundation.cmsSchema !== "string" || typeof foundation.cmsContent !== "string" || !Array.isArray(foundation.imagePlan)) throw new Error("Invalid RouterAI foundation");
+      foundation = normalizeCmsFoundation(foundation);
       try { validateCmsStrings(foundation.cmsSchema, foundation.cmsContent); validateImagePlan(foundation); }
       catch (initialError) {
         let repairError = initialError;
@@ -381,6 +419,7 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
             ],
           });
           if (!objectKeys(foundation, ["cmsSchema", "cmsContent", "designPlan", "imagePlan", "result"]) || typeof foundation.cmsSchema !== "string" || typeof foundation.cmsContent !== "string" || !Array.isArray(foundation.imagePlan)) throw new Error("Invalid RouterAI foundation repair");
+          foundation = normalizeCmsFoundation(foundation);
           try {
             validateCmsStrings(foundation.cmsSchema, foundation.cmsContent);
             validateImagePlan(foundation);
