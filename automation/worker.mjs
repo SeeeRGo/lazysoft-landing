@@ -281,8 +281,17 @@ export async function runOnce({ requestId, jobId } = {}) {
         throw cmsCheckFailure(error);
       }
     };
+    const runCmsCheckWithInfrastructureRetry = async () => {
+      try {
+        await runCmsCheck();
+      } catch (error) {
+        if (!/CMS browser condition timed out: admin collection/.test(error.message)) throw error;
+        console.log(`CMS ${job.jobId}: fresh-browser-retry`);
+        await runCmsCheck();
+      }
+    };
     try {
-      await runCmsCheck();
+      await runCmsCheckWithInfrastructureRetry();
     } catch (firstFailure) {
       controller.signal.throwIfAborted();
       if (/CMS browser condition timed out: admin collection/.test(firstFailure.message)) throw firstFailure;
@@ -292,7 +301,7 @@ export async function runOnce({ requestId, jobId } = {}) {
       await validateDemo(join(versions, targetId));
       await installDemoCms(join(versions, targetId));
       await validateDemo(join(versions, targetId));
-      await runCmsCheck();
+      await runCmsCheckWithInfrastructureRetry();
     }
     mark("cms-checked");
 

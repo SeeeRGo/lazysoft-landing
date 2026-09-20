@@ -15,6 +15,21 @@ describe("CMS browser gate", () => {
     await expect(checkCms(site)).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
   }, 30_000);
 
+  it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("loads and edits a clubs collection after cache-busted navigation", async () => {
+    const site = await mkdtemp(join(tmpdir(), "cms-browser-clubs-")); roots.push(site);
+    await createCmsFixture(site);
+    const schema = JSON.parse(await readFile(join(site, "cms-schema.json"), "utf8"));
+    const content = JSON.parse(await readFile(join(site, "cms-content.json"), "utf8"));
+    schema.collections[0].key = "clubs";
+    schema.collections[0].label = "Разговорные клубы";
+    content.items.clubs = content.items.products;
+    delete content.items.products;
+    await writeFile(join(site, "cms-schema.json"), JSON.stringify(schema));
+    await writeFile(join(site, "cms-content.json"), JSON.stringify(content));
+    await writeFile(join(site, "app.js"), (await readFile(join(site, "app.js"), "utf8")).replaceAll("products", "clubs"));
+    await expect(checkCms(site)).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
+  }, 30_000);
+
   it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("recovers CMS images and collections omitted by the generated application", async () => {
     const site = await mkdtemp(join(tmpdir(), "cms-browser-fallback-")); roots.push(site);
     await createCmsFixture(site);
