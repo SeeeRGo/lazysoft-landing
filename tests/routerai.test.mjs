@@ -280,6 +280,16 @@ describe("RouterAI provider", () => {
     await expect(run(fetchImpl)).resolves.toBeTruthy();
     expect(calls).toBe(3);
   });
+  it("backs off from chat rate limits inside the same generation", async () => {
+    let calls = 0;
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (url.endsWith("/images")) return imageResponse();
+      if (++calls <= 2) return new Response("", { status: 429, headers: { "retry-after": "0" } });
+      return response(phaseValue(generation(), init));
+    });
+    await expect(run(fetchImpl)).resolves.toBeTruthy();
+    expect(calls).toBe(4);
+  });
   it.each(["length", "content_filter", "tool_calls", null])("rejects incomplete finish reason %s", async finish => {
     await expect(run(async () => response(generation(), finish))).rejects.toThrow("Incomplete RouterAI generation");
   });

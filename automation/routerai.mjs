@@ -240,17 +240,22 @@ async function responseJson(response, signal) {
   } finally { await reader.cancel().catch(() => {}); }
 }
 
-async function requestPhase({ config, fetchImpl, signal, name, schema, maxTokens, messages, retryBaseMs = 1000 }) {
+async function requestPhase({ config, fetchImpl, signal, name, schema, maxTokens, messages, retryBaseMs = 5000 }) {
   const body = JSON.stringify({ model: config.model, stream: false, max_tokens: maxTokens, reasoning_effort: "low", structured_outputs: true, response_format: { type: "json_schema", json_schema: { name, strict: true, schema } }, messages });
   if (config.apiKey && body.includes(config.apiKey)) throw new Error("Credential found in generation context");
   let lastError;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     signal.throwIfAborted();
+    let retryAfterMs = 0;
     try {
       let response;
       try { response = await fetchImpl("https://routerai.ru/api/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json" }, body, signal }); }
       catch { throw new Error("RouterAI request failed"); }
-      if (!response.ok) { await response.body?.cancel().catch(() => {}); throw new Error(`RouterAI HTTP ${response.status}`); }
+      if (!response.ok) {
+        const retryAfter = Number(response.headers.get("retry-after"));
+        if (Number.isFinite(retryAfter) && retryAfter > 0) retryAfterMs = Math.min(60_000, retryAfter * 1000);
+        await response.body?.cancel().catch(() => {}); throw new Error(`RouterAI HTTP ${response.status}`);
+      }
       const envelope = await responseJson(response, signal);
       if (envelope.error) throw new Error("RouterAI upstream error");
       const choice = envelope.choices?.[0];
@@ -265,8 +270,9 @@ async function requestPhase({ config, fetchImpl, signal, name, schema, maxTokens
       lastError = error;
       const message = error instanceof Error ? error.message : "";
       const retryable = /^(?:RouterAI request failed|RouterAI upstream error|Malformed RouterAI (?:response|generation)|Incomplete RouterAI generation)/.test(message) || /^RouterAI HTTP (?:408|409|425|429|5\d\d)$/.test(message);
-      if (!retryable || attempt === 2) throw error;
-      await new Promise(resolveDelay => setTimeout(resolveDelay, Math.max(0, retryBaseMs) * 2 ** attempt));
+      const maxAttempts = /^(?:Malformed RouterAI|Incomplete RouterAI generation)/.test(message) ? 3 : 5;
+      if (!retryable || attempt === maxAttempts - 1) throw error;
+      await new Promise(resolveDelay => setTimeout(resolveDelay, Math.max(retryAfterMs, Math.min(60_000, Math.max(0, retryBaseMs) * 2 ** attempt))));
     }
   }
   throw lastError;
@@ -296,7 +302,7 @@ function validJpegBase64(encoded) {
   return data.length >= 10 * 1024 && data.length <= LIMITS.imageBytes && data[0] === 0xff && data[1] === 0xd8 && data.at(-2) === 0xff && data.at(-1) === 0xd9;
 }
 
-export async function generateRouterAI({ project, targetId, prompt, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, imageRetryBaseMs = 2000, chatRetryBaseMs = 1000, onPhase = () => {} }) {
+export async function generateRouterAI({ project, targetId, prompt, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, imageRetryBaseMs = 2000, chatRetryBaseMs = 5000, onPhase = () => {} }) {
   const context = await generationContext({ project, targetId, prompt });
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -430,7 +436,7 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
   }
 }
 
-export async function repairRouterAI({ project, targetId, prompt, validationError, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, chatRetryBaseMs = 1000 }) {
+export async function repairRouterAI({ project, targetId, prompt, validationError, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, chatRetryBaseMs = 5000 }) {
   const context = await generationContext({ project, targetId, prompt });
   const controller = new AbortController();
   const abort = () => controller.abort();
