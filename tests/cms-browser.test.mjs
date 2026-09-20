@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { checkCms } from "../automation/cms-check.mjs";
 import { createCmsFixture } from "../automation/cms-fixture.mjs";
+import { installDemoCms } from "../standalone/site-cms/package.mjs";
 
 const roots = [];
 afterEach(async () => Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))));
@@ -27,6 +28,23 @@ describe("CMS browser gate", () => {
     await writeFile(join(site, "cms-schema.json"), JSON.stringify(schema));
     await writeFile(join(site, "cms-content.json"), JSON.stringify(content));
     await writeFile(join(site, "app.js"), (await readFile(join(site, "app.js"), "utf8")).replaceAll("products", "clubs"));
+    await expect(checkCms(site)).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
+  }, 30_000);
+
+  it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("creates a safe public page when a collection page is missing", async () => {
+    const site = await mkdtemp(join(tmpdir(), "cms-browser-missing-page-")); roots.push(site);
+    await createCmsFixture(site);
+    const schema = JSON.parse(await readFile(join(site, "cms-schema.json"), "utf8"));
+    schema.collections[0].key = "trips";
+    schema.collections[0].label = "Путешествия";
+    schema.collections[0].page = "trips.html";
+    const content = JSON.parse(await readFile(join(site, "cms-content.json"), "utf8"));
+    content.items.trips = content.items.products;
+    delete content.items.products;
+    await writeFile(join(site, "cms-schema.json"), JSON.stringify(schema));
+    await writeFile(join(site, "cms-content.json"), JSON.stringify(content));
+    await installDemoCms(site);
+    expect(await readFile(join(site, "trips.html"), "utf8")).toContain("cms-fallback.js");
     await expect(checkCms(site)).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
   }, 30_000);
 

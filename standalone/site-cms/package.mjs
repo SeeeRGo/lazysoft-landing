@@ -9,6 +9,12 @@ export async function installDemoCms(site){
  const content=validateContent(schema,JSON.parse(await readFile(join(site,'cms-content.json'),'utf8')));
  await writeFile(join(site,'cms-content.json'),JSON.stringify(content));
  await cp(join(own,'public'),site,{recursive:true});await copyFile(join(own,'model.mjs'),join(site,'cms-model.mjs'));
+ const files=new Set(await readdir(site));
+ for(const collection of schema.collections){
+  if(!collection.page||files.has(collection.page))continue;
+  await writeFile(join(site,collection.page),`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${collection.label.replace(/[<>&"]/g,'')}</title><style>body{margin:0;background:#f7f4ed;color:#183d38;font-family:Arial,sans-serif}.demo{padding:10px 24px;background:#183d38;color:#fff;font-size:13px}.nav{display:flex;gap:18px;flex-wrap:wrap;padding:20px 24px}.nav a{color:inherit;font-weight:700}</style></head><body><div class="demo">Демонстрационная версия — данные вымышлены</div><nav class="nav"><a href="index.html">На главную</a><a href="admin.html">Панель редактора</a></nav></body></html>`);
+  files.add(collection.page);
+ }
  const fallback='<script type="module" src="cms-fallback.js"></script>';
  for(const name of await readdir(site))if(name!=='admin.html'&&name.endsWith('.html')){const path=join(site,name),html=await readFile(path,'utf8');if(!html.includes('cms-fallback.js'))await writeFile(path,html.includes('</body>')?html.replace('</body>',fallback+'</body>'):html+fallback)}
  return {schema,content};
