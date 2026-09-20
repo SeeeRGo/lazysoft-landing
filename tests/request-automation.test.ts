@@ -53,6 +53,9 @@ describe("request lifecycle", () => {
     expect(initial?.targetDemoId).toBe("1");
     const source1 = await completeVersion(initial!);
     expect(await t.query(internal.automation.summary, { accessTokenHash: token })).toMatchObject({ phase: "review", revisionCount: 0, revisionLimit: 2, canRevise: true, canBuy: true, selectedDemoId: "1" });
+    const readyEvents = await t.run(ctx => ctx.db.query("requestEvents").take(10));
+    expect(readyEvents.find(event => event.kind === "result_ready")?.text).toContain("Уведомить клиента (почта): test@example.com");
+    expect(await t.run(ctx => ctx.db.query("requestDeliveries").take(10))).toHaveLength(0);
     const purchase = { accessTokenHash: token, kind: "offer_purchase_requested" as const, hosting: "cloudflare" as const, purchase: "source" as const, offerVariant: "standard" as const };
     expect((await t.mutation(internal.automation.clientAction, { ...purchase, demoId: "1" })).ok).toBe(true);
     const revision = { accessTokenHash: token, kind: "revision_requested" as const, text: "Добавьте цены на ремонт велосипедов" };

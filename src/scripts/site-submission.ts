@@ -10,16 +10,19 @@ function remove(key: string) { try { localStorage.removeItem(key); } catch {} }
 export function setupSiteSubmission(form: HTMLFormElement, track: (name: string, args?: Record<string, unknown>) => void, source: () => Record<string, string>) {
   const idea = form.elements.namedItem("idea") as HTMLTextAreaElement;
   const contact = form.elements.namedItem("contact") as HTMLInputElement | null;
+  const notifyToggle = form.querySelector<HTMLInputElement>("[data-notify-toggle]");
   const panel = document.createElement("section"); panel.className = "site-wait submission-wait"; panel.hidden = true;
   panel.innerHTML = `<div class="wait-heading"><span class="wait-orbit" aria-hidden="true"></span><span class="wait-eyebrow">От идеи к сайту</span></div><h2 data-submit-title tabindex="-1">Сохраняем вашу идею</h2><p data-submit-detail role="status">Сейчас создадим приватную страницу заявки. Сам сайт обычно готовится до 15 минут.</p><div class="wait-facts"><span>Прошло <strong data-submit-elapsed>0:00</strong></span><span data-submit-connection>Связываемся с сервером…</span></div><div class="wait-aside"><small>Пока ждём</small><p data-submit-joke></p></div><p class="wait-safe" data-submit-safe></p><button class="request-secondary-button" type="button" data-submit-retry hidden>Повторить отправку этой заявки</button>`;
   form.after(panel);
   const draft = read(DRAFT);
   if (draft && typeof draft.idea === "string") {
     idea.value = draft.idea.slice(0, 3000); if (contact) contact.value = String(draft.contact || "").slice(0, 200);
+    if (notifyToggle) notifyToggle.checked = draft.contactMethod !== "none";
     const radio = [...form.querySelectorAll<HTMLInputElement>('[name="contactMethod"]')].find(r => r.value === draft.contactMethod);
     if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change")); }
+    else notifyToggle?.dispatchEvent(new Event("change"));
   }
-  const method = () => form.querySelector<HTMLInputElement>('[name="contactMethod"]:checked')?.value || "none";
+  const method = () => notifyToggle && !notifyToggle.checked ? "none" : form.querySelector<HTMLInputElement>('[name="contactMethod"]:checked')?.value || "none";
   const saveDraft = () => save(DRAFT, { idea: idea.value, contact: contact?.value || "", contactMethod: method() });
   form.addEventListener("input", saveDraft); form.addEventListener("change", saveDraft);
   let previous = ""; try { previous = localStorage.getItem(LAST) || ""; } catch {}
@@ -39,7 +42,8 @@ export function setupSiteSubmission(form: HTMLFormElement, track: (name: string,
     if (!pending) {
       const bytes = crypto.getRandomValues(new Uint8Array(32));
       const submissionToken = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-      pending = { requestType: "mvp", idea: idea.value.trim(), contact: contact?.value.trim() || "", contactMethod: method(), website: (form.elements.namedItem("website") as HTMLInputElement).value, source: source(), submissionToken, startedAt: Date.now() };
+      const contactMethod = method();
+      pending = { requestType: "mvp", idea: idea.value.trim(), contact: contactMethod === "none" ? "" : contact?.value.trim() || "", contactMethod, website: (form.elements.namedItem("website") as HTMLInputElement).value, source: source(), submissionToken, startedAt: Date.now() };
     }
     const canRestore = save(PENDING, pending);
     busy = true; form.hidden = true; panel.hidden = false; retry.hidden = true; panel.dataset.state = "sending";

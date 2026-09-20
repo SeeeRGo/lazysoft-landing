@@ -14,6 +14,14 @@
 .generator-intro { text-align: center; margin: 0 0 32px; color: #516e69; }
 .generator-card textarea { min-height: 170px; padding: 22px; font-size: 17px; line-height: 1.65; background: #fffefa; border: 1px solid #8aa7a1; border-radius: 18px; box-shadow: 0 6px 24px #173d3908; }
 .generator-card textarea:focus { outline: 2px solid #217f78; outline-offset: 3px; }
+.generator-notify-toggle { display: flex; gap: 12px; align-items: flex-start; margin: 20px 4px 0; cursor: pointer; }
+.generator-notify-toggle input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: #217f78; flex: 0 0 auto; }
+.generator-notify-toggle span { display: grid; gap: 4px; }
+.generator-notify-toggle strong { color: #173d39; font-size: 14px; line-height: 1.4; }
+.generator-notify-toggle small { color: #516e69; font-size: 11px; line-height: 1.5; }
+.generator-contact { margin-top: 14px; padding: 16px; border: 1px solid #8aa7a166; border-radius: 16px; background: #f7faf6; }
+.generator-contact .mvp-contact-choice { margin-top: 0; }
+.generator-contact-note { margin: 10px 2px 0; color: #516e69; font-size: 11px; line-height: 1.5; }
 .generator-card .mvp-request-submit { margin-top: 18px; min-height: 58px; font-size: 17px; }
 .generator-note { text-align: center; font-size: 12px; color: #516e69; margin-top: 15px; }
 .generator-card .site-resume-link { display: block; text-align: center; margin: 0 0 18px; }

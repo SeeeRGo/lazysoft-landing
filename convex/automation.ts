@@ -302,8 +302,13 @@ export const complete = internalMutation({
     await ctx.db.patch(job._id, { status: "succeeded", completedAt: now, error: undefined, leaseUntil: undefined });
     await ctx.db.patch(request._id, { status: "ready", updatedAt: now });
     await ctx.db.insert("mvpRequestMessages", { requestId: job.requestId, sender: "owner", text: args.text, demoUrl: options[0].demoUrl, pdfStorageId: args.pdfStorageId, createdAt: now });
-    await event(ctx, job.requestId, "result_ready", job._id, `Версия ${options[0].id} готова\n${options.map(option => `${option.id}. ${option.title}: ${option.demoUrl}`).join("\n")}`);
-    if (request.contactMethod === "email") {
+    const contactLabels = { telegram: "Telegram", email: "почта", max: "MAX" } as const;
+    const contactNotice = request.contactMethod === "none"
+      ? ""
+      : `\nУведомить клиента (${contactLabels[request.contactMethod]}): ${request.contact}`;
+    await event(ctx, job.requestId, "result_ready", job._id, `Версия ${options[0].id} готова\n${options.map(option => `${option.id}. ${option.title}: ${option.demoUrl}`).join("\n")}${contactNotice}`);
+    const emailDeliveryConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD && process.env.SMTP_FROM;
+    if (request.contactMethod === "email" && request.deliveryTokenCiphertext && emailDeliveryConfigured) {
       const deliveryId = await ctx.db.insert("requestDeliveries", { requestId: job.requestId, jobId: job._id, status: "pending", attempts: 0 });
       await ctx.scheduler.runAfter(0, internal.clientDelivery.send, { deliveryId });
     }

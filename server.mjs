@@ -481,9 +481,9 @@ async function handleMvpRequestApi(request, response) {
     const requestType = ["crm", "mobile"].includes(body.requestType) ? body.requestType : "mvp";
     const resumable = requestType === "mvp" && body.submissionToken !== undefined;
     if (resumable && (typeof body.submissionToken !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(body.submissionToken))) return sendJson(response, 400, { error: "Некорректный ключ отправки" });
-    const anonymous = resumable && (!body.contactMethod || body.contactMethod === "none") && !cleanText(body.contact, 200);
+    const anonymous = resumable && (!body.contactMethod || body.contactMethod === "none");
     const contactMethod = anonymous ? "none" : ["telegram", "email", "max"].includes(body.contactMethod) ? body.contactMethod : "telegram";
-    const contact = cleanText(body.contact, 200);
+    const contact = anonymous ? "" : cleanText(body.contact, 200);
     if (idea.length < (resumable ? 10 : 20)) return sendJson(response, 400, { error: "Опишите идею чуть подробнее." });
     const contactError = anonymous ? "" : validateRequestContact(contactMethod, contact);
     if (contactError) return sendJson(response, 400, { error: contactError });
