@@ -46,7 +46,7 @@ function phaseValue(value, init) {
 }
 const staged = (value = generation()) => async (url, init) => url.endsWith("/images") ? imageResponse() : response(phaseValue(value, init));
 async function workspace() { const root = await mkdtemp(join(tmpdir(), "routerai-provider-test-")); roots.push(root); return root; }
-async function run(fetchImpl, options = {}) { const project = await workspace(); return generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl, ...options }); }
+async function run(fetchImpl, options = {}) { const project = await workspace(); return generateRouterAI({ project, targetId: "1", prompt: routeraiBrief(job), config, fetchImpl, chatRetryBaseMs: 0, ...options }); }
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 
 describe("RouterAI provider", () => {
@@ -269,6 +269,16 @@ describe("RouterAI provider", () => {
 
   it.each(["{", "```json\n{}\n```", "null", "[]"])("rejects malformed generated JSON %s", async content => {
     await expect(run(async () => response(content))).rejects.toThrow(/Malformed|Invalid/);
+  });
+  it("retries a malformed structured response inside the same generation", async () => {
+    let calls = 0;
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (url.endsWith("/images")) return imageResponse();
+      if (++calls === 1) return response("{");
+      return response(phaseValue(generation(), init));
+    });
+    await expect(run(fetchImpl)).resolves.toBeTruthy();
+    expect(calls).toBe(3);
   });
   it.each(["length", "content_filter", "tool_calls", null])("rejects incomplete finish reason %s", async finish => {
     await expect(run(async () => response(generation(), finish))).rejects.toThrow("Incomplete RouterAI generation");

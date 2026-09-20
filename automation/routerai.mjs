@@ -240,23 +240,36 @@ async function responseJson(response, signal) {
   } finally { await reader.cancel().catch(() => {}); }
 }
 
-async function requestPhase({ config, fetchImpl, signal, name, schema, maxTokens, messages }) {
-  signal.throwIfAborted();
+async function requestPhase({ config, fetchImpl, signal, name, schema, maxTokens, messages, retryBaseMs = 1000 }) {
   const body = JSON.stringify({ model: config.model, stream: false, max_tokens: maxTokens, reasoning_effort: "low", structured_outputs: true, response_format: { type: "json_schema", json_schema: { name, strict: true, schema } }, messages });
   if (config.apiKey && body.includes(config.apiKey)) throw new Error("Credential found in generation context");
-  let response;
-  try { response = await fetchImpl("https://routerai.ru/api/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json" }, body, signal }); }
-  catch { throw new Error("RouterAI request failed"); }
-  if (!response.ok) { await response.body?.cancel().catch(() => {}); throw new Error(`RouterAI HTTP ${response.status}`); }
-  const envelope = await responseJson(response, signal);
-  if (envelope.error) throw new Error("RouterAI upstream error");
-  const choice = envelope.choices?.[0];
-  if (envelope.choices?.length !== 1 || choice?.finish_reason !== "stop" || choice.message?.tool_calls?.length || choice.message?.refusal || typeof choice.message?.content !== "string") throw new Error(`Incomplete RouterAI generation (${name}; finish=${String(choice?.finish_reason)})`);
-  if (config.apiKey && choice.message.content.includes(config.apiKey)) throw new Error("Credential found in generated output");
-  let generated;
-  try { generated = JSON.parse(choice.message.content); } catch { throw new Error("Malformed RouterAI generation"); }
-  if (config.apiKey && JSON.stringify(generated).includes(config.apiKey)) throw new Error("Credential found in generated output");
-  return generated;
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    signal.throwIfAborted();
+    try {
+      let response;
+      try { response = await fetchImpl("https://routerai.ru/api/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json" }, body, signal }); }
+      catch { throw new Error("RouterAI request failed"); }
+      if (!response.ok) { await response.body?.cancel().catch(() => {}); throw new Error(`RouterAI HTTP ${response.status}`); }
+      const envelope = await responseJson(response, signal);
+      if (envelope.error) throw new Error("RouterAI upstream error");
+      const choice = envelope.choices?.[0];
+      if (envelope.choices?.length !== 1 || choice?.finish_reason !== "stop" || choice.message?.tool_calls?.length || choice.message?.refusal || typeof choice.message?.content !== "string") throw new Error(`Incomplete RouterAI generation (${name}; finish=${String(choice?.finish_reason)})`);
+      if (config.apiKey && choice.message.content.includes(config.apiKey)) throw new Error("Credential found in generated output");
+      let generated;
+      try { generated = JSON.parse(choice.message.content); } catch { throw new Error("Malformed RouterAI generation"); }
+      if (config.apiKey && JSON.stringify(generated).includes(config.apiKey)) throw new Error("Credential found in generated output");
+      return generated;
+    } catch (error) {
+      if (signal.aborted) throw error;
+      lastError = error;
+      const message = error instanceof Error ? error.message : "";
+      const retryable = /^(?:RouterAI request failed|RouterAI upstream error|Malformed RouterAI (?:response|generation)|Incomplete RouterAI generation)/.test(message) || /^RouterAI HTTP (?:408|409|425|429|5\d\d)$/.test(message);
+      if (!retryable || attempt === 2) throw error;
+      await new Promise(resolveDelay => setTimeout(resolveDelay, Math.max(0, retryBaseMs) * 2 ** attempt));
+    }
+  }
+  throw lastError;
 }
 
 function imageBase64(item) {
@@ -283,7 +296,7 @@ function validJpegBase64(encoded) {
   return data.length >= 10 * 1024 && data.length <= LIMITS.imageBytes && data[0] === 0xff && data[1] === 0xd8 && data.at(-2) === 0xff && data.at(-1) === 0xd9;
 }
 
-export async function generateRouterAI({ project, targetId, prompt, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, imageRetryBaseMs = 2000, onPhase = () => {} }) {
+export async function generateRouterAI({ project, targetId, prompt, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, imageRetryBaseMs = 2000, chatRetryBaseMs = 1000, onPhase = () => {} }) {
   const context = await generationContext({ project, targetId, prompt });
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -298,7 +311,7 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
       controller.signal.addEventListener("abort", rejectAbort, { once: true });
       if (controller.signal.aborted) rejectAbort();
     });
-    const phase = args => requestPhase({ ...args, config, fetchImpl, signal: controller.signal });
+    const phase = args => requestPhase({ ...args, config, fetchImpl, signal: controller.signal, retryBaseMs: chatRetryBaseMs });
     const requestImage = async image => {
       let lastError = "Invalid RouterAI image response";
       const imageModels = [...new Set([config.imageModel || DEFAULT_ROUTERAI_IMAGE_MODEL, config.fallbackImageModel || DEFAULT_ROUTERAI_FALLBACK_IMAGE_MODEL])];
@@ -417,7 +430,7 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
   }
 }
 
-export async function repairRouterAI({ project, targetId, prompt, validationError, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs }) {
+export async function repairRouterAI({ project, targetId, prompt, validationError, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, chatRetryBaseMs = 1000 }) {
   const context = await generationContext({ project, targetId, prompt });
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -427,7 +440,7 @@ export async function repairRouterAI({ project, targetId, prompt, validationErro
   const timer = setTimeout(() => { timedOut = true; abort(); }, Math.min(timeoutMs, LIMITS.timeoutMs));
   try {
     const implementation = normalizeImplementation(await requestPhase({
-      config, fetchImpl, signal: controller.signal, name: "site_browser_repair", schema: implementationSchema(), maxTokens: 40000,
+      config, fetchImpl, signal: controller.signal, name: "site_browser_repair", schema: implementationSchema(), maxTokens: 40000, retryBaseMs: chatRetryBaseMs,
       messages: [
         { role: "system", content: `Repair one generated site's public implementation after its trusted browser acceptance gate failed. Preserve its CMS schema, CMS content, image paths, generated raster assets, result and visual direction. Return the complete README, index and public text implementation files. Fix the supplied validation error, including asynchronous CMS rendering and every initial image field. Every public page must use cms-config.js and import {CMS} from './cms.js'. Render at least the three existing local raster image values from CMS, plus every image field on newly added collection items, including safe data:image PNG/JPEG/WebP uploads. Keep ordinary images inside viewport gutters. Do not return cms-schema.json, cms-content.json, raster data, SVG illustrations or worker-owned files: ${[...reserved].join(", ")}.` },
         { role: "user", content: JSON.stringify({ context, validationError: String(validationError || "CMS browser acceptance failed").slice(0, 240) }) },
