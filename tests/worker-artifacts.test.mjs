@@ -74,6 +74,9 @@ describe('worker artifacts', () => {
   it('describes regenerated artifacts without forwarding stale generator delivery claims', () => {
     const message = completionMessage({ ...brief, clientMessage: 'PDF устарел, откройте /workspace/demo/index.html' }, 'revision');
     expect(message).toContain('Предыдущие версии сохранены');
+    expect(message).toContain('«Панель редактора»');
+    expect(message).toContain('изменения сохраняются в этом браузере');
+    expect(message).toContain('полноценная CMS с сохранением на сервере');
     expect(message).not.toMatch(/PDF|ТЗ/);
     expect(message).not.toContain('устарел');
     expect(message).not.toContain('/workspace');

@@ -12,6 +12,9 @@
 .generator-card { width: min(100%, 700px); }
 .generator-card h1 { font-family: var(--font-display, Georgia, serif); font-size: clamp(32px, 5vw, 52px); line-height: 1.14; letter-spacing: -.03em; margin: 0 0 16px; text-align: center; }
 .generator-intro { text-align: center; margin: 0 0 32px; color: #516e69; }
+.generator-editor-note { display: grid; grid-template-columns: minmax(150px, .72fr) minmax(0, 1.28fr); gap: 20px; align-items: baseline; margin: -8px 0 26px; padding: 15px 4px; border-block: 1px solid #8aa7a15c; text-align: left; }
+.generator-editor-note strong { color: #173d39; font-size: 13px; line-height: 1.4; }
+.generator-editor-note p { margin: 0; color: #516e69; font-size: 12px; line-height: 1.55; }
 .generator-card textarea { min-height: 170px; padding: 22px; font-size: 17px; line-height: 1.65; background: #fffefa; border: 1px solid #8aa7a1; border-radius: 18px; box-shadow: 0 6px 24px #173d3908; }
 .generator-card textarea:focus { outline: 2px solid #217f78; outline-offset: 3px; }
 .generator-notify-toggle { display: flex; gap: 12px; align-items: flex-start; margin: 20px 4px 0; cursor: pointer; }
@@ -26,4 +29,4 @@
 .generator-note { text-align: center; font-size: 12px; color: #516e69; margin-top: 15px; }
 .generator-card .site-resume-link { display: block; text-align: center; margin: 0 0 18px; }
 .generator-card [hidden] { display: none !important; }
-@media (max-width: 560px) { .generator-header { padding: 20px; } .generator-page { align-items: start; padding-top: 6vh; } .generator-card textarea { font-size: 16px; padding: 18px; } .generator-steps { grid-template-columns: 1fr; gap: 18px; } .generator-desktop-break { display: none; } .generator-disclaimer { text-align: left; } }
+@media (max-width: 560px) { .generator-header { padding: 20px; } .generator-page { align-items: start; padding-top: 6vh; } .generator-card textarea { font-size: 16px; padding: 18px; } .generator-editor-note { grid-template-columns: 1fr; gap: 5px; margin-top: -10px; } .generator-steps { grid-template-columns: 1fr; gap: 18px; } .generator-desktop-break { display: none; } .generator-disclaimer { text-align: left; } }
