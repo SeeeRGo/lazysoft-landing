@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {resolve,join,extname,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
-export async function checkCms(site,{screenshots}={}){
+export async function checkCms(site,{screenshots,forbidFallback=false}={}){
  const directory=resolve(site),profile=await mkdtemp(join(tmpdir(),'lazysoft-cms-browser-'));
  const schema=JSON.parse(await readFile(join(directory,'cms-schema.json'),'utf8'));
  const png=join(profile,'upload.png');await writeFile(png,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZ5kAAAAASUVORK5CYII=','base64'));
@@ -44,6 +44,9 @@ export async function checkCms(site,{screenshots}={}){
  }
  const visibleText=await evaluate(`document.body.innerText.replace(/\\s+/g,' ').trim().length`);
  assert(visibleText>=200,'Public page has too little rendered text');
+ const misplacedFallbackCards=await evaluate(`Array.from(document.querySelectorAll('.lazysoft-cms-fallback-card')).filter(card=>!card.parentElement?.classList.contains('lazysoft-cms-fallback-grid')).length`);
+ assert.equal(misplacedFallbackCards,0,'CMS fallback cards escaped their responsive grid');
+ if(forbidFallback)assert.equal(await evaluate(`document.querySelectorAll('[data-lazysoft-cms-fallback]').length`),0,'CMS fallback duplicated content already rendered by the generated app');
  const hiddenContent=await evaluate(`Array.from(document.querySelectorAll('main h1,main h2,main h3,main p,main img')).filter(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&(s.visibility==='hidden'||Number(s.opacity)<0.1)}).length`);
  assert.equal(hiddenContent,0,'Public content remains hidden after rendering');
  const initialImages=await evaluate(`Array.from(document.images).filter(i=>!i.src.startsWith('data:')).map(i=>({src:new URL(i.src,location.href).pathname,width:i.naturalWidth,height:i.naturalHeight}))`);

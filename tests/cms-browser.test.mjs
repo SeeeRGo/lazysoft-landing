@@ -29,4 +29,15 @@ describe("CMS browser gate", () => {
     await writeFile(join(site, "index.html"), index.replace("</style>", ".gallery{display:block;width:100vw;max-width:none;margin-left:calc(50% - 50vw)}.gallery img{width:100vw;max-width:none}</style>"));
     await expect(checkCms(site)).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
   }, 30_000);
+
+  it.runIf(process.env.RUN_CMS_BROWSER_TESTS === "1")("does not duplicate CMS text transformed to uppercase by the site design", async () => {
+    const site = await mkdtemp(join(tmpdir(), "cms-browser-uppercase-")); roots.push(site);
+    await createCmsFixture(site);
+    const content = JSON.parse(await readFile(join(site, "cms-content.json"), "utf8"));
+    content.items.products = [{ id: "mixed-case", name: "Первая услуга", image: "assets/detail.png" }];
+    await writeFile(join(site, "cms-content.json"), JSON.stringify(content));
+    const index = await readFile(join(site, "index.html"), "utf8");
+    await writeFile(join(site, "index.html"), index.replace("</style>", ".products{text-transform:uppercase}</style>"));
+    await expect(checkCms(site, { forbidFallback: true })).resolves.toEqual({ collections: 1, admin: true, images: true, widths: [390, 1440] });
+  }, 30_000);
 });

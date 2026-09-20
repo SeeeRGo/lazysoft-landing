@@ -10,14 +10,15 @@ const safeImage=value=>typeof value==='string'&&(
 );
 const normalized=value=>{try{return new URL(value,location.href).href}catch{return value}};
 const presentImage=value=>Array.from(document.images).some(image=>normalized(image.getAttribute('src')||'')===normalized(value));
-const presentText=value=>typeof value==='string'&&value.trim().length>2&&document.body.innerText.includes(value.trim());
+const comparable=value=>String(value??'').normalize('NFKC').replace(/\s+/g,' ').trim().toLocaleLowerCase('ru');
+const presentText=value=>{const expected=comparable(value);return expected.length>2&&comparable(document.body.innerText).includes(expected)};
 const fillEmptyImage=(value,label)=>{const image=Array.from(document.images).find(candidate=>!candidate.getAttribute('src'));if(!image)return false;image.src=value;if(!image.alt)image.alt=label||'Изображение';return true};
-let root;
+let root,grid;
 function gallery(){
- if(root)return root;
+ if(grid)return grid;
  root=document.createElement('section');root.dataset.lazysoftCmsFallback='';root.setAttribute('aria-label','Дополнительные материалы');
  root.innerHTML='<div class="lazysoft-cms-fallback-inner"><h2>Материалы</h2><div class="lazysoft-cms-fallback-grid"></div></div>';
- document.body.append(root);return root.querySelector('.lazysoft-cms-fallback-grid');
+ document.body.append(root);grid=root.querySelector('.lazysoft-cms-fallback-grid');return grid;
 }
 function card({title,text,image}){
  const article=document.createElement('article');article.className='lazysoft-cms-fallback-card';
