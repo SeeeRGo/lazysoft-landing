@@ -32,6 +32,7 @@ const labels: Record<string, string> = {
   result_ready: "Новая версия сайта готова", generation_failed: "Ошибка подготовки заявки",
   client_notification_reminder: "Клиент ещё не уведомлён",
   delivery_failed: "Не удалось доставить результат клиенту", messenger_connected: "Подключён канал связи",
+  planning_survey_completed: "Заполнен мини-опрос по запуску сайта",
 };
 
 export const deliver = internalAction({

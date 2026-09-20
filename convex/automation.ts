@@ -47,7 +47,49 @@ export const summary = internalQuery({
       demoOptions: state.demoOptions ?? (state.demoUrl ? [{ id: "1" as const, title: "Версия 1", demoUrl: state.demoUrl }] : []),
       ...(state.selectedDemoId ? { selectedDemoId: state.selectedDemoId } : {}),
       messengerConnected: false, // Compatibility for cached clients; bots notify the owner only.
+      planningSurveySubmitted: Boolean(request.planningSurveySubmittedAt),
     };
+  },
+});
+
+const planningAnswer = v.union(v.literal("needs_help"), v.literal("advice"), v.literal("confident"));
+const budgetAnswer = v.union(v.literal("free_no_plan"), v.literal("free_with_plan"), v.literal("budget_no_plan"), v.literal("budget_with_plan"));
+
+export const submitPlanningSurvey = internalMutation({
+  args: {
+    accessTokenHash: v.string(),
+    hosting: planningAnswer,
+    promotion: planningAnswer,
+    budget: budgetAnswer,
+  },
+  returns: v.object({ ok: v.boolean(), alreadySubmitted: v.boolean(), error: v.optional(v.string()) }),
+  handler: async (ctx, args) => {
+    const request = await ctx.db.query("mvpRequests").withIndex("by_access_token_hash", q => q.eq("accessTokenHash", args.accessTokenHash)).unique();
+    if (!request) return { ok: false, alreadySubmitted: false, error: "Заявка не найдена" };
+    if (request.planningSurveySubmittedAt) return { ok: true, alreadySubmitted: true };
+    const now = Date.now();
+    await ctx.db.patch(request._id, {
+      planningSurvey: { hosting: args.hosting, promotion: args.promotion, budget: args.budget },
+      planningSurveySubmittedAt: now,
+      updatedAt: now,
+    });
+    const planningLabels = {
+      needs_help: "Не в курсе, нужна помощь",
+      advice: "Есть примерное представление, не откажусь от совета",
+      confident: "Точно знаю, что буду делать",
+    } as const;
+    const budgetLabels = {
+      free_no_plan: "Только бесплатные варианты, плана нет",
+      free_with_plan: "Только бесплатные варианты, план есть",
+      budget_no_plan: "Есть бюджет, плана нет",
+      budget_with_plan: "Есть бюджет, есть план",
+    } as const;
+    await event(ctx, request.requestId, "planning_survey_completed", "once", [
+      `Размещение: ${planningLabels[args.hosting]}`,
+      `Продвижение: ${planningLabels[args.promotion]}`,
+      `Бюджет: ${budgetLabels[args.budget]}`,
+    ].join("\n"));
+    return { ok: true, alreadySubmitted: false };
   },
 });
 

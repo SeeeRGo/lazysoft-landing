@@ -23,7 +23,7 @@ export function setupSiteSubmission(form: HTMLFormElement, track: (name: string,
   }
   const method = (): ContactMethod => {
     const selected = form.querySelector<HTMLInputElement>('[name="contactMethod"]:checked')?.value;
-    return validContactMethod(selected) ? selected : "email";
+    return validContactMethod(selected) ? selected : "telegram";
   };
   const saveDraft = () => save(DRAFT, { idea: idea.value, contact: contact?.value || "", contactMethod: method() });
   form.addEventListener("input", saveDraft); form.addEventListener("change", saveDraft);

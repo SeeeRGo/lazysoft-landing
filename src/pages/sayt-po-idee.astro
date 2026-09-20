@@ -30,15 +30,15 @@ const description = "Опишите идею и оставьте контакт 
           <fieldset class="mvp-contact-choice">
             <legend>Куда прислать готовую версию? <b>*</b></legend>
             <div>
-              <label><input type="radio" name="contactMethod" value="email" checked /><span>Почта</span></label>
-              <label><input type="radio" name="contactMethod" value="telegram" /><span>Telegram</span></label>
+              <label><input type="radio" name="contactMethod" value="telegram" checked /><span>Telegram</span></label>
               <label><input type="radio" name="contactMethod" value="max" /><span>MAX</span></label>
+              <label><input type="radio" name="contactMethod" value="email" /><span>Почта</span></label>
             </div>
           </fieldset>
           <label class="mvp-request-field mvp-contact-field">
-            <span data-contact-label>Ваша почта <b>*</b></span>
-            <input type="email" name="contact" minlength="3" maxlength="200" autocomplete="email" placeholder="name@example.ru" data-contact-input required />
-            <small data-contact-hint>Напишу на этот адрес, когда версия будет готова.</small>
+            <span data-contact-label>Ваш Telegram <b>*</b></span>
+            <input type="text" name="contact" minlength="3" maxlength="200" autocomplete="off" placeholder="@username" data-contact-input required />
+            <small data-contact-hint>Укажите @username или ссылку на профиль.</small>
           </label>
           <p class="generator-contact-note">Контакт нужен для запуска генерации. Для Telegram и MAX оставьте username, телефон или ссылку на профиль — я напишу после проверки результата.</p>
         </div>

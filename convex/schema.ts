@@ -30,6 +30,12 @@ export default defineSchema({
     maxUserId: v.optional(v.string()),
     clientNotificationJobId: v.optional(v.id("requestJobs")),
     clientNotifiedAt: v.optional(v.number()),
+    planningSurvey: v.optional(v.object({
+      hosting: v.union(v.literal("needs_help"), v.literal("advice"), v.literal("confident")),
+      promotion: v.union(v.literal("needs_help"), v.literal("advice"), v.literal("confident")),
+      budget: v.union(v.literal("free_no_plan"), v.literal("free_with_plan"), v.literal("budget_no_plan"), v.literal("budget_with_plan")),
+    })),
+    planningSurveySubmittedAt: v.optional(v.number()),
     status: v.optional(
       v.union(
         v.literal("received"),

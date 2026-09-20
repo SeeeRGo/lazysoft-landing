@@ -796,7 +796,7 @@ async function handleRequestAutomation(request, response) {
     const accessToken = cleanText(body.accessToken, 100);
     if (!/^[A-Za-z0-9_-]{43}$/.test(accessToken)) return sendJson(response, 400, { error: "Неверная ссылка заявки" });
     const operation = body.operation;
-    if (!["summary", "action", "checkout", "download", "refresh-payment"].includes(operation)) return sendJson(response, 400, { error: "Неизвестное действие" });
+    if (!["summary", "action", "survey", "checkout", "download", "refresh-payment"].includes(operation)) return sendJson(response, 400, { error: "Неизвестное действие" });
     if (operation !== "summary" && !checkRateLimit(request)) return sendJson(response, 429, { error: "Слишком много запросов. Повторите позже." });
     const payload = { operation, accessTokenHash: tokenHash(accessToken) };
     if (operation === "action") {
@@ -812,6 +812,16 @@ async function handleRequestAutomation(request, response) {
       if (offerVariant) payload.offerVariant = offerVariant;
       if (body.contactMethod !== undefined) payload.contactMethod = cleanText(body.contactMethod, 20);
       if (body.contact !== undefined) payload.contact = cleanText(body.contact, 201);
+    }
+    if (operation === "survey") {
+      const planningAnswers = ["needs_help", "advice", "confident"];
+      const budgetAnswers = ["free_no_plan", "free_with_plan", "budget_no_plan", "budget_with_plan"];
+      if (!planningAnswers.includes(body.hosting) || !planningAnswers.includes(body.promotion) || !budgetAnswers.includes(body.budget)) {
+        return sendJson(response, 400, { error: "Ответьте на все три вопроса" });
+      }
+      payload.hosting = body.hosting;
+      payload.promotion = body.promotion;
+      payload.budget = body.budget;
     }
     if (operation === "checkout") payload.receiptEmail = cleanText(body.receiptEmail, 254);
     return sendJson(response, 200, await postToConvex("/request-automation", payload));

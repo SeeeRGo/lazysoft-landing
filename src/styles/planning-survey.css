@@ -1,0 +1,84 @@
+.planning-survey {
+  margin: 28px 0 8px;
+  padding: 24px;
+  border: 1px solid #9bb7ae;
+  border-radius: 16px;
+  background: #f8faf6;
+}
+
+.planning-survey-heading {
+  max-width: 60ch;
+  margin-bottom: 22px;
+}
+
+.planning-survey-heading > span {
+  color: #42675e;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.planning-survey-heading h3 {
+  margin: 6px 0 8px;
+  font: 650 clamp(21px, 3vw, 27px) / 1.25 var(--font-display, serif);
+}
+
+.planning-survey-heading p {
+  margin: 0;
+  color: #516e69;
+  font-size: 13px;
+}
+
+.planning-survey fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 18px 0;
+  border: 0;
+  border-top: 1px solid #cfdbd6;
+}
+
+.planning-survey legend {
+  padding: 0 0 12px;
+  color: #173d39;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.planning-survey label {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: start;
+  gap: 10px;
+  margin: 7px 0;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #334f49;
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.planning-survey label:hover { background: #edf3ef; }
+.planning-survey label:has(input:checked) { border-color: #2e7569; background: #e5f0eb; color: #173d39; }
+.planning-survey input { width: 16px; height: 16px; margin: 2px 0 0; accent-color: #176861; }
+.planning-survey input:focus-visible { outline: 2px solid #237f78; outline-offset: 3px; }
+
+.planning-survey-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 8px;
+}
+
+.planning-survey-actions p { margin: 0; color: #42675e; font-size: 12px; }
+.planning-survey-actions p.is-error { color: #9b3d27; }
+.planning-survey button:disabled { cursor: wait; opacity: .65; }
+.planning-survey-complete { margin: 24px 0 8px; padding: 14px 16px; border-left: 3px solid #2e7569; background: #edf3ef; color: #334f49; font-size: 13px; }
+
+@media (max-width: 560px) {
+  .planning-survey { padding: 18px 14px; }
+  .planning-survey label { padding: 9px 8px; }
+  .planning-survey-actions { align-items: stretch; flex-direction: column; }
+  .planning-survey-actions button { width: 100%; }
+}

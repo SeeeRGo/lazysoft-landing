@@ -49,7 +49,7 @@ if (form) {
   };
 
   function selectedMethod(): ContactMethod {
-    return (form!.querySelector<HTMLInputElement>("[name='contactMethod']:checked")?.value || (requestType === "mvp" ? "email" : "telegram")) as ContactMethod;
+    return (form!.querySelector<HTMLInputElement>("[name='contactMethod']:checked")?.value || "telegram") as ContactMethod;
   }
 
   function trackGoal(goal: string, params: Record<string, unknown> = {}) {

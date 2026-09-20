@@ -20,13 +20,18 @@ interface AutomationState {
   telegramBotUsername?: string;
   maxBotUsername?: string;
   messengerConnected?: boolean;
+  planningSurveySubmitted: boolean;
 }
 const section = document.querySelector<HTMLElement>("[data-automation]");
 const feedback = document.querySelector<HTMLElement>("[data-automation-feedback]");
 const demoFeedback = document.querySelector<HTMLElement>("[data-demo-feedback]");
 const siteOffer = document.querySelector<HTMLElement>("[data-site-offer]");
+const planningSurvey = document.querySelector<HTMLFormElement>("[data-planning-survey]");
+const planningSurveyStatus = document.querySelector<HTMLElement>("[data-planning-survey-status]");
+const planningSurveyComplete = document.querySelector<HTMLElement>("[data-planning-survey-complete]");
 let state: AutomationState | null = null;
 let busy = false;
+let surveyBusy = false;
 let viewed = false;
 let purchaseOpen = false;
 let contactInitialized = false;
@@ -81,6 +86,9 @@ function selectedDemoId() {
 function render() {
   if (!section || !state) return;
   section.dataset.phase = state.phase;
+  const generationActive = ["queued", "generating", "revision_queued", "revising"].includes(state.phase);
+  if (planningSurvey) planningSurvey.hidden = !generationActive || state.planningSurveySubmitted;
+  if (planningSurveyComplete) planningSurveyComplete.hidden = !generationActive || !state.planningSurveySubmitted;
   section.hidden = !state.demoOptions.length && ["queued", "generating", "revision_queued", "revising"].includes(state.phase);
   const labels = {
     queued: "Заявка в очереди. Здесь появится первая версия.", generating: "Готовим первую версию по вашей идее.",
@@ -176,6 +184,35 @@ document.querySelector<HTMLFormElement>("[data-revision-form]")?.addEventListene
   event.preventDefault();
   const form = event.currentTarget as HTMLFormElement;
   void action(async () => { await call("action", { kind: "revision_requested", text: String(new FormData(form).get("revision") ?? "") }); form.reset(); });
+});
+planningSurvey?.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (surveyBusy || state?.planningSurveySubmitted) return;
+  const form = event.currentTarget as HTMLFormElement;
+  if (!form.reportValidity()) return;
+  const data = new FormData(form);
+  const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+  surveyBusy = true;
+  if (submit) submit.disabled = true;
+  if (planningSurveyStatus) { planningSurveyStatus.textContent = "Сохраняем ответы…"; planningSurveyStatus.classList.remove("is-error"); }
+  try {
+    await call("survey", {
+      hosting: String(data.get("hosting") ?? ""),
+      promotion: String(data.get("promotion") ?? ""),
+      budget: String(data.get("budget") ?? ""),
+    });
+    if (state) state.planningSurveySubmitted = true;
+    trackPurchaseGoal("mvp_planning_survey_completed");
+    render();
+  } catch (error) {
+    if (planningSurveyStatus) {
+      planningSurveyStatus.textContent = error instanceof Error ? error.message : "Не удалось сохранить ответы";
+      planningSurveyStatus.classList.add("is-error");
+    }
+  } finally {
+    surveyBusy = false;
+    if (submit) submit.disabled = false;
+  }
 });
 document.querySelector("[data-accept-result]")?.addEventListener("click", () => { void action(async () => { await call("action", { kind: "accepted" }); }); });
 document.querySelectorAll<HTMLInputElement>('input[name="design-version"]').forEach(input => input.addEventListener("change", () => {

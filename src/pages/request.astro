@@ -6,6 +6,7 @@ import "../styles/site-generator.css";
 import "../styles/request-minimal.css";
 import "../styles/request-thread.css";
 import "../styles/waiting.css";
+import "../styles/planning-survey.css";
 import { isBudgetOffer, sourcePrice, setupPrice, totalPrice, price } from "../lib/site-offer";
 
 const title = "Страница заявки — Lazysoft";
@@ -44,6 +45,38 @@ const description = "Приватная страница заявки: гото�
           </details>
           <div class="wait-facts"><span>Прошло <strong data-work-elapsed>0:00</strong></span><span data-work-connection>Проверяем статус…</span></div>
           <div class="wait-aside"><small>Пока ждём</small><p data-work-joke></p></div>
+
+          <form class="planning-survey" data-planning-survey>
+            <div class="planning-survey-heading">
+              <span>Три коротких вопроса</span>
+              <h3>Что понадобится после создания сайта?</h3>
+              <p>Ответы не влияют на генерацию. Они помогут мне дать полезный совет по запуску.</p>
+            </div>
+            <fieldset>
+              <legend>1. Как планируете разместить сайт в общем доступе?</legend>
+              <label><input type="radio" name="hosting" value="needs_help" required /><span>Не в курсе, как это делать — нужна будет помощь</span></label>
+              <label><input type="radio" name="hosting" value="advice" /><span>Есть примерное представление, не откажусь посоветоваться со специалистом</span></label>
+              <label><input type="radio" name="hosting" value="confident" /><span>Точно знаю, что буду делать по этому вопросу</span></label>
+            </fieldset>
+            <fieldset>
+              <legend>2. Как планируете продвигать сайт?</legend>
+              <label><input type="radio" name="promotion" value="needs_help" required /><span>Не в курсе, как это делать — нужна будет помощь</span></label>
+              <label><input type="radio" name="promotion" value="advice" /><span>Есть примерное представление, не откажусь посоветоваться со специалистом</span></label>
+              <label><input type="radio" name="promotion" value="confident" /><span>Точно знаю, что буду делать по этому вопросу</span></label>
+            </fieldset>
+            <fieldset>
+              <legend>3. Что с бюджетом на сайт, размещение и продвижение?</legend>
+              <label><input type="radio" name="budget" value="free_no_plan" required /><span>Могу себе позволить только бесплатные варианты, плана нет</span></label>
+              <label><input type="radio" name="budget" value="free_with_plan" /><span>Могу себе позволить только бесплатные варианты, план есть</span></label>
+              <label><input type="radio" name="budget" value="budget_no_plan" /><span>Есть бюджет, плана нет</span></label>
+              <label><input type="radio" name="budget" value="budget_with_plan" /><span>Есть бюджет, есть план</span></label>
+            </fieldset>
+            <div class="planning-survey-actions">
+              <button type="submit">Отправить ответы</button>
+              <p data-planning-survey-status role="status" aria-live="polite"></p>
+            </div>
+          </form>
+          <p class="planning-survey-complete" data-planning-survey-complete hidden>Ответы сохранены. Спасибо — учту их, когда буду советовать варианты запуска.</p>
 
         </section>
         <section class="request-next-steps" data-automation hidden aria-label="Что дальше">
@@ -106,7 +139,7 @@ const description = "Приватная страница заявки: гото�
             <form class="purchase-contact" id="purchase-contact-form" data-purchase-contact>
               <label for="purchase-contact-method">Как связаться для согласования покупки?</label>
               <select id="purchase-contact-method" name="contactMethod">
-                <option value="telegram">Telegram</option><option value="email">Почта</option><option value="max">MAX</option>
+                <option value="telegram">Telegram</option><option value="max">MAX</option><option value="email">Почта</option>
               </select>
               <label for="purchase-contact">Ваш контакт</label>
               <input id="purchase-contact" name="contact" type="text" minlength="3" maxlength="200" required placeholder="@username или ссылка на профиль" autocomplete="off" />

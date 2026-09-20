@@ -14,6 +14,22 @@ it('deduplicates a lost response and concurrent retries by the pre-saved access 
  expect(await t.run(ctx=>ctx.db.query('requestJobs').take(10))).toHaveLength(1);
  const events=await t.run(ctx=>ctx.db.query('requestEvents').take(10));expect(events).toHaveLength(1);expect(events[0].kind).toBe('request_received');
 });
+it('stores the planning survey once, links it to the request and queues one owner notification',async()=>{
+ const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);
+ expect((await t.query(internal.automation.summary,{accessTokenHash:input.accessTokenHash}))?.planningSurveySubmitted).toBe(false);
+ const answers={accessTokenHash:input.accessTokenHash,hosting:'needs_help' as const,promotion:'advice' as const,budget:'free_with_plan' as const};
+ expect(await t.mutation(internal.automation.submitPlanningSurvey,answers)).toEqual({ok:true,alreadySubmitted:false});
+ expect(await t.mutation(internal.automation.submitPlanningSurvey,{...answers,budget:'budget_with_plan'})).toEqual({ok:true,alreadySubmitted:true});
+ const request=await t.run(ctx=>ctx.db.query('mvpRequests').withIndex('by_request_id',q=>q.eq('requestId',input.requestId)).unique());
+ expect(request?.planningSurvey).toEqual({hosting:'needs_help',promotion:'advice',budget:'free_with_plan'});
+ expect(request?.planningSurveySubmittedAt).toEqual(expect.any(Number));
+ expect((await t.query(internal.automation.summary,{accessTokenHash:input.accessTokenHash}))?.planningSurveySubmitted).toBe(true);
+ const events=await t.run(ctx=>ctx.db.query('requestEvents').take(10));
+ const surveyEvents=events.filter(event=>event.kind==='planning_survey_completed');
+ expect(surveyEvents).toHaveLength(1);
+ expect(surveyEvents[0].text).toContain('Размещение: Не в курсе, нужна помощь');
+ expect(surveyEvents[0].text).toContain('Бюджет: Только бесплатные варианты, план есть');
+});
 it('reports real stages, heartbeats and one start notification even after reclaim',async()=>{
  const t=convexTest(schema,modules);await t.mutation(internal.requests.store,input);
  expect((await t.query(internal.automation.summary,{accessTokenHash:input.accessTokenHash}))?.progress?.stage).toBe('queued');

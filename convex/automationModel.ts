@@ -23,6 +23,7 @@ export const clientEvent = v.union(
   v.literal("result_ready"), v.literal("generation_failed"),
   v.literal("client_notification_reminder"),
   v.literal("delivery_failed"), v.literal("messenger_connected"),
+  v.literal("planning_survey_completed"),
 );
 export const automationSummary = v.object({
   phase: automationPhase,
@@ -43,6 +44,7 @@ export const automationSummary = v.object({
   telegramBotUsername: v.optional(v.string()),
   maxBotUsername: v.optional(v.string()),
   messengerConnected: v.optional(v.boolean()),
+  planningSurveySubmitted: v.boolean(),
 });
 
 type ReviewState = { phase: string; revisionUsed: boolean; revisionCount?: number; accepted: boolean; paid?: boolean; demoOptions?: { id: string }[]; demoUrl?: string; sourceStorageId?: unknown };
