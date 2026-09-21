@@ -152,7 +152,7 @@ describe("RouterAI provider", () => {
       expect(body.structured_outputs).toBe(true);
       expect(body.tools).toBeUndefined();
       expect(body.stream).toBe(false);
-      expect(body.max_tokens).toBe(body.response_format.json_schema.name === "site_foundation" ? 20000 : 40000);
+      expect(body.max_tokens).toBe(50000);
       expect(body.reasoning_effort).toBe("low");
       expect(body.response_format.json_schema.strict).toBe(true);
       expect(body.messages[1].content).toContain("lazysoft-cms-v1");
@@ -347,7 +347,7 @@ describe("RouterAI provider", () => {
       }
       return response(phaseValue(generation(), init));
     });
-    expect(budgets).toEqual([20000, 40000, 60000]);
+    expect(budgets).toEqual([50000, 60000, 60000]);
     expect(generated.result.title).toBe("Мастерская");
   });
 
