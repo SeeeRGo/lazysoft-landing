@@ -226,6 +226,7 @@ export async function runOnce({ requestId, jobId } = {}) {
   let leaseLost = false;
   const lease = { jobId: job.jobId, leaseToken: job.leaseToken };
   let stage = "designing";
+  let foundationDiagnosticId;
   const reportStage = async value => { stage = value; if (!(await api("heartbeat", { ...lease, stage })).ok) throw new Error("Lease lost"); };
   const keepAlive = setInterval(async () => {
     try { if (!(await api("heartbeat", { ...lease, stage })).ok) { leaseLost = true; controller.abort(); } }
@@ -256,7 +257,15 @@ export async function runOnce({ requestId, jobId } = {}) {
       await cp(join(resume, "project"), project, { recursive: true });
       await copyFile(join(resume, "output", "result.json"), join(output, "result.json"));
     } else {
-      const generated = await generateRouterAI({ project, targetId, prompt: routeraiBrief(job), config, signal: controller.signal, onPhase: phase => console.log(`RouterAI ${job.jobId}: ${phase}`) });
+      const generated = await generateRouterAI({ project, targetId, prompt: routeraiBrief(job), config, signal: controller.signal, onPhase: phase => console.log(`RouterAI ${job.jobId}: ${phase}`), onFoundationRejected: async diagnostic => {
+        // Private Convex storage only; never put model responses in public demos.
+        try {
+          const path = join(work, `foundation-rejected-${diagnostic.attempt}.json`);
+          await writeFile(path, JSON.stringify(diagnostic), { mode: 0o600 });
+          foundationDiagnosticId = await upload(job, path, "application/json");
+          console.error(`Foundation rejected ${job.jobId}: ${diagnostic.error}; private diagnostic ${foundationDiagnosticId}`);
+        } catch { console.error(`Foundation diagnostic upload failed ${job.jobId}`); }
+      } });
       controller.signal.throwIfAborted();
       validateResult(generated.result, targetId);
       await writeGeneration(project, targetId, generated);
@@ -357,7 +366,8 @@ export async function runOnce({ requestId, jobId } = {}) {
         console.error(`Private worker diagnostic: ${diagnostic}`);
       } catch { /* Diagnostic failures must not prevent releasing the job. */ }
     }
-    await api("fail", { ...lease, error: error instanceof Error ? error.message : "Worker failed" }).catch(() => {});
+    const failure = error instanceof Error ? error.message : "Worker failed";
+    await api("fail", { ...lease, error: foundationDiagnosticId ? `${failure.slice(0, 800)}; private diagnostic ${foundationDiagnosticId}` : failure }).catch(() => {});
     throw error;
   } finally {
     clearInterval(keepAlive);

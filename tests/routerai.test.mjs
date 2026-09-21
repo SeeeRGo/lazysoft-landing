@@ -7,6 +7,7 @@ import { routeraiBrief, validateDemo, prepareRevisionWorkspace, assembleVersionB
 import { installDemoCms } from "../standalone/site-cms/package.mjs";
 import { checkCms } from "../automation/cms-check.mjs";
 import sharp from "sharp";
+import { validateImagePlan } from "../automation/routerai.mjs";
 
 const roots = [];
 it("uses Opus 5 for site code and keeps FLUX.2 Pro for images", () => {
@@ -54,6 +55,17 @@ async function run(fetchImpl, options = {}) { const project = await workspace();
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 
 describe("RouterAI provider", () => {
+  it("reports the exact invalid image-plan field and ignores SVG text outside image fields", () => {
+    const foundation = phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_foundation" } } }) });
+    const content = JSON.parse(foundation.cmsContent);
+    content.values.heading = "Reference diagram.svg";
+    foundation.cmsContent = JSON.stringify(content);
+    expect(() => validateImagePlan(foundation)).not.toThrow();
+    foundation.imagePlan[1].path = "assets/invalid.png";
+    expect(() => validateImagePlan(foundation)).toThrow("imagePlan[1].path must be");
+    foundation.imagePlan[1].path = "assets/unreferenced.jpg";
+    expect(() => validateImagePlan(foundation)).toThrow("referenced by a CMS field of type image");
+  });
   it("normalizes model collections missing editable text or image fields", () => {
     const foundation = phaseValue(generation(), { body: JSON.stringify({ response_format: { json_schema: { name: "site_foundation" } } }) });
     const generatedSchema = JSON.parse(foundation.cmsSchema);
@@ -178,17 +190,20 @@ describe("RouterAI provider", () => {
 
   it("allows two bounded foundation repairs to correct an invalid image plan", async () => {
     let repairCalls = 0;
+    const diagnostics = [];
     const value = generation();
     const fetchImpl = vi.fn(async (url, init) => {
       if (url.endsWith("/images")) return imageResponse();
       const name = JSON.parse(init.body).response_format.json_schema.name;
       if (name === "site_implementation") return response(phaseValue(value, init));
+      if (name === "site_foundation_repair") expect(JSON.parse(init.body).messages[1].content).toContain("imagePlan[0].path must be");
       const foundation = phaseValue(value, { ...init, body: JSON.stringify({ response_format: { json_schema: { name: "site_foundation" } } }) });
       if (name === "site_foundation" || (name === "site_foundation_repair" && ++repairCalls === 1)) foundation.imagePlan[0].path = "assets/invalid.png";
       return response(foundation);
     });
-    await expect(run(fetchImpl, { imageRetryBaseMs: 0 })).resolves.toBeTruthy();
+    await expect(run(fetchImpl, { imageRetryBaseMs: 0, onFoundationRejected: async diagnostic => diagnostics.push(diagnostic) })).resolves.toBeTruthy();
     expect(repairCalls).toBe(2);
+    expect(diagnostics.map(item => item.attempt)).toEqual([0, 1]);
   });
 
   it("retries an incomplete image response and accepts a safe JPEG data URI", async () => {

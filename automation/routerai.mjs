@@ -67,8 +67,9 @@ export function normalizeCmsFoundation(foundation) {
   return changed ? { ...foundation, cmsSchema: JSON.stringify(schema), cmsContent: JSON.stringify(content) } : foundation;
 }
 
-function validateImagePlan(foundation) {
-  if (!Array.isArray(foundation.imagePlan) || foundation.imagePlan.length < 3 || foundation.imagePlan.length > 4) throw new Error("Invalid RouterAI image plan");
+export function validateImagePlan(foundation) {
+  const fail = reason => { throw new Error(`Invalid RouterAI image plan (${reason})`); };
+  if (!Array.isArray(foundation.imagePlan) || foundation.imagePlan.length < 3 || foundation.imagePlan.length > 4) fail("imagePlan must contain 3 or 4 images");
   const schema = validateSchema(JSON.parse(foundation.cmsSchema));
   const content = validateContent(schema, JSON.parse(foundation.cmsContent));
   const cmsImages = new Set([
@@ -76,11 +77,18 @@ function validateImagePlan(foundation) {
     ...schema.collections.flatMap(collection => content.items[collection.key].flatMap(row => collection.fields.filter(field => field.type === "image").map(field => row[field.key]))),
   ].filter(Boolean));
   const seen = new Set();
-  for (const image of foundation.imagePlan) {
-    if (!objectKeys(image, ["path", "prompt", "aspectRatio"]) || !/^assets\/[a-z0-9][a-z0-9-]{0,50}\.jpg$/.test(image.path) || typeof image.prompt !== "string" || image.prompt.length < 40 || image.prompt.length > 1200 || !["1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "21:9"].includes(image.aspectRatio) || seen.has(image.path) || !cmsImages.has(image.path)) throw new Error("Invalid RouterAI image plan");
+  for (const [index, image] of foundation.imagePlan.entries()) {
+    const field = `imagePlan[${index}]`;
+    if (!objectKeys(image, ["path", "prompt", "aspectRatio"])) fail(`${field} must contain exactly path, prompt, aspectRatio`);
+    if (typeof image.path !== "string" || !/^assets\/[a-z0-9][a-z0-9-]{0,50}\.jpg$/.test(image.path)) fail(`${field}.path must be assets/<lowercase-letters-digits-hyphens>.jpg, basename max 51 characters`);
+    if (typeof image.prompt !== "string" || image.prompt.length < 40 || image.prompt.length > 1200) fail(`${field}.prompt must contain 40 to 1200 characters`);
+    if (!["1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "21:9"].includes(image.aspectRatio)) fail(`${field}.aspectRatio must be 1:1, 4:3, 3:4, 3:2, 2:3, 16:9, 9:16 or 21:9`);
+    if (seen.has(image.path)) fail(`${field}.path duplicates an earlier planned image`);
+    if (!cmsImages.has(image.path)) fail(`${field}.path must be referenced by a CMS field of type image, not just a text or URL field`);
     seen.add(image.path);
   }
-  if (cmsImages.size < 3 || /\.svg(?:["'])/i.test(foundation.cmsContent)) throw new Error("Invalid RouterAI image plan");
+  if (cmsImages.size < 3) fail("CMS image fields must reference at least 3 distinct raster paths");
+  if ([...cmsImages].some(path => /\.svg(?:$|[?#])/i.test(path))) fail("CMS image fields must use raster images instead of SVG");
 }
 
 export function routeraiConfig(env = process.env) {
@@ -361,7 +369,7 @@ function validJpegBase64(encoded) {
   return data.length >= 10 * 1024 && data.length <= LIMITS.imageBytes && data[0] === 0xff && data[1] === 0xd8 && data.at(-2) === 0xff && data.at(-1) === 0xd9;
 }
 
-export async function generateRouterAI({ project, targetId, prompt, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, imageRetryBaseMs = 2000, chatRetryBaseMs = 5000, onPhase = () => {} }) {
+export async function generateRouterAI({ project, targetId, prompt, config = routeraiConfig(), fetchImpl = fetch, signal, timeoutMs = LIMITS.timeoutMs, imageRetryBaseMs = 2000, chatRetryBaseMs = 5000, onPhase = () => {}, onFoundationRejected = async () => {} }) {
   const context = await generationContext({ project, targetId, prompt });
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -430,6 +438,7 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
       foundation = normalizeCmsFoundation(foundation);
       try { validateCmsStrings(foundation.cmsSchema, foundation.cmsContent); validateImagePlan(foundation); }
       catch (initialError) {
+        await onFoundationRejected({ foundation, error: initialError.message, attempt: 0 });
         let repairError = initialError;
         for (let repairAttempt = 0; repairAttempt < 2; repairAttempt += 1) {
           onPhase("foundation-repair");
@@ -447,7 +456,7 @@ export async function generateRouterAI({ project, targetId, prompt, config = rou
             validateImagePlan(foundation);
             repairError = null;
             break;
-          } catch (error) { repairError = error; }
+          } catch (error) { repairError = error; await onFoundationRejected({ foundation, error: error.message, attempt: repairAttempt + 1 }); }
         }
         if (repairError) throw repairError;
       }
