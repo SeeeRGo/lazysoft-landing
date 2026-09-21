@@ -9,8 +9,8 @@ import { checkCms } from "../automation/cms-check.mjs";
 import sharp from "sharp";
 
 const roots = [];
-it("uses Sonnet 5 for site code and keeps FLUX.2 Pro for images", () => {
-  expect(DEFAULT_ROUTERAI_MODEL).toBe("anthropic/claude-sonnet-5");
+it("uses Opus 5 for site code and keeps FLUX.2 Pro for images", () => {
+  expect(DEFAULT_ROUTERAI_MODEL).toBe("anthropic/claude-opus-5");
   expect(DEFAULT_ROUTERAI_IMAGE_MODEL).toBe("black-forest-labs/flux.2-pro");
 });
 const config = { apiKey: "test-provider-credential-not-for-output", model: DEFAULT_ROUTERAI_MODEL, imageModel: DEFAULT_ROUTERAI_IMAGE_MODEL };

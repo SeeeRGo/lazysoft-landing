@@ -3,7 +3,7 @@ import { readFile, readdir, lstat, mkdir, open } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { validateSchema, validateContent } from "../standalone/site-cms/model.mjs";
 
-export const DEFAULT_ROUTERAI_MODEL = "anthropic/claude-sonnet-5";
+export const DEFAULT_ROUTERAI_MODEL = "anthropic/claude-opus-5";
 export const DEFAULT_ROUTERAI_IMAGE_MODEL = "black-forest-labs/flux.2-pro";
 export const DEFAULT_ROUTERAI_FALLBACK_IMAGE_MODEL = "bytedance-seed/seedream-4.5";
 export const LIMITS = Object.freeze({ files: 80, fileBytes: 256 * 1024, totalBytes: 1024 * 1024, imageBytes: 5 * 1024 * 1024, totalImageBytes: 20 * 1024 * 1024, responseBytes: 8 * 1024 * 1024, contextBytes: 768 * 1024, timeoutMs: 15 * 60_000 });
