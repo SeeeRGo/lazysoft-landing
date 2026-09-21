@@ -289,11 +289,14 @@ async function responseJson(response, signal) {
 }
 
 async function requestPhase({ config, fetchImpl, signal, name, schema, maxTokens, messages, retryBaseMs = 5000 }) {
-  const body = JSON.stringify({ model: config.model, stream: false, max_tokens: maxTokens, reasoning_effort: "low", structured_outputs: true, response_format: { type: "json_schema", json_schema: { name, strict: true, schema } }, messages });
-  if (config.apiKey && body.includes(config.apiKey)) throw new Error("Credential found in generation context");
+  let tokenBudget = maxTokens;
+  let truncated = false;
   let lastError;
   for (let attempt = 0; attempt < 5; attempt += 1) {
     signal.throwIfAborted();
+    const retryMessages = truncated ? [...messages, { role: "user", content: "Your previous response was truncated by the output limit. Return a complete valid JSON object from the beginning. Use compact JSON and concise descriptions; no explanations or repeated prose. Preserve existing client content and all required fields. Do not include HTML, CSS or JavaScript in CMS foundation data. Do not expand example catalogs unnecessarily." }] : messages;
+    const body = JSON.stringify({ model: config.model, stream: false, max_tokens: tokenBudget, reasoning_effort: "low", structured_outputs: true, response_format: { type: "json_schema", json_schema: { name, strict: true, schema } }, messages: retryMessages });
+    if (config.apiKey && body.includes(config.apiKey)) throw new Error("Credential found in generation context");
     let retryAfterMs = 0;
     try {
       let response;
@@ -307,6 +310,14 @@ async function requestPhase({ config, fetchImpl, signal, name, schema, maxTokens
       const envelope = await responseJson(response, signal);
       if (envelope.error) throw new Error("RouterAI upstream error");
       const choice = envelope.choices?.[0];
+      if (choice?.finish_reason === "length") {
+        const usedBudget = tokenBudget;
+        truncated = true;
+        tokenBudget = Math.min(60000, tokenBudget + 20000);
+        const usage = envelope.usage;
+        const count = value => Number.isSafeInteger(value) && value >= 0 ? value : "unknown";
+        throw new Error(`Incomplete RouterAI generation (${name}; finish=length; max_tokens=${usedBudget}; completion_tokens=${count(usage?.completion_tokens)}; reasoning_tokens=${count(usage?.completion_tokens_details?.reasoning_tokens)})`);
+      }
       if (envelope.choices?.length !== 1 || choice?.finish_reason !== "stop" || choice.message?.tool_calls?.length || choice.message?.refusal || typeof choice.message?.content !== "string") throw new Error(`Incomplete RouterAI generation (${name}; finish=${String(choice?.finish_reason)})`);
       if (config.apiKey && choice.message.content.includes(config.apiKey)) throw new Error("Credential found in generated output");
       let generated;

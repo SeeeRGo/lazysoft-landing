@@ -335,6 +335,22 @@ describe("RouterAI provider", () => {
     await expect(run(fetchImpl)).resolves.toBeTruthy();
     expect(calls).toBe(4);
   });
+  it("increases the output budget and requests compact complete JSON after truncation", async () => {
+    const budgets = [];
+    const generated = await run(async (url, init) => {
+      if (url.endsWith("/images")) return imageResponse();
+      const body = JSON.parse(init.body);
+      if (body.response_format.json_schema.name === "site_foundation") {
+        budgets.push(body.max_tokens);
+        if (budgets.length < 3) return response("{", "length");
+        expect(body.messages.at(-1).content).toContain("Preserve existing client content");
+      }
+      return response(phaseValue(generation(), init));
+    });
+    expect(budgets).toEqual([20000, 40000, 60000]);
+    expect(generated.result.title).toBe("Мастерская");
+  });
+
   it.each(["length", "content_filter", "tool_calls", null])("rejects incomplete finish reason %s", async finish => {
     await expect(run(async () => response(generation(), finish))).rejects.toThrow("Incomplete RouterAI generation");
   });
